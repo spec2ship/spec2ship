@@ -12,6 +12,21 @@ version: 0.1.0
 
 ISO 25010 defines a product quality model with 8 characteristics and 31 sub-characteristics. This skill helps structure requirements to ensure comprehensive quality coverage.
 
+## When to Use This Skill
+
+- Defining project requirements
+- Specifying quality goals
+- Creating acceptance criteria
+- Reviewing requirement completeness
+- Prioritizing quality characteristics
+
+## Core Concepts
+
+- **8 Quality Characteristics**: Functional Suitability, Performance, Compatibility, Usability, Reliability, Security, Maintainability, Portability
+- **FR vs NFR**: Functional Requirements (what it does) vs Non-Functional Requirements (how well it does it)
+- **Measurable Criteria**: Every requirement needs quantifiable acceptance criteria
+- **Traceability**: Requirements link to tests, implementations, and decisions
+
 ## Quality Characteristics Quick Reference
 
 | Characteristic | Sub-characteristics | Key Questions |
@@ -103,14 +118,6 @@ NFR-SEC-001          Security requirement
 - [ ] Failed login attempts are rate-limited
 - [ ] No sensitive data in URLs or logs
 ```
-
-## When to Use This Skill
-
-- Defining project requirements
-- Specifying quality goals
-- Creating acceptance criteria
-- Reviewing requirement completeness
-- Prioritizing quality characteristics
 
 ## Integration with S2S
 

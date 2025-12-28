@@ -12,6 +12,21 @@ version: 0.1.0
 
 Conventional Commits is a specification for adding human and machine readable meaning to commit messages. This skill provides patterns for consistent, informative commit messages.
 
+## When to Use This Skill
+
+- Writing commit messages for changes
+- Formatting commits for changelog generation
+- Indicating breaking changes
+- Referencing issues in commits
+- Following team commit conventions
+
+## Core Concepts
+
+- **Type**: Category of change (feat, fix, docs, etc.)
+- **Scope**: Optional area affected (auth, api, ui)
+- **Breaking Change**: Indicated by `!` or `BREAKING CHANGE` footer
+- **Machine Readable**: Enables automated changelog and versioning
+
 ## Format
 
 ```

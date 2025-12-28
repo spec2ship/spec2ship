@@ -12,6 +12,21 @@ version: 0.1.0
 
 MADR (Markdown Any Decision Records) is a lean template for recording decisions. This skill provides patterns for documenting architectural and technical decisions in a consistent, reviewable format.
 
+## When to Use This Skill
+
+- Making significant technical decisions
+- Choosing between alternatives
+- Documenting constraints and trade-offs
+- Recording decisions for future reference
+- During Roundtable convergence
+
+## Core Concepts
+
+- **Context-Decision-Consequences**: Every ADR captures why, what, and impact
+- **Alternatives Considered**: Document rejected options to prevent revisiting
+- **Status Lifecycle**: proposed → accepted → deprecated/superseded
+- **Immutability**: ADRs are append-only; supersede rather than modify
+
 ## MADR Template
 
 ```markdown
@@ -141,14 +156,6 @@ Implement event-driven architecture using message queue for async operations.
 - Eventual consistency
 - Debugging is harder
 ```
-
-## When to Use This Skill
-
-- Making significant technical decisions
-- Choosing between alternatives
-- Documenting constraints and trade-offs
-- Recording decisions for future reference
-- During Roundtable convergence
 
 ## Integration with S2S
 

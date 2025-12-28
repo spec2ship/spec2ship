@@ -12,6 +12,21 @@ version: 0.1.0
 
 arc42 is a template for architecture documentation. This skill provides patterns and structure for documenting software architecture in a standardized, stakeholder-friendly way.
 
+## When to Use This Skill
+
+- Creating initial architecture documentation
+- Documenting component boundaries
+- Describing system interfaces
+- Recording architectural decisions
+- Communicating with stakeholders
+
+## Core Concepts
+
+- **12 Sections**: arc42 organizes architecture into 12 standardized sections covering context, building blocks, runtime, deployment, and quality
+- **Decomposition Levels**: Systems decompose into Context (L0) → Containers (L1) → Components (L2)
+- **Black/White Box**: External view (interfaces only) vs internal view (structure revealed)
+- **Stakeholder Focus**: Documentation tailored for different audiences (developers, operators, business)
+
 ## arc42 Sections Quick Reference
 
 | # | Section | Purpose | When to Use |
@@ -83,14 +98,6 @@ Level 2: Component View (per container)
 |-----------|-------|--------|-------------|
 | {name} | {type} | {type} | {description} |
 ```
-
-## When to Use This Skill
-
-- Creating initial architecture documentation
-- Documenting component boundaries
-- Describing system interfaces
-- Recording architectural decisions
-- Communicating with stakeholders
 
 ## References
 

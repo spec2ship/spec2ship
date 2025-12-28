@@ -85,13 +85,15 @@ Roundtable is our unique multi-agent discussion system. Pattern:
 
 ### SAD-003: Agent Tiers
 
-Following wshobson/agents pattern, assign model tiers by complexity:
+Assign model tiers based on task criticality. Use `inherit` as default for flexibility:
 
 | Tier | Model | Use Case | Examples |
 |------|-------|----------|----------|
-| **Critical** | opus | Architecture decisions, security | software-architect, security-reviewer |
-| **Complex** | sonnet | Analysis, code review | codebase-analyzer, plan-validator |
-| **Fast** | haiku | Simple checks, formatting | spec-formatter, branch-checker |
+| **Critical** | opus | Architecture decisions, final consensus | facilitator |
+| **Default** | inherit | Most agents - inherits user's model choice | roundtable/*, exploration/* |
+| **Fast** | haiku | Simple validation, formatting checks | validators |
+
+**Rationale**: `inherit` provides flexibility - users choose the model based on their needs. For complex tasks, users can select a more capable model (e.g., opus). This avoids hardcoding model assumptions.
 
 ### SAD-004: Skill Progressive Disclosure
 

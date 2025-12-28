@@ -9,7 +9,7 @@ argument-hint: "plan-id"
 ## Context
 
 - Project type: !`[ -f ".s2s/config.yaml" ] && echo "standalone" || ([ -f ".s2s/workspace.yaml" ] && echo "workspace" || ([ -f ".s2s/component.yaml" ] && echo "component" || echo "NOT_S2S"))`
-- Available plans: !`ls .s2s/plans/*.md 2>/dev/null | xargs -I {} basename {} .md || echo "NO_PLANS"`
+- Available plans: !`(ls .s2s/plans/*.md 2>/dev/null | xargs -I {} basename {} .md) || echo "NO_PLANS"`
 - Current plan: !`grep "current_plan:" .s2s/state.yaml 2>/dev/null | cut -d: -f2 | tr -d ' "' || echo "none"`
 - Current git branch: !`git branch --show-current 2>/dev/null || echo "unknown"`
 - Git status clean: !`[ -z "$(git status --porcelain 2>/dev/null)" ] && echo "clean" || echo "dirty"`

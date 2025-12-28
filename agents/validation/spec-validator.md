@@ -5,7 +5,7 @@ description: "Use this agent when user asks to 'validate specifications', 'check
   completeness, consistency, and adherence to standards (ISO 25010, arc42).
   Example: 'Are our specifications complete and consistent?'"
 model: haiku
-color: green
+color: red
 tools: ["Read", "Glob"]
 ---
 

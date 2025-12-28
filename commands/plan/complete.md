@@ -11,7 +11,7 @@ argument-hint: [--merge] [--no-delete-branch]
 - Current plan: !`grep "current_plan:" .s2s/state.yaml 2>/dev/null | cut -d: -f2 | tr -d ' "' || echo "none"`
 - Git status clean: !`[ -z "$(git status --porcelain 2>/dev/null)" ] && echo "clean" || echo "dirty"`
 - Current branch: !`git branch --show-current 2>/dev/null || echo "unknown"`
-- Default branch: !`git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main"`
+- Default branch: !`(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@') || echo "main"`
 
 ## Instructions
 

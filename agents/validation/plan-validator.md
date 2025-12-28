@@ -5,7 +5,7 @@ description: "Use this agent when user asks to 'validate a plan', 'check plan co
   completeness, feasibility, and alignment with project standards.
   Example: 'Is this plan ready for execution?'"
 model: haiku
-color: green
+color: red
 tools: ["Read", "Glob"]
 ---
 

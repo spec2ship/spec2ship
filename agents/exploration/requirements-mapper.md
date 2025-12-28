@@ -5,7 +5,7 @@ description: "Use this agent when user asks to 'map requirements to code', 'find
   Maps requirements to existing code, identifies gaps, and traces feature coverage across the codebase.
   Example: 'Which requirements from the spec are already implemented?'"
 model: inherit
-color: cyan
+color: yellow
 tools: ["Read", "Glob", "Grep"]
 ---
 

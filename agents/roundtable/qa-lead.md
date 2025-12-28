@@ -5,7 +5,7 @@ description: "Use this agent when user asks to 'review testing strategy', 'ident
   roundtable sessions. Provides quality perspective on testing strategy, edge cases, and
   risk mitigation. Example: 'What edge cases should we test for this feature?'"
 model: inherit
-color: yellow
+color: red
 tools: ["Read", "Glob", "Grep"]
 ---
 

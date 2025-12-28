@@ -6,7 +6,7 @@ description: "Use this agent when user asks to 'analyze the codebase', 'understa
   Example: 'How is authentication implemented in this codebase?'"
 model: inherit
 color: yellow
-tools: ["Read", "Glob", "Grep", "Bash"]
+tools: ["Read", "Glob", "Grep"]
 ---
 
 # Codebase Analyzer

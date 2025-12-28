@@ -5,7 +5,7 @@ description: "Use this agent when user asks to 'review deployment strategy', 'as
   roundtable sessions. Provides operations perspective on deployment, infrastructure, monitoring,
   and reliability. Example: 'How should we deploy and monitor this service?'"
 model: inherit
-color: red
+color: blue
 tools: ["Read", "Glob", "Grep"]
 ---
 
