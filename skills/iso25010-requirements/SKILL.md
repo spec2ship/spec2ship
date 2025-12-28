@@ -1,12 +1,14 @@
 ---
 name: ISO 25010 Requirements Structure
-description: This skill provides ISO 25010 quality model patterns for requirements. Activate when user needs to define quality requirements, non-functional requirements, or quality characteristics.
+description: "This skill should be used when the user asks to 'define quality requirements',
+  'write non-functional requirements', 'structure NFRs', 'apply ISO 25010', 'specify quality characteristics'.
+  Provides ISO 25010 quality model patterns for comprehensive requirements coverage."
 version: 0.1.0
 ---
 
 # ISO 25010 Requirements Structure
 
-## Overview
+## Purpose
 
 ISO 25010 defines a product quality model with 8 characteristics and 31 sub-characteristics. This skill helps structure requirements to ensure comprehensive quality coverage.
 
@@ -102,7 +104,7 @@ NFR-SEC-001          Security requirement
 - [ ] No sensitive data in URLs or logs
 ```
 
-## When to Apply
+## When to Use This Skill
 
 - Defining project requirements
 - Specifying quality goals

@@ -1,12 +1,14 @@
 ---
 name: MADR Decision Records
-description: This skill provides MADR (Markdown Any Decision Records) patterns. Activate when user needs to create ADRs, document decisions, or record architectural choices.
+description: "This skill should be used when the user asks to 'create ADR', 'document decision',
+  'record architectural choice', 'write decision record', 'capture technical decision'.
+  Provides MADR templates and patterns for consistent decision documentation."
 version: 0.1.0
 ---
 
 # MADR Decision Records
 
-## Overview
+## Purpose
 
 MADR (Markdown Any Decision Records) is a lean template for recording decisions. This skill provides patterns for documenting architectural and technical decisions in a consistent, reviewable format.
 
@@ -140,7 +142,7 @@ Implement event-driven architecture using message queue for async operations.
 - Debugging is harder
 ```
 
-## When to Apply
+## When to Use This Skill
 
 - Making significant technical decisions
 - Choosing between alternatives

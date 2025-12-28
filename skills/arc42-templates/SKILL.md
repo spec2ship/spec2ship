@@ -1,12 +1,14 @@
 ---
 name: arc42 Architecture Templates
-description: This skill provides arc42 architecture documentation patterns. Activate when user needs to document architecture, create component diagrams, or structure technical documentation.
+description: "This skill should be used when the user asks to 'document architecture', 'create arc42 section',
+  'design component structure', 'write building blocks view', 'create context diagram'.
+  Provides arc42 templates and patterns for standardized architecture documentation."
 version: 0.1.0
 ---
 
 # arc42 Architecture Templates
 
-## Overview
+## Purpose
 
 arc42 is a template for architecture documentation. This skill provides patterns and structure for documenting software architecture in a standardized, stakeholder-friendly way.
 
@@ -82,7 +84,7 @@ Level 2: Component View (per container)
 | {name} | {type} | {type} | {description} |
 ```
 
-## When to Apply
+## When to Use This Skill
 
 - Creating initial architecture documentation
 - Documenting component boundaries

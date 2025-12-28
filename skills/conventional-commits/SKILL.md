@@ -1,12 +1,14 @@
 ---
 name: Conventional Commits
-description: This skill provides Conventional Commits patterns. Activate when user needs to create commits, write commit messages, or follow git conventions.
+description: "This skill should be used when the user asks to 'write commit message', 'create conventional commit',
+  'format git commit', 'follow commit conventions', 'structure commit message'.
+  Provides Conventional Commits patterns for consistent, machine-readable commit messages."
 version: 0.1.0
 ---
 
 # Conventional Commits
 
-## Overview
+## Purpose
 
 Conventional Commits is a specification for adding human and machine readable meaning to commit messages. This skill provides patterns for consistent, informative commit messages.
 
