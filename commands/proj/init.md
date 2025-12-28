@@ -1,7 +1,7 @@
 ---
 description: Initialize a Spec2Ship project. Use --workspace for parent directory, --workspace-hub for stack repo, --component to link to workspace.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(git:*), Read, Write, Glob, Grep, TodoWrite, AskUserQuestion
-argument-hint: [--workspace | --workspace-hub | --component]
+argument-hint: [--workspace | --workspace-hub | --component [path]]
 ---
 
 # Initialize Spec2Ship Project
@@ -14,7 +14,6 @@ argument-hint: [--workspace | --workspace-hub | --component]
 - S2S config: !`ls .s2s/config.yaml`
 - S2S workspace: !`ls .s2s/workspace.yaml`
 - S2S component: !`ls .s2s/component.yaml`
-- Parent workspace: !`ls ../.s2s/workspace.yaml`
 - Subdirectories: !`ls -d */`
 
 ---
@@ -26,7 +25,6 @@ Based on the context output above, determine:
 - **Directory name**: Extract the last segment from the `pwd` output
 - **Is git repo**: If `ls -d .git` succeeded (no error) → "yes", otherwise → "no"
 - **S2S already initialized**: If `ls -d .s2s` succeeded → "yes", otherwise → "no"
-- **Parent has workspace**: If `ls ../.s2s/workspace.yaml` succeeded → "yes", otherwise → "no"
 - **Subdirs with git**: Check which subdirectories have a `.git` folder by examining the Subdirectories output
 
 ---
@@ -37,11 +35,12 @@ Goal: Parse arguments and determine initialization type.
 
 Actions:
 1. Check $ARGUMENTS for flags:
-   - **(no flags)**: Standalone project
+   - **(no flags)**: Standalone project (but will ask about workspace relationship)
    - **--workspace**: Parent directory workspace
    - **--workspace-hub**: Stack repo as workspace hub
-   - **--component**: Component linking to workspace
-2. Store the selected mode for subsequent phases.
+   - **--component [path]**: Component linking to workspace (path is optional)
+2. If `--component` is present, extract the optional path argument that follows it.
+3. Store the selected mode and workspace path (if any) for subsequent phases.
 
 ---
 
@@ -54,8 +53,26 @@ Actions:
    - Warn user that .s2s/ already exists
    - Ask if they want to reinitialize using AskUserQuestion
    - If user declines, stop execution
-2. For standalone/workspace modes: if not a git repo, suggest "git init" but allow continuing
-3. For component mode: verify workspace can be located (parent or sibling)
+
+2. For standalone mode (no flags):
+   - Ask user using AskUserQuestion: "Is this project part of a workspace?"
+     - Options: "No, standalone project" / "Yes, it's a component of a workspace"
+   - If user selects "Yes, it's a component":
+     - Ask for the workspace path using AskUserQuestion
+     - Switch mode to "component" with the provided path
+   - If user selects "No, standalone": continue with standalone mode
+
+3. For workspace/workspace-hub modes:
+   - If not a git repo, suggest "git init" but allow continuing
+
+4. For component mode:
+   - If workspace path was NOT provided in $ARGUMENTS:
+     - Ask user for workspace path using AskUserQuestion
+     - Provide examples: "../workspace", "/absolute/path/to/workspace"
+   - Validate the workspace path:
+     - Use Read tool to check if {workspace-path}/.s2s/workspace.yaml exists
+     - If not found, report error and ask for correct path
+   - Store the validated workspace path for Phase 4
 
 ---
 
@@ -194,11 +211,11 @@ Same as workspace but:
 - type: "workspace-hub" in workspace.yaml
 - Component paths use "../" prefix
 
-### Mode: Component (--component)
+### Mode: Component (--component [path])
 
-If parent has workspace is "no":
-- Search sibling directories for workspace-hub
-- If not found, ask user for workspace path using AskUserQuestion
+The workspace path is obtained from:
+1. The path argument after `--component` (e.g., `--component ../my-workspace`)
+2. Or by asking the user during Phase 2 if not provided
 
 **Structure**:
 
@@ -212,10 +229,15 @@ If parent has workspace is "no":
 
     name: "{directory-name}"
     workspace:
-      type: "{parent-directory | peer-repo}"
-      path: "{relative-path-to-workspace}"
+      path: "{workspace-path}"  # as provided by user (relative or absolute)
 
-**CLAUDE.md**: Content referencing workspace context.
+**CLAUDE.md**: Content referencing workspace context:
+
+    # {Project Name}
+
+    This is a component of workspace at {workspace-path}.
+
+    @{workspace-path}/.s2s/CONTEXT.md
 
 ---
 

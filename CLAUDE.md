@@ -213,22 +213,29 @@ argument-hint: "topic" [--branch]
 
 Context commands (prefixed with `!`) gather environment information before Instructions execute.
 
-**Critical Limitation**: Claude Code blocks ALL shell operators in context commands for security:
-- NO pipes: `|`
-- NO logical operators: `&&`, `||`
-- NO subshells: `()`
-- NO redirects: `>`, `2>`
-- NO command substitution: `$()`
+**Critical Limitations**: Claude Code enforces security restrictions on context commands:
 
-**Rule: Use ONLY single, simple commands**
+1. **Shell operators blocked**:
+   - NO pipes: `|`
+   - NO logical operators: `&&`, `||`
+   - NO subshells: `()`
+   - NO redirects: `>`, `2>`
+   - NO command substitution: `$()`
 
-| Correct | Incorrect |
-|---------|-----------|
-| `!`git status`` | `!`git status \| grep something`` |
-| `!`ls .s2s/config.yaml`` | `!`test -f .s2s/config.yaml && echo yes`` |
-| `!`cat .s2s/state.yaml`` | `!`grep "key:" file \| cut -d: -f2`` |
-| `!`pwd`` | `!`pwd \| xargs basename`` |
-| `!`git branch --show-current`` | `!`git branch --show-current \|\| echo "unknown"`` |
+2. **Directory access restricted**:
+   - Context commands can ONLY access files within the allowed working directories
+   - Accessing parent directories (`../`) or absolute paths outside the workspace is blocked
+   - If you need to reference external paths, ask the user for the path and use the Read tool to validate it
+
+**Rule: Use ONLY single, simple commands within the working directory**
+
+| Correct | Incorrect | Reason |
+|---------|-----------|--------|
+| `!`git status`` | `!`git status \| grep something`` | No pipes |
+| `!`ls .s2s/config.yaml`` | `!`test -f .s2s/config.yaml && echo yes`` | No operators |
+| `!`cat .s2s/state.yaml`` | `!`grep "key:" file \| cut -d: -f2`` | No pipes |
+| `!`pwd`` | `!`pwd \| xargs basename`` | No pipes |
+| `!`ls ./subdir/`` | `!`ls ../.s2s/workspace.yaml`` | No parent access |
 
 **Pattern: Move Logic to Instructions**
 
@@ -790,6 +797,7 @@ Common mistakes when writing plugin components:
 | Anti-Pattern | Problem | Correct Approach |
 |--------------|---------|------------------|
 | Using shell operators in context | `\|`, `&&`, `\|\|`, `()` blocked | Single commands only |
+| Accessing parent directories in context | `../` paths blocked by sandbox | Ask user for path, validate with Read tool |
 | Complex logic in context | Can't conditionally output | Move logic to Interpret Context section |
 | Bash code blocks as pseudo-code | Claude executes them literally | Use prose instructions |
 | Goal/Action in simple commands | Over-engineering, adds noise | Direct step-by-step instructions |
