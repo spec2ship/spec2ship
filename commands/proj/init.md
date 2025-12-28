@@ -9,23 +9,23 @@ argument-hint: [--workspace | --workspace-hub | --component [path]]
 ## Context
 
 - Current directory: !`pwd`
-- Git directory: !`ls -d .git`
-- S2S directory: !`ls -d .s2s`
-- S2S config: !`ls .s2s/config.yaml`
-- S2S workspace: !`ls .s2s/workspace.yaml`
-- S2S component: !`ls .s2s/component.yaml`
 - Directory contents: !`ls -la`
 
 ---
 
 ## Interpret Context
 
-Based on the context output above, determine:
+Based on the Directory contents output, determine:
 
 - **Directory name**: Extract the last segment from the `pwd` output
-- **Is git repo**: If `ls -d .git` succeeded (no error) → "yes", otherwise → "no"
-- **S2S already initialized**: If `ls -d .s2s` succeeded → "yes", otherwise → "no"
-- **Subdirectories**: From `ls -la` output, identify entries starting with `d` (directories) excluding `.` and `..`
+- **Is git repo**: If `.git` directory appears in listing → "yes", otherwise → "no"
+- **S2S already initialized**: If `.s2s` directory appears in listing → "yes", otherwise → "no"
+- **Subdirectories**: Entries starting with `d` (directories) excluding `.` and `..`
+
+If S2S is initialized, use the Read tool to check `.s2s/` contents and determine project type:
+- `config.yaml` exists → standalone
+- `workspace.yaml` exists → workspace
+- `component.yaml` exists → component
 
 ---
 
