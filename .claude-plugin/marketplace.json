@@ -1,0 +1,16 @@
+{
+  "$schema": "https://code.claude.com/schemas/marketplace.json",
+  "name": "spec2ship",
+  "owner": {
+    "name": "Spec2Ship",
+    "email": "hello@spec2ship.dev"
+  },
+  "plugins": [
+    {
+      "name": "s2s",
+      "source": ".",
+      "description": "AI-assisted development framework for the full software lifecycle",
+      "version": "0.1.0"
+    }
+  ]
+}

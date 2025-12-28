@@ -1,0 +1,35 @@
+# Spec2Ship Workspace Configuration
+# This file is created by /s2s:proj:init --workspace or --workspace-hub
+
+name: "{workspace-name}"
+type: "workspace"                       # or "workspace-hub" for stack repo pattern
+
+# Shared documentation location
+shared_docs:
+  path: "./docs"                        # Relative to this file
+
+# Git workflow configuration
+git:
+  branch_convention: "feature/F{id}-{slug}"
+  commit_convention: "conventional"
+  default_branch: "main"
+
+# Roundtable configuration
+roundtable:
+  default_scope: "workspace"            # workspace | component
+  default_participants:
+    - software-architect
+    - technical-lead
+  strategy: "round-robin"
+
+# Documentation paths
+docs:
+  architecture: "docs/architecture"
+  specifications: "docs/specifications"
+  decisions: "docs/decisions"
+  guides: "docs/guides"
+
+# File naming
+naming:
+  timestamp_format: "YYYYMMDD-HHMMSS"
+  slug_max_length: 50

@@ -1,0 +1,32 @@
+# Spec2Ship Component Registry
+# This file tracks all components in the workspace
+
+components: []
+
+# Example component entries:
+#
+# components:
+#   - name: "component-a"
+#     path: "./component-a"              # Relative to workspace root
+#     type: "service"                     # service | library | tool | docs
+#     description: "Description of component purpose"
+#     implements:                         # Requirements this component implements
+#       - "FR-CORE-*"
+#       - "NFR-PERF-001"
+#     dependencies:                       # Other components this depends on
+#       - "component-b"
+#     status: "active"                    # active | planned | deprecated
+#
+#   - name: "component-b"
+#     path: "./component-b"
+#     type: "library"
+#     description: "Shared library"
+#     implements:
+#       - "FR-SHARED-*"
+#     dependencies: []
+#     status: "active"
+
+# Add components using:
+#   /s2s:workspace:add-component
+#
+# Or manually edit this file following the format above.

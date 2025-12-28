@@ -1,0 +1,35 @@
+# Spec2Ship Project Configuration
+# This file is created by /s2s:proj:init
+
+name: "{project-name}"
+type: "standalone"
+version: "0.1.0"
+
+# Git workflow configuration
+git:
+  branch_convention: "feature/F{id}-{slug}"
+  commit_convention: "conventional"
+  default_branch: "main"
+
+# Roundtable configuration
+roundtable:
+  default_participants:
+    - software-architect
+    - technical-lead
+  strategy: "round-robin"           # round-robin | speak-when-relevant | facilitator-led
+  human_in_loop:
+    - business_priority
+    - unresolved_tradeoff
+    - security_decision
+
+# Documentation paths
+docs:
+  architecture: "docs/architecture"
+  specifications: "docs/specifications"
+  decisions: "docs/decisions"
+  guides: "docs/guides"
+
+# File naming
+naming:
+  timestamp_format: "YYYYMMDD-HHMMSS"
+  slug_max_length: 50
