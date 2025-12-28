@@ -44,3 +44,6 @@ temp/
 # S2S local state (not part of plugin distribution)
 .s2s/state.yaml
 .s2s/sessions/
+
+# Local archive (development notes, test suites, etc.)
+.archive/
