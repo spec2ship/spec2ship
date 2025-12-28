@@ -1,6 +1,6 @@
 ---
 description: Initialize a Spec2Ship project. Use --workspace for parent directory, --workspace-hub for stack repo, --component to link to workspace.
-allowed-tools: Bash(mkdir:*), Bash(git:*), Bash(ls:*), Read, Write, Glob, Grep, TodoWrite, AskUserQuestion
+allowed-tools: Bash(mkdir:*), Bash(git:*), Bash(ls:*), Bash(test:*), Bash(basename:*), Bash(sed:*), Bash(head:*), Bash(echo:*), Read, Write, Glob, Grep, TodoWrite, AskUserQuestion
 argument-hint: [--workspace | --workspace-hub | --component]
 ---
 
@@ -9,10 +9,10 @@ argument-hint: [--workspace | --workspace-hub | --component]
 ## Context
 
 - Current directory: !`basename "$(pwd)"`
-- Is git repo: !`[ -d ".git" ] && echo "yes" || echo "no"`
-- S2S already initialized: !`[ -d ".s2s" ] && echo "yes" || echo "no"`
-- Parent has workspace: !`[ -f "../.s2s/workspace.yaml" ] && echo "yes" || echo "no"`
-- Subdirectories with git: !`for d in */; do [ -d "$d/.git" ] && echo "$d"; done 2>/dev/null | tr -d '/' | head -5 || echo "none"`
+- Is git repo: !`test -d ".git" && echo "yes" || echo "no"`
+- S2S already initialized: !`test -d ".s2s" && echo "yes" || echo "no"`
+- Parent has workspace: !`test -f "../.s2s/workspace.yaml" && echo "yes" || echo "no"`
+- Subdirectories with git: !`(ls -d */.git 2>/dev/null | sed 's|/.git||' | head -5) || echo "none"`
 
 ---
 

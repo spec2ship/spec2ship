@@ -1,6 +1,6 @@
 ---
 description: List all implementation plans with their status.
-allowed-tools: Bash(ls:*), Bash(cat:*), Bash(grep:*), Read, Glob, Grep
+allowed-tools: Bash(ls:*), Bash(cat:*), Bash(grep:*), Bash(cut:*), Bash(tr:*), Bash(echo:*), Read, Glob, Grep
 argument-hint: [--status planning|active|completed|blocked]
 ---
 
@@ -9,7 +9,7 @@ argument-hint: [--status planning|active|completed|blocked]
 ## Context
 
 - Plans directory contents: !`ls .s2s/plans/*.md 2>/dev/null || echo "NO_PLANS"`
-- Current active plan: !`grep "current_plan:" .s2s/state.yaml 2>/dev/null | cut -d: -f2 | tr -d ' "' || echo "none"`
+- Current active plan: !`(grep "current_plan:" .s2s/state.yaml 2>/dev/null | cut -d: -f2 | tr -d ' "') || echo "none"`
 
 ## Instructions
 

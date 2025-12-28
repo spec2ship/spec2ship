@@ -1,6 +1,6 @@
 ---
 description: Mark the current implementation plan as completed. Optionally merge the branch.
-allowed-tools: Bash(git:*), Bash(grep:*), Read, Write, Edit, TodoWrite, AskUserQuestion
+allowed-tools: Bash(git:*), Bash(grep:*), Bash(test:*), Bash(cut:*), Bash(tr:*), Bash(sed:*), Bash(echo:*), Read, Write, Edit, TodoWrite, AskUserQuestion
 argument-hint: [--merge] [--no-delete-branch]
 ---
 
@@ -8,8 +8,8 @@ argument-hint: [--merge] [--no-delete-branch]
 
 ## Context
 
-- Current plan: !`grep "current_plan:" .s2s/state.yaml 2>/dev/null | cut -d: -f2 | tr -d ' "' || echo "none"`
-- Git status clean: !`[ -z "$(git status --porcelain 2>/dev/null)" ] && echo "clean" || echo "dirty"`
+- Current plan: !`(grep "current_plan:" .s2s/state.yaml 2>/dev/null | cut -d: -f2 | tr -d ' "') || echo "none"`
+- Git status clean: !`test -z "$(git status --porcelain 2>/dev/null)" && echo "clean" || echo "dirty"`
 - Current branch: !`git branch --show-current 2>/dev/null || echo "unknown"`
 - Default branch: !`(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@') || echo "main"`
 

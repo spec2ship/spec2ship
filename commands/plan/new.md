@@ -1,6 +1,6 @@
 ---
 description: Create a new implementation plan. Use --branch to also create a git feature branch.
-allowed-tools: Bash(date:*), Bash(mkdir:*), Bash(git:*), Bash(wc:*), Read, Write, Glob, Edit, TodoWrite, AskUserQuestion
+allowed-tools: Bash(date:*), Bash(mkdir:*), Bash(git:*), Bash(wc:*), Bash(test:*), Bash(tr:*), Bash(echo:*), Read, Write, Glob, Edit, TodoWrite, AskUserQuestion
 argument-hint: "topic" [--branch]
 ---
 
@@ -8,12 +8,12 @@ argument-hint: "topic" [--branch]
 
 ## Context
 
-- Project type: !`[ -f ".s2s/config.yaml" ] && echo "standalone" || ([ -f ".s2s/workspace.yaml" ] && echo "workspace" || ([ -f ".s2s/component.yaml" ] && echo "component" || echo "NOT_S2S"))`
+- Project type: !`test -f ".s2s/config.yaml" && echo "standalone" || (test -f ".s2s/workspace.yaml" && echo "workspace" || (test -f ".s2s/component.yaml" && echo "component" || echo "NOT_S2S"))`
 - Current timestamp: !`date +"%Y%m%d-%H%M%S"`
 - ISO timestamp: !`date -u +"%Y-%m-%dT%H:%M:%SZ"`
 - Existing feature branches: !`(git branch --list 'feature/F*' 2>/dev/null | wc -l | tr -d ' ') || echo "0"`
-- Git status clean: !`[ -z "$(git status --porcelain 2>/dev/null)" ] && echo "clean" || echo "dirty"`
-- Plans directory exists: !`[ -d ".s2s/plans" ] && echo "yes" || echo "no"`
+- Git status clean: !`test -z "$(git status --porcelain 2>/dev/null)" && echo "clean" || echo "dirty"`
+- Plans directory exists: !`test -d ".s2s/plans" && echo "yes" || echo "no"`
 
 ## Instructions
 

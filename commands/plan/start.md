@@ -1,6 +1,6 @@
 ---
 description: Start working on an implementation plan. Switches to the plan's branch and marks it as active.
-allowed-tools: Bash(git:*), Bash(ls:*), Read, Write, Edit, Glob, TodoWrite, AskUserQuestion
+allowed-tools: Bash(git:*), Bash(ls:*), Bash(test:*), Bash(grep:*), Bash(xargs:*), Bash(basename:*), Bash(cut:*), Bash(tr:*), Bash(echo:*), Read, Write, Edit, Glob, TodoWrite, AskUserQuestion
 argument-hint: "plan-id"
 ---
 
@@ -8,11 +8,11 @@ argument-hint: "plan-id"
 
 ## Context
 
-- Project type: !`[ -f ".s2s/config.yaml" ] && echo "standalone" || ([ -f ".s2s/workspace.yaml" ] && echo "workspace" || ([ -f ".s2s/component.yaml" ] && echo "component" || echo "NOT_S2S"))`
+- Project type: !`test -f ".s2s/config.yaml" && echo "standalone" || (test -f ".s2s/workspace.yaml" && echo "workspace" || (test -f ".s2s/component.yaml" && echo "component" || echo "NOT_S2S"))`
 - Available plans: !`(ls .s2s/plans/*.md 2>/dev/null | xargs -I {} basename {} .md) || echo "NO_PLANS"`
-- Current plan: !`grep "current_plan:" .s2s/state.yaml 2>/dev/null | cut -d: -f2 | tr -d ' "' || echo "none"`
+- Current plan: !`(grep "current_plan:" .s2s/state.yaml 2>/dev/null | cut -d: -f2 | tr -d ' "') || echo "none"`
 - Current git branch: !`git branch --show-current 2>/dev/null || echo "unknown"`
-- Git status clean: !`[ -z "$(git status --porcelain 2>/dev/null)" ] && echo "clean" || echo "dirty"`
+- Git status clean: !`test -z "$(git status --porcelain 2>/dev/null)" && echo "clean" || echo "dirty"`
 
 ## Instructions
 
