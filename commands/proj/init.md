@@ -54,16 +54,20 @@ Actions:
    - Ask if they want to reinitialize using AskUserQuestion
    - If user declines, stop execution
 
-2. For standalone mode (no flags):
+2. **Git repository check** (for all modes except component):
+   - If NOT a git repo:
+     - Ask user using AskUserQuestion: "Initialize git repository?"
+       - Options: "Yes, initialize git" / "No, skip git init"
+     - If user selects "Yes": run `git init` automatically
+     - If user selects "No": continue without git (warn that some features may be limited)
+
+3. For standalone mode (no flags):
    - Ask user using AskUserQuestion: "Is this project part of a workspace?"
      - Options: "No, standalone project" / "Yes, it's a component of a workspace"
    - If user selects "Yes, it's a component":
      - Ask for the workspace path using AskUserQuestion
      - Switch mode to "component" with the provided path
    - If user selects "No, standalone": continue with standalone mode
-
-3. For workspace/workspace-hub modes:
-   - If not a git repo, suggest "git init" but allow continuing
 
 4. For component mode:
    - If workspace path was NOT provided in $ARGUMENTS:
@@ -245,12 +249,18 @@ The workspace path is obtained from:
 
     Spec2Ship initialized successfully!
 
+    Project: {directory-name}
     Type: {standalone | workspace | workspace-hub | component}
-    Config: .s2s/{config|workspace|component}.yaml
-    Context: .s2s/CONTEXT.md
-    Docs: docs/
 
-    Next steps:
-    - Review configuration in .s2s/*.yaml
-    - Define requirements in docs/specifications/requirements.md
-    - Start planning: /s2s:plan:new "feature name"
+    Created:
+    - .s2s/{config|workspace|component}.yaml
+    - .s2s/CONTEXT.md
+    - docs/ (specifications, architecture, decisions, guides)
+
+    What's next?
+
+    For a quick task or feature:
+      /s2s:plan:new "feature name"
+
+    For a new project that needs requirements gathering:
+      (coming soon: /s2s:context to gather project context and requirements)
