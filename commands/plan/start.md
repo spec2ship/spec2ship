@@ -10,15 +10,13 @@ argument-hint: "plan-id"
 
 - Current directory: !`pwd`
 - Directory contents: !`ls -la`
-- Current branch: !`git branch --show-current`
-- Git status: !`git status --porcelain`
 
 ## Interpret Context
 
 Based on the context output above, determine:
 
 - **S2S initialized**: If `.s2s` directory appears in Directory contents → "yes", otherwise → "NOT_S2S"
-- **Git status clean**: If Git status output is empty → "clean", otherwise → "dirty"
+- **Is git repo**: If `.git` directory appears in Directory contents → "yes", otherwise → "no"
 
 If S2S is initialized, use Read tool to:
 - Read `.s2s/state.yaml` to get current_plan value
@@ -32,6 +30,18 @@ If S2S is initialized, use Read tool to:
 If project type is "NOT_S2S", display error and stop:
 
     Error: Not an s2s project. Run /s2s:proj:init first.
+
+### Gather git information (if git repo)
+
+If "Is git repo" is "yes", use Bash tool to gather:
+1. Run `git branch --show-current` to get current branch name
+   - Store result: **Current branch**
+2. Run `git status --porcelain` to check for uncommitted changes
+   - Store result: **Git status clean** = "clean" if output is empty, otherwise "dirty"
+
+If "Is git repo" is "no":
+- **Current branch** = "N/A"
+- **Git status clean** = "N/A"
 
 ### Find the plan
 
@@ -59,9 +69,13 @@ Read .s2s/plans/{plan-id}.md and extract:
 
 ### Pre-flight checks for branch switch
 
-If branch name is not "N/A":
-1. Check if branch exists: git branch --list {branch}
-2. If git status is "dirty", warn user and ask confirmation
+If branch name (from plan file) is not "N/A":
+1. If "Is git repo" is "no":
+   - Display warning: "Plan has branch '{branch}' but this is not a git repository. Branch switch skipped."
+   - Continue without branch operations
+2. If "Is git repo" is "yes":
+   - Check if branch exists: `git branch --list {branch}`
+   - If "Git status clean" is "dirty", warn user and ask confirmation
 
 ### Confirm with user
 
@@ -72,7 +86,8 @@ Present summary and ask for confirmation:
 
 ### Activate the plan
 
-1. If branch exists and not already on it: git checkout {branch}
+1. If branch exists and "Is git repo" is "yes" and not already on target branch:
+   - Run `git checkout {branch}`
 2. Update the plan file:
    - Change Status from "planning" to "active"
    - Update the "**Updated**:" timestamp to current ISO time

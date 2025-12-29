@@ -12,16 +12,13 @@ argument-hint: "topic" [--branch]
 - Directory contents: !`ls -la`
 - Current timestamp: !`date +"%Y%m%d-%H%M%S"`
 - ISO timestamp: !`date -u +"%Y-%m-%dT%H:%M:%SZ"`
-- Feature branches: !`git branch --list 'feature/F*'`
-- Git status: !`git status --porcelain`
 
 ## Interpret Context
 
 Based on the context output above, determine:
 
 - **S2S initialized**: If `.s2s` directory appears in Directory contents → "yes", otherwise → "NOT_S2S"
-- **Existing feature branches count**: Count the lines in Feature branches output (0 if empty)
-- **Git status clean**: If Git status output is empty → "clean", otherwise → "dirty"
+- **Is git repo**: If `.git` directory appears in Directory contents → "yes", otherwise → "no"
 
 If S2S is initialized, use Read tool to:
 - Check `.s2s/` contents to determine project type (config.yaml/workspace.yaml/component.yaml)
@@ -34,6 +31,18 @@ If S2S is initialized, use Read tool to:
 If project type is "NOT_S2S", display this message and stop:
 
     Error: Not an s2s project. Run /s2s:proj:init first.
+
+### Gather git information (if git repo)
+
+If "Is git repo" is "yes", use Bash tool to gather:
+1. Run `git status --porcelain` to check for uncommitted changes
+   - Store result: **Git status clean** = "clean" if output is empty, otherwise "dirty"
+2. Run `git branch --list 'feature/F*'` to count existing feature branches
+   - Store result: **Existing feature branches count** = number of lines (0 if empty)
+
+If "Is git repo" is "no":
+- **Git status clean** = "N/A"
+- **Existing feature branches count** = 0
 
 ### Parse arguments
 
@@ -59,9 +68,13 @@ If --branch flag is present:
 
 If plans directory does not exist, create it using Bash mkdir.
 
-If --branch flag and git status is "dirty":
-- Warn user about uncommitted changes
-- Ask if they want to proceed using AskUserQuestion
+If --branch flag is present:
+1. If "Is git repo" is "no":
+   - Display error: "Cannot create branch: not a git repository. Initialize git first or omit --branch flag."
+   - Stop execution
+2. If "Git status clean" is "dirty":
+   - Warn user about uncommitted changes
+   - Ask if they want to proceed using AskUserQuestion
 
 ### Confirm with user
 

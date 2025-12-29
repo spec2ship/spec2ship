@@ -10,20 +10,16 @@ argument-hint: [--merge] [--no-delete-branch]
 
 - Current directory: !`pwd`
 - Directory contents: !`ls -la`
-- Git status: !`git status --porcelain`
-- Current branch: !`git branch --show-current`
 
 ## Interpret Context
 
 Based on the context output above, determine:
 
 - **S2S initialized**: If `.s2s` directory appears in Directory contents → "yes", otherwise → "NOT_S2S"
-- **Git status clean**: If Git status output is empty → "clean", otherwise → "dirty"
+- **Is git repo**: If `.git` directory appears in Directory contents → "yes", otherwise → "no"
 
 If S2S is initialized, use Read tool to:
 - Read `.s2s/state.yaml` to get current_plan value
-
-To get default branch, use Bash: `git symbolic-ref refs/remotes/origin/HEAD` (default to "main" if fails)
 
 ## Instructions
 
@@ -35,6 +31,22 @@ If current plan is "none", display this message and stop:
 
     Use /s2s:plan:list to see available plans.
     Use /s2s:plan:start "plan-id" to activate a plan.
+
+### Gather git information (if git repo)
+
+If "Is git repo" is "yes", use Bash tool to gather:
+1. Run `git status --porcelain` to check for uncommitted changes
+   - Store result: **Git status clean** = "clean" if output is empty, otherwise "dirty"
+2. Run `git branch --show-current` to get current branch name
+   - Store result: **Current branch**
+3. Run `git symbolic-ref refs/remotes/origin/HEAD` to get default branch
+   - Store result: **Default branch** (extract branch name from output)
+   - If command fails (no remote), default to "main"
+
+If "Is git repo" is "no":
+- **Git status clean** = "N/A"
+- **Current branch** = "N/A"
+- **Default branch** = "N/A"
 
 ### Read plan file
 
@@ -68,19 +80,27 @@ Present summary and ask for confirmation:
 
 If --merge flag is present:
 
-1. If git status is "dirty":
+1. If "Is git repo" is "no":
+   - Display error: "Cannot merge: not a git repository."
+   - Stop execution
+
+2. If plan's branch is "N/A":
+   - Display error: "Cannot merge: plan has no associated branch."
+   - Stop execution
+
+3. If "Git status clean" is "dirty":
    - Warn user and ask them to commit first
    - Stop if they don't want to commit
 
-2. Checkout default branch: git checkout {default-branch}
+4. Checkout default branch: `git checkout {default-branch}`
 
-3. Pull latest: git pull origin {default-branch}
+5. Pull latest: `git pull origin {default-branch}`
 
-4. Merge feature branch: git merge {branch}
+6. Merge feature branch: `git merge {branch}`
    - If merge conflict, report and stop (user must resolve manually)
 
-5. If --no-delete-branch NOT present:
-   - Delete the feature branch: git branch -d {branch}
+7. If --no-delete-branch NOT present:
+   - Delete the feature branch: `git branch -d {branch}`
 
 ### Update plan file
 

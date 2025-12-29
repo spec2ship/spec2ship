@@ -239,12 +239,14 @@ Context commands (prefixed with `!`) gather environment information before Instr
 |--------------|----------|-------------|
 | `!`pwd`` | | |
 | `!`ls -la`` | `!`ls .s2s/config.yaml`` | Check in ls -la output |
-| `!`git status --porcelain`` | | |
-| `!`git branch --show-current`` | | |
-| `!`git branch --list 'pattern'`` | | Returns empty if no match |
 | `!`date +"%Y%m%d"`` | | |
+| | `!`git status --porcelain`` | Use Bash in Instructions (fails if not git repo) |
+| | `!`git branch --show-current`` | Use Bash in Instructions (fails if not git repo) |
+| | `!`git branch --list 'pattern'`` | Use Bash in Instructions (fails if not git repo) |
 | | `!`cat .s2s/state.yaml`` | Use Read tool in Instructions |
 | | `!`ls ../.s2s/workspace.yaml`` | Ask user for path |
+
+**Important**: Git commands in context will fail with `fatal: not a git repository` if the directory is not a git repo. Always check for `.git` in `ls -la` output first, then run git commands conditionally in Instructions.
 
 **Pattern: Move Logic to Instructions**
 
@@ -253,17 +255,43 @@ Context gathers raw data, an "Interpret Context" section analyzes it:
 ```markdown
 ## Context
 
-- Config file: !`ls .s2s/config.yaml`
-- Git status: !`git status --porcelain`
-- State file: !`cat .s2s/state.yaml`
+- Directory contents: !`ls -la`
 
 ## Interpret Context
 
 Based on the context output above, determine:
 
-- **Project initialized**: If "ls .s2s/config.yaml" succeeded → yes
-- **Git status clean**: If Git status output is empty → clean, otherwise → dirty
-- **Current plan**: Extract `current_plan:` value from State file content
+- **S2S initialized**: If `.s2s` appears in Directory contents → yes
+- **Is git repo**: If `.git` appears in Directory contents → yes
+
+If S2S is initialized, use Read tool to check `.s2s/state.yaml` for current_plan.
+```
+
+**Git-Safe Pattern**
+
+Git commands must NOT be in Context because they fail if the directory is not a git repo. Use this pattern:
+
+```markdown
+## Context
+
+- Directory contents: !`ls -la`
+
+## Interpret Context
+
+- **Is git repo**: If `.git` appears in Directory contents → "yes", otherwise → "no"
+
+## Instructions
+
+### Gather git information (if git repo)
+
+If "Is git repo" is "yes", use Bash tool to gather:
+1. Run `git status --porcelain` to check for uncommitted changes
+2. Run `git branch --show-current` to get current branch
+3. Store results for subsequent steps
+
+If "Is git repo" is "no":
+- Set git-related values to "N/A"
+- Skip git operations or display appropriate error
 ```
 
 **Common Context Patterns**
@@ -276,31 +304,36 @@ Based on the context output above, determine:
 | `Bash(git:*)` | Git operations | `git status --porcelain` |
 | `Bash(date:*)` | Get timestamps | `date +"%Y%m%d-%H%M%S"` |
 
-**Example - Correct Context Section**:
+**Example - Correct Context Section** (Git-Safe):
 
 ```markdown
 ## Context
 
 - Current directory: !`pwd`
 - Directory contents: !`ls -la`
-- Git status: !`git status --porcelain`
-- Current branch: !`git branch --show-current`
+- Current timestamp: !`date +"%Y%m%d-%H%M%S"`
 
 ## Interpret Context
 
 Based on the context output above, determine:
 
 - **Directory name**: Extract the last segment from the pwd output
-- **Git status clean**: If Git status output is empty → clean
 - **S2S initialized**: If `.s2s` appears in Directory contents → yes
+- **Is git repo**: If `.git` appears in Directory contents → yes
 
 If S2S is initialized, use Read tool to check project type and state.
+
+## Instructions
+
+### Gather git information (if git repo)
+
+If "Is git repo" is "yes", use Bash tool to run git commands.
 ```
 
 With corresponding `allowed-tools`:
 
 ```yaml
-allowed-tools: Bash(pwd:*), Bash(git:*), Bash(ls:*), Read, Write
+allowed-tools: Bash(pwd:*), Bash(date:*), Bash(git:*), Bash(ls:*), Read, Write
 ```
 
 ---
@@ -809,6 +842,7 @@ Common mistakes when writing plugin components:
 | Using shell operators in context | `\|`, `&&`, `\|\|`, `()` blocked | Single commands only |
 | Accessing parent directories in context | `../` paths blocked by sandbox | Ask user for path, validate with Read tool |
 | Commands that can fail in context | `ls file`, `cat file` fail if missing | Use `ls -la` + interpret, or Read tool |
+| **Git commands in context** | Fail with `fatal: not a git repository` | Check `.git` in ls output, run git in Instructions |
 | Complex logic in context | Can't conditionally output | Move logic to Interpret Context section |
 | Bash code blocks as pseudo-code | Claude executes them literally | Use prose instructions |
 | Goal/Action in simple commands | Over-engineering, adds noise | Direct step-by-step instructions |
@@ -854,6 +888,39 @@ Common mistakes when writing plugin components:
 | ADR | `YYYYMMDD-HHMMSS-slug.md` | `20241228-100000-api-versioning.md` |
 | Branch | `feature/F{NN}-slug` | `feature/F01-user-auth` |
 | Session | `YYYYMMDD-HHMMSS-topic` | `20241228-150000-auth-strategy` |
+
+### Command Structure Convention
+
+s2s uses **subfolders** for command organization instead of Anthropic's flat pattern. This provides better organization for larger projects.
+
+**Pattern**: `commands/{category}/{operation}.md` → `/s2s:{category}:{operation}`
+
+**Rule**: **Subcommands = operations** (what to do), **Flags = configuration** (how to do it)
+
+```
+OPERATIONS (different actions) → subcommands (separate files in subfolder)
+  /s2s:roundtable:list      → commands/roundtable/list.md
+  /s2s:roundtable:start     → commands/roundtable/start.md
+  /s2s:roundtable:resume    → commands/roundtable/resume.md
+
+CONFIGURATION (modifiers) → flags
+  /s2s:roundtable:list --status active
+  /s2s:plan:list --status completed
+  /s2s:plan:new "topic" --branch
+```
+
+**Correct vs Incorrect**:
+
+| Correct | Incorrect | Reason |
+|---------|-----------|--------|
+| `/s2s:roundtable:list` | `/s2s:roundtable --list` | `list` is an operation, not config |
+| `/s2s:plan:list --status active` | `/s2s:plan:list:active` | `status` is a filter, not operation |
+| `/s2s:roundtable:resume <id>` | `/s2s:roundtable --resume <id>` | `resume` is an operation |
+
+**Rationale**: This deviates from Anthropic's flat pattern (`commands/*.md`) for:
+- Better organization for projects with many commands
+- Consistency with existing s2s structure
+- Similarity to Claude Flow hierarchical pattern
 
 ---
 
