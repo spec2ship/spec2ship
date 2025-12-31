@@ -1,5 +1,5 @@
 # Spec2Ship Workspace Configuration
-# This file is created by /s2s:proj:init --workspace or --workspace-hub
+# This file is created by /s2s:init --workspace
 
 name: "{workspace-name}"
 type: "workspace"                       # or "workspace-hub" for stack repo pattern

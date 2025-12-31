@@ -29,7 +29,7 @@ If S2S is initialized, use Read tool to:
 
 If S2S initialized is "NOT_S2S", display this message and stop:
 
-    Error: Not an s2s project. Run /s2s:proj:init first.
+    Error: Not an s2s project. Run /s2s:init first.
 
 ### Check prerequisites
 
@@ -39,7 +39,7 @@ If CONTEXT.md is still a template (contains placeholder text like "{Project desc
 
     Error: Project context not defined.
 
-    Run /s2s:discover first to gather project context,
+    Run /s2s:init first to set up the project and gather context,
     then run /s2s:specs to define requirements.
 
 ### Check for existing requirements
@@ -273,8 +273,8 @@ Display completion message:
 
     Next steps:
 
-    Define technical architecture:
-      /s2s:tech
+    Design technical architecture:
+      /s2s:design
 
     Or start implementing (skip architecture):
-      /s2s:plan:new "feature name"
+      /s2s:plan:create "feature name"

@@ -31,7 +31,7 @@ Component registry from components.yaml
 
 | Command | Description |
 |---------|-------------|
-| `/s2s:proj:status` | Show workspace status |
+| `/s2s:init:detect` | Show workspace status |
 | `/s2s:workspace:add-component` | Add component to registry |
 | `/s2s:workspace:sync` | Sync context across components |
 

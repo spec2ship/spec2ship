@@ -6,17 +6,18 @@ AI-assisted development framework for the full software lifecycle — from speci
 
 Spec2Ship automates software development workflows using Claude Code:
 
-- **Discover**: Understand requirements through guided exploration
-- **Spec**: Define requirements and architecture via multi-agent roundtable discussions
-- **Plan**: Create structured implementation plans
-- **Ship**: Execute plans with automated git workflows
+- **Init**: Analyze and configure your project with smart detection
+- **Brainstorm**: Creative ideation with multi-agent roundtables
+- **Spec**: Define requirements through collaborative discussions
+- **Design**: Create architecture with expert perspectives
+- **Plan**: Generate and execute implementation plans
 
 ## Features
 
-- **Workflow-Driven Development**: Structured phases from discovery to implementation
+- **Smart Initialization**: Detects existing project structure and adapts accordingly
 - **Roundtable Discussions**: Multi-agent discussions with 5 facilitation strategies
-- **Implementation Plans**: Single-file plans that reference global specs
-- **Multi-Repo Support**: Workspace and component coordination across repositories
+- **Creative Brainstorming**: Disney strategy (Dreamer → Realist → Critic)
+- **Implementation Plans**: Structured plans with task tracking
 - **Standards-Based**: Templates based on arc42, ISO 25010, MADR
 
 ## Installation
@@ -32,34 +33,43 @@ Spec2Ship automates software development workflows using Claude Code:
 ## Workflow
 
 ```
-┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
-│ discover│ ─► │  specs  │ ─► │  tech   │ ─► │  impl   │
-│         │    │         │    │         │    │         │
-│ Explore │    │ Define  │    │ Design  │    │ Execute │
-│ problem │    │ what    │    │ how     │    │ plan    │
-└─────────┘    └─────────┘    └─────────┘    └─────────┘
+┌──────────────┐     ┌──────────────┐     ┌──────────┐
+│     init     │ ──► │  brainstorm  │ ──► │   specs  │
+│              │     │  (optional)  │     │          │
+│ Analyze &    │     │ Creative     │     │ Define   │
+│ configure    │     │ ideation     │     │ what     │
+└──────────────┘     └──────────────┘     └──────────┘
+                                                │
+              ┌─────────────────────────────────┘
+              ▼
+       ┌──────────────┐     ┌──────────────┐
+       │    design    │ ──► │     plan     │
+       │              │     │              │
+       │ Architect    │     │ Generate &   │
+       │ how          │     │ execute      │
+       └──────────────┘     └──────────────┘
 ```
 
 ## Quick Start
 
 ```bash
-# 1. Initialize a new project
-/s2s:proj:init
+# 1. Initialize your project
+/s2s:init
 
-# 2. Discover requirements (explore the problem space)
-/s2s:discover "user authentication for our web app"
+# 2. (Optional) Brainstorm ideas
+/s2s:brainstorm "new feature ideas"
 
-# 3. Define specifications (what to build)
-/s2s:specs "user authentication requirements"
+# 3. Define specifications
+/s2s:specs
 
-# 4. Design technical approach (how to build)
-/s2s:tech "authentication implementation architecture"
+# 4. Design architecture
+/s2s:design
 
-# 5. Create implementation plan
-/s2s:plan:new "implement user authentication" --branch
+# 5. Generate implementation plans
+/s2s:plan
 
-# 6. Start working on the plan
-/s2s:plan:start "20240115-143022-implement-user-authentication"
+# 6. Start working on a plan
+/s2s:plan:start "plan-id"
 
 # 7. Complete the plan
 /s2s:plan:complete
@@ -71,35 +81,35 @@ Spec2Ship automates software development workflows using Claude Code:
 
 | Command | Description |
 |---------|-------------|
-| `/s2s:discover "topic"` | Explore problem space, gather requirements |
-| `/s2s:specs "topic"` | Define specifications via roundtable |
-| `/s2s:tech "topic"` | Design technical architecture via roundtable |
-| `/s2s:impl "topic"` | Implementation guidance and execution |
+| `/s2s:init` | Initialize or update project (smart: detect → setup → context) |
+| `/s2s:brainstorm "topic"` | Creative ideation with Disney strategy |
+| `/s2s:specs` | Define requirements via roundtable |
+| `/s2s:design` | Design architecture via roundtable |
+| `/s2s:plan` | Generate implementation plans (smart) |
 
-### Project Management
-
-| Command | Description |
-|---------|-------------|
-| `/s2s:proj:init` | Initialize project |
-| `/s2s:proj:init --workspace` | Initialize workspace |
-| `/s2s:proj:init --component` | Initialize component |
-
-### Implementation Plans
+### Init Sub-commands
 
 | Command | Description |
 |---------|-------------|
-| `/s2s:plan:new "topic"` | Create plan |
-| `/s2s:plan:new "topic" --branch` | Create plan with feature branch |
-| `/s2s:plan:start "id"` | Start plan |
-| `/s2s:plan:complete` | Complete plan |
-| `/s2s:plan:list` | List plans |
+| `/s2s:init:detect` | Analyze project (read-only) |
+| `/s2s:init:setup` | Create .s2s/ structure |
+| `/s2s:init:context` | Update CONTEXT.md only |
 
-### Roundtable
+### Plan Sub-commands
 
 | Command | Description |
 |---------|-------------|
-| `/s2s:roundtable:start "topic"` | Start discussion |
-| `/s2s:roundtable:start "topic" --strategy disney` | Start with specific strategy |
+| `/s2s:plan:create "topic"` | Create single plan explicitly |
+| `/s2s:plan:list` | List all plans |
+| `/s2s:plan:start "id"` | Start working on a plan |
+| `/s2s:plan:complete` | Complete current plan |
+
+### Roundtable Sub-commands
+
+| Command | Description |
+|---------|-------------|
+| `/s2s:roundtable:start "topic"` | Start generic roundtable |
+| `/s2s:roundtable:start "topic" --strategy disney` | With specific strategy |
 | `/s2s:roundtable:list` | List sessions |
 | `/s2s:roundtable:resume "id"` | Resume session |
 
@@ -112,6 +122,14 @@ Spec2Ship automates software development workflows using Claude Code:
 | `debate` | 3 (opening, rebuttal, closing) | Option evaluation |
 | `consensus-driven` | 3 | Fast decisions |
 | `six-hats` | 7 | Comprehensive analysis |
+
+## Re-running Init
+
+The `/s2s:init` command is safe to re-run:
+
+- **No changes detected**: Reports "Project is up to date"
+- **New files detected**: Proposes updating CONTEXT.md
+- **Major changes**: Offers to reinitialize with confirmation
 
 ## Documentation
 

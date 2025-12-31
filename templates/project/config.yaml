@@ -1,5 +1,5 @@
 # Spec2Ship Project Configuration
-# This file is created by /s2s:proj:init
+# This file is created by /s2s:init
 
 name: "{project-name}"
 type: "standalone"

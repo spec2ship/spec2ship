@@ -112,7 +112,7 @@ Command line flags override config values:
 
 # Workflow-specific
 /s2s:specs --strategy consensus-driven
-/s2s:tech --strategy debate
+/s2s:design --strategy debate
 ```
 
 ## Per-Project Customization

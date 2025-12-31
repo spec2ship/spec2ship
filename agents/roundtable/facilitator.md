@@ -1,7 +1,7 @@
 ---
 name: roundtable-facilitator
 description: "Use this agent to orchestrate roundtable sessions. Activated by /s2s:roundtable:start,
-  /s2s:specs, /s2s:tech. Manages discussion flow, generates questions, synthesizes responses,
+  /s2s:specs, /s2s:design. Manages discussion flow, generates questions, synthesizes responses,
   and drives toward consensus using the configured strategy."
 model: opus
 color: magenta

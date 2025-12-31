@@ -91,7 +91,7 @@ Roundtable enables AI agents with different perspectives to discuss topics, iden
 | Command | Description |
 |---------|-------------|
 | `/s2s:specs` | Requirements gathering via roundtable |
-| `/s2s:tech` | Architecture design via roundtable |
+| `/s2s:design` | Architecture design via roundtable |
 | `/s2s:roundtable:start` | Start ad-hoc discussion |
 | `/s2s:roundtable:resume` | Continue paused session |
 | `/s2s:roundtable:list` | View all sessions |

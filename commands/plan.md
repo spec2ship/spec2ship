@@ -1,10 +1,17 @@
 ---
-description: Generate implementation plans from requirements and architecture. Creates structured plans for each feature/component.
+description: Generate implementation plans. Smart behavior - reads from specs/architecture docs if available, otherwise prompts for topic.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Bash(git:*), Read, Write, Edit, Glob, Task, AskUserQuestion, TodoWrite
 argument-hint: [--component <name>] [--all] [--with-branches]
 ---
 
 # Generate Implementation Plans
+
+Smart command that generates implementation plans based on available documentation.
+
+**Behavior:**
+- If specs + architecture exist → analyzes docs and generates plans for work items
+- If only CONTEXT.md exists → asks for topic and creates single plan
+- Supports generating all plans at once or selecting specific items
 
 ## Context
 
@@ -32,13 +39,23 @@ If S2S is initialized, use Read tool to:
 
 If S2S initialized is "NOT_S2S", display this message and stop:
 
-    Error: Not an s2s project. Run /s2s:proj:init first.
+    Error: Not an s2s project. Run /s2s:init first.
 
-### Check project phase
+### Determine Planning Mode
 
-Read CONTEXT.md and check the phase.
+Based on available documentation:
 
-Display status based on available documentation:
+**Full Documentation Mode** (specs + architecture exist):
+- requirements.md has content
+- architecture docs have content
+- → Analyze docs and identify work items
+
+**Basic Mode** (only CONTEXT.md):
+- No requirements or architecture docs
+- → Ask user for topic, create single plan
+- Suggest: "For better planning, consider running /s2s:specs and /s2s:design first"
+
+### Display Status
 
     Implementation Planning
     ═══════════════════════
@@ -51,20 +68,7 @@ Display status based on available documentation:
     {✓ or ✗} Requirements (docs/specifications/requirements.md)
     {✓ or ✗} Architecture (docs/architecture/)
 
-If no requirements AND no architecture:
-
-    Warning: No requirements or architecture defined.
-
-    For best results, run the full workflow:
-    1. /s2s:discover  - Gather context
-    2. /s2s:specs     - Define requirements
-    3. /s2s:tech      - Design architecture
-    4. /s2s:impl      - Generate plans (you are here)
-
-    Continue with basic planning from CONTEXT.md only?
-
-Ask user using AskUserQuestion:
-- Options: "Continue with available info" / "Run full workflow first"
+    Mode: {Full Documentation | Basic}
 
 ### Parse arguments
 
@@ -72,6 +76,10 @@ Extract from $ARGUMENTS:
 - **--component**: Generate plan for specific component only
 - **--all**: Generate plans for all identified components/features
 - **--with-branches**: Create git branches for each plan
+
+---
+
+## Full Documentation Mode
 
 ### Phase 1: Analyze and Identify Work Items
 
@@ -160,14 +168,47 @@ If "Select specific items":
 
 ### Phase 4: Generate Plans
 
-For each selected work item, generate a detailed implementation plan:
+For each selected work item, generate a detailed implementation plan.
+
+Jump to **Plan Generation** section below.
+
+---
+
+## Basic Mode
+
+### Gather Topic
+
+If no requirements/architecture docs:
+
+Ask user using AskUserQuestion:
+- "What would you like to plan?"
+- Free text input
+
+Display suggestion:
+
+    Tip: For comprehensive planning with work item breakdown, run:
+    1. /s2s:specs    - Define requirements
+    2. /s2s:design   - Design architecture
+    3. /s2s:plan     - Generate all plans
+
+### Generate Single Plan
+
+Use the topic to generate a plan.
+
+Jump to **Plan Generation** section below.
+
+---
+
+## Plan Generation
+
+For each work item or topic, generate a detailed implementation plan:
 
 ```
 Task(
   subagent_type="general-purpose",
   prompt="Generate a detailed implementation plan for:
 
-Work Item: {id}
+Work Item: {id or topic}
 Name: {name}
 Type: {type}
 Description: {description}
@@ -175,10 +216,10 @@ Description: {description}
 Context:
 {relevant sections from CONTEXT.md}
 
-Requirements covered:
+Requirements covered (if available):
 {relevant requirements from requirements.md}
 
-Architecture references:
+Architecture references (if available):
 {relevant sections from architecture docs}
 
 Dependencies:
@@ -222,13 +263,13 @@ Write plan file `.s2s/plans/{timestamp}-{slug}.md`:
 ## References
 
 ### Requirements
-{list of REQ-xxx covered}
+{list of REQ-xxx covered, or "N/A"}
 
 ### Architecture
-{list of ARCH-xxx or component references}
+{list of ARCH-xxx or component references, or "N/A"}
 
 ### Dependencies
-{list of other plan IDs that must complete first}
+{list of other plan IDs that must complete first, or "none"}
 
 ## Overview
 
@@ -259,7 +300,7 @@ Write plan file `.s2s/plans/{timestamp}-{slug}.md`:
 <!-- Progress notes, blockers, decisions -->
 ```
 
-### Phase 5: Create Git Branches (if --with-branches)
+### Create Git Branches (if --with-branches)
 
 If --with-branches is present and "Is git repo" is "yes":
 
@@ -269,16 +310,16 @@ For each plan created:
 3. Checkout back to original branch
 4. Update plan file with branch name
 
-### Phase 6: Update State
+### Update State
 
 Update `.s2s/state.yaml`:
 - Add all new plans with status "planning"
 
 Update `.s2s/CONTEXT.md`:
-- Update phase to "impl"
+- Update phase to "plan"
 - Update "Last updated" date
 
-### Phase 7: Output Summary
+### Output Summary
 
     Implementation plans created!
 
@@ -304,4 +345,5 @@ Update `.s2s/CONTEXT.md`:
     View all plans:
       /s2s:plan:list
 
-    The implementation phase has begun!
+    Create a quick ad-hoc plan:
+      /s2s:plan:create "topic"

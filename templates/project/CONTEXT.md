@@ -3,20 +3,20 @@
 <!--
 This file is maintained by Spec2Ship discover phase.
 Import this in CLAUDE.md using @.s2s/CONTEXT.md
-Run /s2s:discover to populate or update this file.
+Run /s2s:init to populate or update this file.
 -->
 
 ## Overview
 
-{Project description - run /s2s:discover to populate}
+{Project description - run /s2s:init to populate}
 
 ## Business Domain
 
-{Business domain - run /s2s:discover to populate}
+{Business domain - run /s2s:init to populate}
 
 ## Objectives
 
-- {Objectives - run /s2s:discover to populate}
+- {Objectives - run /s2s:init to populate}
 
 ## Scope
 
@@ -30,11 +30,11 @@ Run /s2s:discover to populate or update this file.
 
 ## Constraints
 
-{Constraints - run /s2s:discover to populate}
+{Constraints - run /s2s:init to populate}
 
 ## Technical Stack
 
-{To be determined - run /s2s:tech to define}
+{To be determined - run /s2s:design to define}
 
 ## Open Questions
 

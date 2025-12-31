@@ -1,10 +1,12 @@
 ---
-description: Create a new implementation plan. Use --branch to also create a git feature branch.
+description: Create a new implementation plan for a specific topic. Use --branch to also create a git feature branch.
 allowed-tools: Bash(date:*), Bash(ls:*), Bash(mkdir:*), Bash(git:*), Read, Write, Glob, Edit, TodoWrite, AskUserQuestion
 argument-hint: "topic" [--branch]
 ---
 
-# Create New Implementation Plan
+# Create Implementation Plan
+
+Create a single implementation plan for a specific topic. For generating multiple plans from documentation, use `/s2s:plan` instead.
 
 ## Context
 
@@ -30,7 +32,7 @@ If S2S is initialized, use Read tool to:
 
 If project type is "NOT_S2S", display this message and stop:
 
-    Error: Not an s2s project. Run /s2s:proj:init first.
+    Error: Not an s2s project. Run /s2s:init first.
 
 ### Gather git information (if git repo)
 
@@ -146,4 +148,7 @@ Display confirmation:
     Next steps:
     1. Edit the plan to add references and tasks
     2. Run /s2s:plan:start "{plan-id}" when ready to begin
-    3. Use /s2s:decision:new if architectural decisions needed
+
+    Other commands:
+    - /s2s:plan:list         View all plans
+    - /s2s:plan              Generate plans from documentation

@@ -8,13 +8,24 @@ Spec2Ship (s2s) is an AI-assisted development framework plugin for Claude Code. 
 spec2ship/
 ├── .claude-plugin/           # Plugin manifest
 ├── commands/                 # Slash commands (/s2s:*)
-│   ├── proj/                 # Project management
-│   ├── plan/                 # Implementation plans
-│   ├── roundtable/           # Multi-agent discussions
-│   ├── discover.md           # Workflow: explore problem space
-│   ├── specs.md              # Workflow: define specifications
-│   ├── tech.md               # Workflow: design architecture
-│   └── impl.md               # Workflow: implementation guidance
+│   ├── init.md               # Smart init (detect → setup → context)
+│   ├── init/                 # Init sub-commands
+│   │   ├── detect.md         # Analyze project (read-only)
+│   │   ├── setup.md          # Create structure + context
+│   │   └── context.md        # Update CONTEXT.md only
+│   ├── brainstorm.md         # Creative ideation (disney strategy)
+│   ├── specs.md              # Define requirements (roundtable)
+│   ├── design.md             # Design architecture (roundtable)
+│   ├── plan.md               # Smart plan generation
+│   ├── plan/                 # Plan sub-commands
+│   │   ├── create.md         # Create single plan
+│   │   ├── list.md           # List plans
+│   │   ├── start.md          # Start working on plan
+│   │   └── complete.md       # Complete plan
+│   └── roundtable/           # Roundtable sub-commands
+│       ├── start.md          # Start generic roundtable
+│       ├── list.md           # List sessions
+│       └── resume.md         # Resume session
 ├── agents/                   # Specialized sub-agents
 │   ├── roundtable/           # Discussion participants
 │   ├── exploration/          # Codebase analysis
@@ -921,7 +932,7 @@ OPERATIONS (different actions) → subcommands (separate files in subfolder)
 CONFIGURATION (modifiers) → flags
   /s2s:roundtable:list --status active
   /s2s:plan:list --status completed
-  /s2s:plan:new "topic" --branch
+  /s2s:plan:create "topic" --branch
 ```
 
 **Correct vs Incorrect**:
@@ -942,25 +953,32 @@ CONFIGURATION (modifiers) → flags
 ## Implementation Phases
 
 ### Phase 1: Core Foundation ✓
-- Commands: proj/init, plan/new, plan/list, plan/start, plan/complete
+- Commands: plan/create, plan/list, plan/start, plan/complete
 - Templates: project, workspace, docs
 
 ### Phase 2: Workflow + Roundtable ✓
-- Workflow commands: discover, specs, tech, impl
+- Workflow commands: specs, design (renamed from tech)
 - Roundtable v2: executor pattern, strategy skills
 - Agents: roundtable/* (facilitator, architect, tech-lead, qa-lead, devops, product-manager)
 - Skills: roundtable-strategies/ (standard, disney, debate, consensus-driven, six-hats)
 - Commands: roundtable/start, roundtable/resume, roundtable/list
 
-### Phase 3: Skills + Standards (Current)
+### Phase 3: Workflow Simplification ✓
+- Smart init command: init.md + init/detect, init/setup, init/context
+- Brainstorm command: standalone disney-strategy roundtable
+- Smart plan command: auto-generates from docs or prompts for topic
+- Command renames: proj:init→init, tech→design, plan:new→plan:create
+- Merged discover into init:setup
+
+### Phase 4: Skills + Standards (Current)
 - Skills: arc42-templates, iso25010-requirements, madr-decisions
 - Integration with commands and agents
 - Agents: exploration/*, validation/*
 
-### Phase 4: Multi-Repo Support
+### Phase 5: Multi-Repo Support
 - Workspace coordination across components
 
-### Phase 5: Documentation
+### Phase 6: Documentation
 - User guides, command reference, workflow examples
 
 ---

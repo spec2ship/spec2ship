@@ -30,7 +30,7 @@ If S2S is initialized, use Read tool to:
 
 If S2S initialized is "NOT_S2S", display this message and stop:
 
-    Error: Not an s2s project. Run /s2s:proj:init first.
+    Error: Not an s2s project. Run /s2s:init first.
 
 ### Parse arguments
 
