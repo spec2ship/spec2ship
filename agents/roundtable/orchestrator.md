@@ -5,7 +5,7 @@ description: "Orchestrates roundtable discussion loop. Launched by /s2s:roundtab
 model: inherit
 color: cyan
 tools: ["Read", "Glob", "Task"]
-skills: ["roundtable-strategies"]
+skills: roundtable-strategies
 ---
 
 # Roundtable Orchestrator

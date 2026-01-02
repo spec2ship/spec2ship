@@ -7,6 +7,7 @@ description: "Use this agent when user asks to 'map requirements to code', 'find
 model: inherit
 color: yellow
 tools: ["Read", "Glob", "Grep"]
+skills: iso25010-requirements
 ---
 
 # Requirements Mapper

@@ -7,6 +7,7 @@ description: "Use this agent when user asks to 'get architecture perspective', '
 model: inherit
 color: blue
 tools: ["Read", "Glob", "Grep"]
+skills: arc42-templates
 ---
 
 # Software Architect

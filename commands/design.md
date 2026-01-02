@@ -66,6 +66,12 @@ Extract from $ARGUMENTS:
 - **--focus**: Focus area (components|api|deployment)
 - **--strategy**: Override strategy. Default: debate (Pro/Con evaluation)
 
+### Reference Skills
+
+For detailed architecture patterns:
+- `arc42-templates` skill: 12 sections, component templates, interface documentation
+- `madr-decisions` skill: ADR format, status lifecycle, decision examples
+
 ### Display context summary
 
     Starting architecture design...

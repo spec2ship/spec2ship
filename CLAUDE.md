@@ -1062,6 +1062,16 @@ After changes, test with:
 
 ---
 
+## Skills Available for Git Workflows
+
+The `conventional-commits` skill provides guidelines for git commit messages following the Conventional Commits specification. It is automatically available when working on git operations and provides:
+- Commit type prefixes (feat, fix, docs, etc.)
+- Scope conventions
+- Breaking change notation
+- Examples for common scenarios
+
+---
+
 ## References
 
 ### Patterns We Follow

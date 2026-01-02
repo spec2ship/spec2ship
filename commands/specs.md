@@ -58,6 +58,13 @@ Extract from $ARGUMENTS:
 - **--format**: Document format (srs|volere|simple). Default: srs
 - **--strategy**: Override strategy for roundtable. Default: consensus-driven
 
+### Reference Skills
+
+For detailed requirement patterns, the `iso25010-requirements` skill provides:
+- Quality characteristics (8 main categories, 31 sub-characteristics)
+- NFR templates with measurable criteria
+- Requirement ID conventions (FR-*, NFR-*)
+
 ### Display context summary
 
     Starting requirements definition...

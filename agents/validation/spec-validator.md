@@ -7,6 +7,7 @@ description: "Use this agent when user asks to 'validate specifications', 'check
 model: haiku
 color: red
 tools: ["Read", "Glob"]
+skills: iso25010-requirements, arc42-templates, madr-decisions
 ---
 
 # Specification Validator
