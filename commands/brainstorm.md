@@ -1,6 +1,6 @@
 ---
 description: Creative brainstorming session using the Disney strategy (Dreamer → Realist → Critic). Use for ideation and exploring new ideas without constraints.
-allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Read, Write, Edit, Glob, Task, AskUserQuestion, TodoWrite
+allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Read, Write, Edit, Glob, AskUserQuestion, SlashCommand:/s2s:roundtable:start
 argument-hint: "topic" [--participants <list>]
 ---
 
@@ -25,8 +25,8 @@ This strategy separates creative thinking from critical evaluation:
 
 Based on the Directory contents output, determine:
 
-- **S2S initialized**: If `.s2s` directory appears in Directory contents → "yes", otherwise → "no"
-- **Directory name**: Extract the last segment from the pwd output
+- **S2S initialized**: If `.s2s` directory appears → "yes", otherwise → "no"
+- **Directory name**: Extract the last segment from pwd
 
 ---
 
@@ -36,17 +36,16 @@ Based on the Directory contents output, determine:
 
 Extract from $ARGUMENTS:
 - **topic**: Required. The subject for brainstorming (first quoted argument)
-- **--participants**: Optional. Comma-separated list of participants to include
+- **--participants**: Optional. Comma-separated list to override defaults
 
-If topic is missing, ask user using AskUserQuestion:
+If topic is missing, ask using AskUserQuestion:
 - "What would you like to brainstorm?"
-- Free text input
 
 ### Validate Environment
 
 If S2S initialized is "no":
-- Display warning: "Not an s2s project. Results will be displayed but not saved."
-- Continue anyway (brainstorm can work without s2s setup)
+- Display: "Warning: Not an s2s project. Results displayed but not saved."
+- Continue anyway (brainstorm can work without full s2s setup)
 
 ### Determine Participants
 
@@ -58,89 +57,58 @@ Default participants for brainstorming:
 
 If --participants specified, use that list instead.
 
-### Launch Brainstorm Roundtable
+### Display Introduction
 
-```
-Task(
-  subagent_type="general-purpose",
-  prompt="Run a brainstorming roundtable using the Disney strategy.
+    Brainstorm Session Starting
+    ═══════════════════════════
 
-=== SESSION INFO ===
-Topic: {topic}
-Strategy: disney
-Workflow: brainstorm
-Session ID: {timestamp}-brainstorm-{slug}
+    Topic: {topic}
+    Strategy: Disney (Dreamer → Realist → Critic)
+    Participants: {list}
 
-=== PARTICIPANTS ===
-{list of participants}
+    Phase 1 (Dreamer): Think BIG, no constraints!
+    Phase 2 (Realist): What's feasible? How to implement?
+    Phase 3 (Critic): What could go wrong? What risks?
 
-=== DISNEY STRATEGY ===
+    Starting discussion...
 
-PHASE 1: DREAMER
-- Think BIG. No constraints.
-- What would make this the best solution ever?
-- What would delight users?
-- Don't worry about feasibility yet.
+### Launch Roundtable
 
-Facilitator prompt: 'Imagine we have unlimited resources and time. What would the ideal solution look like?'
+**Invoke roundtable:start with brainstorm workflow and disney strategy:**
 
-PHASE 2: REALIST
-- Given the dreamer ideas, which are feasible?
-- What would implementation look like?
-- What resources would we need?
-- What's the MVP vs full vision?
+Use the SlashCommand tool:
 
-Facilitator prompt: 'Looking at these ideas, how could we actually make them happen? What are the practical steps?'
+    /s2s:roundtable:start "{topic}"
+      --workflow-type brainstorm
+      --strategy disney
+      --participants {participant list}
+      --output-type summary
 
-PHASE 3: CRITIC
-- What could go wrong?
-- What risks should we address?
-- What are we missing?
-- What assumptions need validation?
+The roundtable will:
+- Create session file in `.s2s/sessions/` (if s2s initialized)
+- Run Disney strategy: Dreamer → Realist → Critic phases
+- Each phase generates focused discussion
+- Return synthesized results for each phase
 
-Facilitator prompt: 'What potential problems do you see? What could derail this? What should we be careful about?'
+### Process Results
 
-=== OUTPUT FORMAT ===
+After roundtable completes, extract from session:
 
-After completing all phases, synthesize into:
-
-1. **Top Ideas** (from Dreamer phase)
-   - Idea 1: description
-   - Idea 2: description
-   ...
-
-2. **Feasibility Assessment** (from Realist phase)
-   - Immediately feasible: [list]
-   - Requires more work: [list]
-   - Long-term/aspirational: [list]
-
-3. **Risks & Mitigations** (from Critic phase)
-   - Risk 1: mitigation
-   - Risk 2: mitigation
-   ...
-
-4. **Recommended Next Steps**
-   - Action 1
-   - Action 2
-   ...
-
-5. **Unresolved Questions**
-   - Question 1
-   - Question 2
-   ..."
-)
-```
+1. **Dreamer phase ideas**: Big thinking, no constraints
+2. **Realist assessment**: Feasibility evaluation
+   - Immediately feasible
+   - Requires more work
+   - Long-term/aspirational
+3. **Critic risks**: Identified risks with mitigations
+4. **Consensus recommendations**: Agreed next steps
 
 ### Save Results (if S2S initialized)
 
 If S2S is initialized:
 
-1. Create session directory if needed:
-   ```bash
-   mkdir -p .s2s/sessions
-   ```
+1. Session YAML already created by roundtable:start
 
-2. Save summary to `.s2s/sessions/{timestamp}-brainstorm-{slug}.md`:
+2. Generate summary markdown `.s2s/sessions/{session-id}-summary.md`:
 
 ```markdown
 # Brainstorm: {Topic}
@@ -181,50 +149,49 @@ If S2S is initialized:
 - {question}
 
 ---
-*Generated by Spec2Ship Brainstorm*
+*Generated by Spec2Ship /s2s:brainstorm*
 ```
 
-### Output
+### Output Summary
 
 Display brainstorm results:
 
-```
-Brainstorm Complete!
-════════════════════
+    Brainstorm Complete!
+    ════════════════════
 
-Topic: {topic}
-Strategy: Disney (Dreamer → Realist → Critic)
-Participants: {count}
+    Topic: {topic}
+    Strategy: Disney (Dreamer → Realist → Critic)
+    Participants: {count}
 
-Top Ideas:
-──────────
-1. {idea 1}
-2. {idea 2}
-3. {idea 3}
+    Top Ideas:
+    ──────────
+    1. {idea 1}
+    2. {idea 2}
+    3. {idea 3}
 
-Feasibility:
-────────────
-✓ Ready now: {count} items
-◐ Needs work: {count} items
-○ Long-term: {count} items
+    Feasibility:
+    ────────────
+    Ready now: {count} items
+    Needs work: {count} items
+    Long-term: {count} items
 
-Key Risks:
-──────────
-• {risk 1}
-• {risk 2}
+    Key Risks:
+    ──────────
+    - {risk 1}
+    - {risk 2}
 
-{If S2S initialized}
-Session saved: .s2s/sessions/{session-id}.md
-{/If}
+    {If S2S initialized}
+    Session saved: .s2s/sessions/{session-id}.yaml
+    Summary: .s2s/sessions/{session-id}-summary.md
+    {/If}
 
-Next steps:
-───────────
-To define requirements from these ideas:
-  /s2s:specs
+    Next steps:
+    ───────────
+    To define requirements from these ideas:
+      /s2s:specs
 
-To design architecture:
-  /s2s:design
+    To design architecture:
+      /s2s:design
 
-To create a plan for top idea:
-  /s2s:plan:create "{top idea}"
-```
+    To create a plan for top idea:
+      /s2s:plan:create "{top idea}"

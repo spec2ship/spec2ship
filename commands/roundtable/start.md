@@ -1,7 +1,7 @@
 ---
 description: Start a roundtable discussion with AI expert participants. Use for technical decisions, architecture reviews, or requirements refinement.
-allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Read, Write, Edit, Glob, Task, AskUserQuestion, TodoWrite
-argument-hint: "topic" [--strategy standard|disney|debate] [--participants list] [--workflow-type specs|tech|brainstorm]
+allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Read, Write, Edit, Glob, Task, AskUserQuestion
+argument-hint: "topic" [--strategy standard|disney|debate|consensus-driven|six-hats] [--participants list] [--workflow-type specs|tech|brainstorm] [--output-type adr|requirements|architecture|summary]
 ---
 
 # Start Roundtable Discussion
@@ -10,67 +10,71 @@ argument-hint: "topic" [--strategy standard|disney|debate] [--participants list]
 
 - Current directory: !`pwd`
 - Directory contents: !`ls -la`
-- Current timestamp: !`date +"%Y%m%d-%H%M%S"`
+- Timestamp: !`date +"%Y%m%d-%H%M%S"`
 - ISO timestamp: !`date -u +"%Y-%m-%dT%H:%M:%SZ"`
 
 ## Interpret Context
 
 Based on the context output above, determine:
 
-- **S2S initialized**: If `.s2s` directory appears in Directory contents → "yes", otherwise → "NOT_S2S"
+- **S2S initialized**: If `.s2s` directory appears → "yes", otherwise → "NOT_S2S"
 
-If S2S is initialized, use Read tool to:
+If S2S is initialized:
 - Read `.s2s/CONTEXT.md` for project context
 - Read `.s2s/config.yaml` for roundtable configuration
 - Read `.s2s/state.yaml` to check for active session
+
+---
 
 ## Instructions
 
 ### Validate environment
 
-If S2S initialized is "NOT_S2S", display this message and stop:
+If S2S initialized is "NOT_S2S":
 
     Error: Not an s2s project. Run /s2s:init first.
 
 ### Parse arguments
 
 Extract from $ARGUMENTS:
-- **Topic**: The discussion topic (required) - first quoted string or unquoted words
-- **--strategy**: Facilitation strategy (optional)
-  - Options: standard, disney, debate, consensus-driven, six-hats
-  - Default: from config.yaml `roundtable.strategy`
-- **--participants**: Comma-separated list of participants (optional)
-  - Default: from config.yaml based on workflow_type
-- **--workflow-type**: Type of workflow invoking roundtable (optional)
-  - Options: discover, specs, tech, brainstorm
-  - Default: "brainstorm" (for direct invocation)
+- **Topic**: Required. First quoted string or unquoted words
+- **--strategy**: Optional. Facilitation strategy
+- **--participants**: Optional. Comma-separated list
+- **--workflow-type**: Optional (specs|tech|brainstorm). Default: "brainstorm"
+- **--output-type**: Optional (adr|requirements|architecture|summary). Default: based on workflow
 
-If no topic is provided, ask using AskUserQuestion.
+If no topic provided, ask using AskUserQuestion.
 
 ### Load configuration
 
-Read `.s2s/config.yaml` and extract roundtable settings:
+Read `.s2s/config.yaml` and extract:
+- Default strategy: `roundtable.strategy`
+- Default participants: `roundtable.participants.by_workflow_type[workflow_type]`
+- Escalation settings: `roundtable.escalation`
 
-```yaml
-# Expected structure
-roundtable:
-  strategy: "standard"
-  participants:
-    default: [software-architect, technical-lead]
-    by_workflow_type:
-      specs: [product-manager, software-architect, qa-lead]
-      tech: [software-architect, technical-lead, devops-engineer]
-  escalation:
-    enabled: true
-    triggers:
-      no_consensus_after_attempts: 3
-      confidence_below: 0.5
-      critical_keywords: [security, must-have, blocking, legal]
-```
+### Auto-detect strategy (if not specified)
 
-Merge command arguments with config:
-1. Strategy: --strategy flag → config.roundtable.strategy
-2. Participants: --participants flag → config.participants.by_workflow_type[workflow_type] → config.participants.default
+If --strategy not provided:
+
+1. Analyze topic for keywords:
+   | Keywords | Recommended Strategy | Reason |
+   |----------|---------------------|--------|
+   | creative, innovation, new, brainstorm | disney | Creative ideation |
+   | vs, compare, evaluate, choose, decide | debate | Evaluating alternatives |
+   | urgent, fast, quick, asap | consensus-driven | Speed priority |
+   | comprehensive, thorough, all angles, deep | six-hats | Deep analysis |
+   | *default* | standard | Balanced approach |
+
+2. If keyword match found, ask using AskUserQuestion:
+   "Recommended strategy: **{strategy}**
+   Reason: Topic contains '{keyword}'
+
+   Options:
+   - Use {strategy} (recommended)
+   - Use config default ({config_default})
+   - Choose manually"
+
+3. If "Choose manually", present all 5 strategies with descriptions
 
 ### Check for active session
 
@@ -78,20 +82,10 @@ Read `.s2s/state.yaml` and check `current_session`.
 
 If active session exists:
 - Display: "A roundtable session is already active: {session-id}"
-- Ask using AskUserQuestion: "Start new or resume existing?"
-  - Options: "Start new (archive current)" / "Resume existing"
+- Ask: "Start new (archive current) / Resume existing"
 - If resume, redirect to `/s2s:roundtable:resume`
 
-### Load strategy skill
-
-Read the strategy skill from `skills/roundtable-strategies/references/{strategy}.md`.
-
-If strategy conflicts with config overrides, display warning:
-
-    Warning: Strategy '{strategy}' recommends {participation} participation,
-    but config overrides to {override}. Proceeding with override.
-
-### Prepare session
+### Create session
 
 1. Create sessions directory: `mkdir -p .s2s/sessions`
 
@@ -105,9 +99,7 @@ If strategy conflicts with config overrides, display warning:
    - consensus-driven: "proposal"
    - six-hats: "blue-hat-opening"
 
-### Create session file
-
-Write `.s2s/sessions/{session-id}.yaml`:
+4. Write `.s2s/sessions/{session-id}.yaml`:
 
 ```yaml
 id: "{session-id}"
@@ -118,19 +110,15 @@ status: "active"
 started: "{ISO timestamp}"
 
 config_snapshot:
-  participation: "{parallel|sequential}"
+  participation: "parallel"
   consensus:
-    policy: "{from strategy/config}"
+    policy: "weighted_majority"
     threshold: 0.6
-  escalation:
-    enabled: true
-    triggers: {...}
+  escalation: {from config}
 
 participants:
-  - id: software-architect
-    agent_file: "agents/roundtable/software-architect.md"
-  - id: technical-lead
-    agent_file: "agents/roundtable/technical-lead.md"
+  - id: {participant-1}
+    agent_file: "agents/roundtable/{participant-1}.md"
 
 phases:
   - name: "{initial phase}"
@@ -143,10 +131,7 @@ conflicts: []
 outcome: null
 ```
 
-### Update state
-
-Update `.s2s/state.yaml`:
-- Set `current_session` to new session ID
+5. Update `.s2s/state.yaml`: Set `current_session: "{session-id}"`
 
 ### Display session start
 
@@ -161,244 +146,109 @@ Update `.s2s/state.yaml`:
 
     Starting discussion...
 
-### Execute roundtable loop
+### Launch orchestrator
 
-The command acts as EXECUTOR. The facilitator agent DECIDES what to do.
-
-**Loop structure:**
-
-```
-WHILE session not concluded:
-    1. Call facilitator to generate question
-    2. Execute participant Tasks based on facilitator decision
-    3. Call facilitator to synthesize responses
-    4. Batch write to session file
-    5. Check escalation triggers
-    6. Evaluate: continue, next phase, conclude, or escalate
-```
-
-**Step 1: Generate question**
-
-Launch facilitator agent:
+Launch the roundtable-orchestrator agent to manage the discussion loop:
 
 ```
 Task(
   subagent_type="general-purpose",
-  prompt="You are the Roundtable Facilitator.
+  prompt="You are the Roundtable Orchestrator.
 
-Read the facilitator agent definition from: agents/roundtable/facilitator.md
+Read your agent definition from: agents/roundtable/orchestrator.md
 
-Session Input:
+Session context:
 ```yaml
 session:
-  id: \"{session-id}\"
-  topic: \"{topic}\"
-  workflow_type: \"{workflow-type}\"
+  id: '{session-id}'
+  topic: '{topic}'
+  workflow_type: '{workflow-type}'
+  strategy: '{strategy}'
 
-strategy:
-  name: \"{strategy}\"
-  current_phase: \"{current-phase}\"
-  phases_remaining: [{remaining phases}]
+strategy_config:
+  participation: 'parallel'
+  phases: {phases from strategy}
+  consensus:
+    policy: 'weighted_majority'
+    threshold: 0.6
 
 participants:
-  {participant list with roles}
+  {participant list}
 
-history:
-  rounds_completed: {count}
-  consensus: {current consensus points}
-  conflicts: {current conflicts}
-  previous_synthesis: \"{last synthesis}\"
+current_state:
+  phase: '{initial phase}'
+  rounds_completed: 0
+  consensus: []
+  conflicts: []
 
 context:
-  project: \"{CONTEXT.md content}\"
-  relevant_docs: \"{related documentation excerpts}\"
+  project: '{CONTEXT.md content}'
+
+max_rounds: 10
+escalation_triggers:
+  no_consensus_after_attempts: 3
+  confidence_below: 0.5
+  critical_keywords: [security, must-have, blocking, legal]
 ```
 
-Generate the next question for this phase.
-Respond with structured YAML as specified in the facilitator agent definition."
+Execute the roundtable discussion.
+Return structured YAML with round data after each round.
+Continue until conclusion or escalation."
 )
 ```
 
-Parse facilitator response to extract:
-- question
-- relevant_participants
-- prompt_additions
+### Process orchestrator results
 
-**Step 2: Execute participant Tasks**
+After each round returned by orchestrator:
 
-Based on participation mode (parallel or sequential):
+1. **Batch write** to session file:
+   - Add round to current phase's rounds array
+   - Update consensus list
+   - Update conflicts list
+   - Update phase status if transitioning
 
-**For parallel participation:**
-Launch ALL participant Tasks in a SINGLE message (multiple tool calls):
+2. **Check status**:
+   - `round_complete`: Continue, wait for next round
+   - `phase_complete`: Update session file, continue
+   - `escalation_needed`: Display positions, ask user, continue or conclude
+   - `concluded`: Proceed to completion
 
-```
-Task(
-  subagent_type="general-purpose",
-  prompt="You are the Software Architect in a roundtable discussion.
+### Handle escalation
 
-Read your agent definition from: agents/roundtable/software-architect.md
+If orchestrator returns escalation_needed:
 
-Topic: {topic}
-Question: {facilitator's question}
+1. Display all positions with rationale
+2. Display facilitator recommendation
+3. Ask user using AskUserQuestion:
+   "Escalation: {reason}
 
-Context:
-{project context + relevant docs}
+   Options:
+   - Accept recommendation
+   - Override with specific decision
+   - Continue discussion"
 
-Previous synthesis: {if any}
-Current consensus: {list}
-Open conflicts: {list}
+4. Based on user choice, either conclude or continue
 
-{prompt_additions from facilitator}
+### Complete session
 
-Provide your perspective. Include:
-1. Your position (clear statement)
-2. Rationale
-3. Confidence (0.0-1.0)
-4. Dependencies"
-),
-Task(
-  subagent_type="general-purpose",
-  prompt="You are the Technical Lead..."
-),
-Task(
-  subagent_type="general-purpose",
-  prompt="You are the QA Lead..."
-)
-```
+When orchestrator returns concluded:
 
-**For sequential participation:**
-Launch Tasks ONE AT A TIME, passing previous responses to each subsequent participant.
+1. Update session file:
+   - Set `status: "completed"`
+   - Set `completed: "{ISO timestamp}"`
+   - Add final consensus and unresolved conflicts
 
-**Step 3: Synthesize responses**
+2. Generate output based on output_type:
+   - **adr**: Write `docs/decisions/{timestamp}-{slug}.md`
+   - **requirements**: Append to `docs/specifications/requirements.md`
+   - **architecture**: Update `docs/architecture/` files
+   - **summary**: Write `.s2s/sessions/{session-id}-summary.md`
 
-After ALL participants respond, call facilitator to synthesize:
+3. Update session file: Set `outcome: "{output file path}"`
 
-```
-Task(
-  subagent_type="general-purpose",
-  prompt="You are the Roundtable Facilitator.
+4. Clear state: Set `current_session: null` in state.yaml
 
-Read agents/roundtable/facilitator.md
-
-Participant Responses for Round {N}:
-
-Software Architect:
-{response}
-
-Technical Lead:
-{response}
-
-QA Lead:
-{response}
-
-Synthesize these responses.
-Identify consensus points and conflicts.
-Determine next action: continue_round, next_phase, conclude, or escalate.
-Respond with structured YAML."
-)
-```
-
-Parse facilitator synthesis to extract:
-- synthesis
-- new_consensus
-- new_conflicts
-- next_action
-- next_focus or escalation_reason
-
-**Step 4: Batch write to session file**
-
-Update `.s2s/sessions/{session-id}.yaml`:
-- Add round to current phase
-- Update consensus list
-- Update conflicts list
-- Update phase status if changing
-
-**Step 5: Check escalation triggers**
-
-Evaluate escalation conditions:
-1. Conflict persists after max_attempts_per_conflict rounds
-2. Any participant confidence below threshold
-3. Critical keywords detected in topic or responses
-4. Facilitator explicitly recommends escalation
-
-If escalation triggered:
-- Display all positions with rationale
-- Show facilitator recommendation
-- Ask user for decision using AskUserQuestion
-
-**Step 6: Evaluate next action**
-
-Based on facilitator's next_action:
-- **continue_round**: Loop back to Step 1 with new focus
-- **next_phase**: Move to next phase, reset round counter
-- **conclude**: Exit loop, proceed to completion
-- **escalate**: Pause for user input, then continue or conclude
-
-### Handle completion
-
-When facilitator returns `action: "conclude"`:
-
-1. Parse final output:
-   - final_consensus
-   - unresolved conflicts
-   - recommendation
-   - output_type
-
-2. Generate output document based on type:
-
-**For ADR output:**
-Write to `docs/decisions/{timestamp}-{slug}.md`:
-
-```markdown
-# ADR: {Topic}
-
-**Status**: proposed
-**Date**: {date}
-**Session**: {session-id}
-**Participants**: {list}
-
-## Context
-
-{from discussion and context}
-
-## Decision
-
-{final consensus}
-
-## Consequences
-
-### Positive
-{benefits from discussion}
-
-### Negative
-{trade-offs acknowledged}
-
-## Alternatives Considered
-
-{from conflicts/debates}
-
----
-*Generated by Spec2Ship Roundtable*
-```
-
-**For requirements output:**
-Append to `docs/specifications/requirements.md` or create new section.
-
-**For architecture output:**
-Update relevant files in `docs/architecture/`.
-
-**For summary output:**
-Write to `.s2s/sessions/{session-id}-summary.md`.
-
-3. Update session file:
-   - Set status to "completed"
-   - Set completed timestamp
-   - Set outcome with file path
-
-4. Update state.yaml:
-   - Clear current_session
-
-5. Display completion summary:
+5. Display completion:
 
     Roundtable Complete!
     ════════════════════
@@ -406,16 +256,13 @@ Write to `.s2s/sessions/{session-id}-summary.md`.
     Session: {session-id}
     Topic: {topic}
     Strategy: {strategy}
-    Rounds: {total rounds across phases}
+    Rounds: {total}
 
     Consensus Reached:
-    {list of consensus points}
+    {list}
 
-    {If unresolved conflicts}
+    {If unresolved}
     Unresolved (noted for follow-up):
     {list}
 
     Output: {file path}
-
-    Next steps:
-    {based on workflow_type and output}

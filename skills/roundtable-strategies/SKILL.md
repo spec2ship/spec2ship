@@ -2,8 +2,12 @@
 name: Roundtable Strategies
 description: "This skill should be used when starting a roundtable session, facilitating technical discussions,
   or orchestrating multi-agent deliberations. Provides facilitation strategies including standard round-robin,
-  Disney creative method, structured debate, consensus-driven, and Six Thinking Hats."
-version: 1.0.0
+  Disney creative method, structured debate, consensus-driven, and Six Thinking Hats.
+  Auto-detect: When topic mentions 'creative', 'innovation', 'new feature' → disney.
+  When topic mentions 'vs', 'compare', 'evaluate', 'choose' → debate.
+  When topic mentions 'urgent', 'fast', 'quick', 'asap' → consensus-driven.
+  When topic mentions 'comprehensive', 'thorough', 'all angles', 'deep analysis' → six-hats."
+version: 1.1.0
 ---
 
 # Roundtable Strategies
@@ -18,6 +22,28 @@ This skill provides facilitation strategies for s2s Roundtable sessions. Each st
 - Running `/s2s:specs` requirements gathering
 - Running `/s2s:design` architecture design
 - Custom brainstorming or decision-making sessions
+
+## Strategy Auto-Detection
+
+When no strategy is specified, analyze the topic for keywords to recommend appropriate strategy:
+
+| Keywords in Topic | Recommended Strategy | Reason |
+|-------------------|---------------------|--------|
+| creative, innovation, new, brainstorm, ideation | **disney** | Creative ideation benefits from Dreamer→Realist→Critic flow |
+| vs, compare, evaluate, choose, decide, between | **debate** | Comparing options needs Pro/Con analysis |
+| urgent, fast, quick, asap, time-sensitive | **consensus-driven** | Speed-focused, converging quickly |
+| comprehensive, thorough, all angles, deep, complete | **six-hats** | Complete analysis from all perspectives |
+| *(no match)* | **standard** | Balanced default for most discussions |
+
+### Auto-Detection Example
+
+```
+Topic: "Creative approach for new authentication feature"
+        ^^^^^^^^         ^^^
+        creative         new
+
+→ Recommended: disney strategy
+```
 
 ## Available Strategies
 

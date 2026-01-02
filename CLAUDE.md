@@ -27,7 +27,14 @@ spec2ship/
 │       ├── list.md           # List sessions
 │       └── resume.md         # Resume session
 ├── agents/                   # Specialized sub-agents
-│   ├── roundtable/           # Discussion participants
+│   ├── roundtable/           # Discussion orchestration & participants
+│   │   ├── orchestrator.md   # Loop coordination (v3)
+│   │   ├── facilitator.md    # Decision maker
+│   │   ├── software-architect.md
+│   │   ├── technical-lead.md
+│   │   ├── qa-lead.md
+│   │   ├── devops-engineer.md
+│   │   └── product-manager.md
 │   ├── exploration/          # Codebase analysis
 │   └── validation/           # Quality checks
 ├── skills/                   # Knowledge bases (progressive disclosure)
@@ -70,23 +77,43 @@ We follow Anthropic's pattern from `plugin-dev` and `feature-dev`:
         └── madr-decisions (for ADR format)
 ```
 
-### SAD-002: Roundtable Implementation (v2)
+### SAD-002: Roundtable Implementation (v3)
 
-Roundtable v2 uses the **Executor Pattern**: Command executes, Facilitator decides.
+Roundtable v3 uses **Layered Orchestration**: Commands delegate via SlashCommand, Orchestrator manages loop.
 
 **Architecture**:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  Command (start.md) - EXECUTOR                                  │
-│  • Loads strategy skill                                         │
-│  • Creates session file                                         │
+│  /s2s:specs, /s2s:design, /s2s:brainstorm                       │
+│  • Workflow-specific setup                                      │
+│  • Delegates via SlashCommand:/s2s:roundtable:start             │
+│  • Post-processing of results                                   │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │ SlashCommand
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Command (start.md) - SESSION LIFECYCLE                         │
+│  • Auto-detects strategy from topic keywords                    │
+│  • Creates session file .s2s/sessions/{id}.yaml                 │
+│  • Launches Orchestrator Agent                                  │
+│  • Batch writes results from orchestrator                       │
+│  • Generates output documents                                   │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │ Task Agent
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Agent (orchestrator.md) - LOOP COORDINATION                    │
 │  • Executes roundtable loop                                     │
-│  • Batch writes at end of round                                 │
+│  • Launches Facilitator for questions/synthesis                 │
+│  • Launches Participants in parallel (blind voting)             │
+│  • Returns structured YAML for batch write                      │
+│  • Has access to skills: ["roundtable-strategies"]              │
 │                                                                 │
 │    ┌─────────────────────────────────────────────────────────┐  │
 │    │ Facilitator Agent - DECISION MAKER                      │  │
 │    │ • Returns structured YAML (action, question, synthesis) │  │
 │    │ • Decides next action, never executes                   │  │
+│    │ • Has fallback logic for malformed responses            │  │
 │    └─────────────────────────────────────────────────────────┘  │
 │                                                                 │
 │    ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐          │
@@ -95,11 +122,16 @@ Roundtable v2 uses the **Executor Pattern**: Command executes, Facilitator decid
 │    └─────────┘  └─────────┘  └─────────┘  └─────────┘          │
 │    ▲                                                            │
 │    │ Launched in PARALLEL (blind voting)                        │
-│                                                                 │
-│    Strategy Skill (disney.md, debate.md, etc.)                  │
-│    • Defines phases, prompts, consensus policy                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+**Key Features (v3)**:
+- **SlashCommand Delegation**: specs/design/brainstorm delegate to roundtable:start
+- **Single Source of Truth**: Session file management only in start.md
+- **Strategy Auto-Detection**: Topic keywords → recommended strategy
+- **Orchestrator Agent**: Loop logic extracted to reusable agent
+- **Facilitator Fallback**: Handles malformed YAML with retry + deterministic fallback
+- **Session Validation**: resume.md validates integrity before continuing
 
 **Strategies**: standard, disney, debate, consensus-driven, six-hats
 
@@ -969,6 +1001,14 @@ CONFIGURATION (modifiers) → flags
 - Smart plan command: auto-generates from docs or prompts for topic
 - Command renames: proj:init→init, tech→design, plan:new→plan:create
 - Merged discover into init:setup
+
+### Phase 3.5: Roundtable Architecture Refactor (v3) ✓
+- Orchestrator agent: agents/roundtable/orchestrator.md for loop coordination
+- SlashCommand delegation: specs/design/brainstorm → roundtable:start
+- Strategy auto-detection: topic keywords → recommended strategy
+- Session validation: resume.md validates integrity before continuing
+- Facilitator fallback: handles malformed YAML with retry + deterministic fallback
+- Single source of truth: session files created only by start.md
 
 ### Phase 4: Skills + Standards (Current)
 - Skills: arc42-templates, iso25010-requirements, madr-decisions
