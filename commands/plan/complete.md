@@ -133,4 +133,4 @@ Display confirmation:
 
     Next steps:
     - View completed plans: /s2s:plan:list --status completed
-    - Create new plan: /s2s:plan:new "next feature"
+    - Create new plan: /s2s:plan:create "next feature"

@@ -32,10 +32,10 @@ If the context shows "NO_PLANS", display this message and stop:
     No implementation plans found.
 
     Create your first plan:
-      /s2s:plan:new "feature name"
+      /s2s:plan:create "feature name"
 
     Or with a git branch:
-      /s2s:plan:new "feature name" --branch
+      /s2s:plan:create "feature name" --branch
 
 ### If plans exist
 

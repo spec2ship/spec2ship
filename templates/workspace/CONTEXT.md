@@ -39,7 +39,7 @@ Component registry from components.yaml
 
 | Command | Description |
 |---------|-------------|
-| `/s2s:plan:new "topic"` | Create cross-component plan |
+| `/s2s:plan:create "topic"` | Create cross-component plan |
 | `/s2s:plan:start "id"` | Start plan |
 | `/s2s:plan:complete` | Complete plan |
 

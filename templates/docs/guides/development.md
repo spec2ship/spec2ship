@@ -51,7 +51,7 @@ cp .env.example .env
 
 1. Create implementation plan:
    ```
-   /s2s:plan:new "feature name" --branch
+   /s2s:plan:create "feature name" --branch
    ```
 
 2. Start working on plan:
