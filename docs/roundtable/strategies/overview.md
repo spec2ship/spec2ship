@@ -92,8 +92,7 @@ Different workflows default to different strategies:
 | Workflow | Default Strategy | Rationale |
 |----------|------------------|-----------|
 | `specs` | consensus-driven | Fast requirement agreement |
-| `tech` | debate | Evaluate architectural options |
-| `discover` | standard | General exploration |
+| `design` | debate | Evaluate architectural options |
 | `brainstorm` | disney | Creative ideation |
 
 ## Creating Custom Strategies

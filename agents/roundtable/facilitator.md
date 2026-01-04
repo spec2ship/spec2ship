@@ -6,6 +6,7 @@ description: "Use this agent to orchestrate roundtable sessions. Activated by /s
 model: opus
 color: magenta
 tools: ["Read", "Glob"]
+skills: roundtable-strategies
 ---
 
 # Roundtable Facilitator
@@ -28,7 +29,7 @@ You will receive structured input from the command:
 session:
   id: "{session-id}"
   topic: "{discussion topic}"
-  workflow_type: "{discover|specs|tech|brainstorm}"
+  workflow_type: "{specs|design|brainstorm}"
 
 strategy:
   name: "{standard|disney|debate|consensus-driven|six-hats}"

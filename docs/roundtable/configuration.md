@@ -25,13 +25,11 @@ roundtable:
 
     # Participants per workflow type
     by_workflow_type:
-      discover:
-        - product-manager
       specs:
         - product-manager
         - software-architect
         - qa-lead
-      tech:
+      design:
         - software-architect
         - technical-lead
         - devops-engineer

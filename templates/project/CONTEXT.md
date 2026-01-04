@@ -1,7 +1,7 @@
 # Project Context
 
 <!--
-This file is maintained by Spec2Ship discover phase.
+This file is maintained by Spec2Ship init command.
 Import this in CLAUDE.md using @.s2s/CONTEXT.md
 Run /s2s:init to populate or update this file.
 -->

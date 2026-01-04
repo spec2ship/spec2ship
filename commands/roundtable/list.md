@@ -58,7 +58,7 @@ For each session file found:
    - **id**: Session identifier
    - **topic**: Discussion topic
    - **strategy**: Facilitation strategy used
-   - **workflow_type**: discover/specs/tech/brainstorm
+   - **workflow_type**: specs/design/brainstorm
    - **status**: active/paused/completed
    - **started**: Start timestamp
    - **current_phase**: Current phase (for active)

@@ -29,7 +29,7 @@ You will receive session context from the start command:
 session:
   id: "{session-id}"
   topic: "{discussion topic}"
-  workflow_type: "{specs|tech|brainstorm}"
+  workflow_type: "{specs|design|brainstorm}"
   strategy: "{standard|disney|debate|consensus-driven|six-hats}"
 
 strategy_config:

@@ -6,7 +6,7 @@ This document defines the terminology used in s2s Roundtable discussions.
 
 | Term | Definition | Example |
 |------|------------|---------|
-| **Workflow Type** | The s2s workflow that invokes a roundtable | `discover`, `specs`, `tech`, `brainstorm` |
+| **Workflow Type** | The s2s workflow that invokes a roundtable | `specs`, `design`, `brainstorm` |
 | **Strategy** | The facilitation method used for the discussion | `standard`, `disney`, `debate`, `consensus-driven`, `six-hats` |
 | **Phase** | An internal stage within a strategy | `dreamer`, `realist`, `critic` (in Disney strategy) |
 | **Round** | A single question-response cycle within a phase | Round 1, Round 2 within the `realist` phase |

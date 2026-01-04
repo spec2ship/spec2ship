@@ -9,7 +9,7 @@ Roundtable enables AI agents with different perspectives to discuss topics, iden
 ## Key Features
 
 - **Multiple Strategies**: Standard, Disney, Debate, Consensus-Driven, Six Hats
-- **Configurable Participants**: Per workflow type (specs, tech, discover, brainstorm)
+- **Configurable Participants**: Per workflow type (specs, design, brainstorm)
 - **Escalation Triggers**: Human-in-the-loop when needed
 - **Session Persistence**: Resume interrupted discussions
 - **Parallel Execution**: Blind voting to prevent sycophancy
