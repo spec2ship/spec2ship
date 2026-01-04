@@ -189,12 +189,13 @@ skills: arc42-templates, iso25010-requirements
 
 **Format**: Comma-separated string (not array)
 
-| Agent | Skills | Why |
-|-------|--------|-----|
-| orchestrator | `roundtable-strategies` | Access to facilitation methods |
-| software-architect | `arc42-templates` | Architecture patterns |
-| spec-validator | `iso25010-requirements, arc42-templates, madr-decisions` | Validation standards |
-| requirements-mapper | `iso25010-requirements` | Requirement patterns |
+| Agent | Location | Skills | Why |
+|-------|----------|--------|-----|
+| orchestrator | `agents/roundtable/` | `roundtable-strategies` | Access to facilitation methods |
+| facilitator | `agents/roundtable/` | `roundtable-strategies` | Strategy-specific behavior |
+| software-architect | `agents/roundtable/` | `arc42-templates` | Architecture patterns |
+| spec-validator | `agents/validation/` | `iso25010-requirements, arc42-templates, madr-decisions` | Validation standards |
+| requirements-mapper | `agents/exploration/` | `iso25010-requirements` | Requirement patterns |
 
 ## Skills
 
