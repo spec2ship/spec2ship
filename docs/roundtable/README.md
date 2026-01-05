@@ -1,4 +1,4 @@
-# Roundtable v3
+# Roundtable v4.4.1
 
 The Roundtable is Spec2Ship's multi-agent discussion system for collaborative decision-making.
 
@@ -13,7 +13,18 @@ Roundtable enables AI agents with different perspectives to discuss topics, iden
 - **Escalation Triggers**: Human-in-the-loop when needed
 - **Session Persistence**: Resume interrupted discussions
 - **Parallel Execution**: Blind voting to prevent sycophancy
-- **Layered Orchestration**: Commands delegate to Orchestrator Agent (v3)
+- **Inline Orchestration**: Loop logic in command (v4 - Claude Code compliant)
+- **Agenda Tracking** (v4.2): Required topics for specs/design workflows
+- **Per-Round Persistence** (v4.4.1): Session file written after each round
+
+## Flags
+
+| Flag | Description |
+|------|-------------|
+| `--verbose` | Include full participant responses in session file |
+| `--interactive` | Ask user after each round: continue/skip/pause |
+| `--strategy` | Override strategy (standard/disney/debate/consensus-driven/six-hats) |
+| `--participants` | Override default participants |
 
 ## Quick Start
 
@@ -31,7 +42,10 @@ Roundtable enables AI agents with different perspectives to discuss topics, iden
 /s2s:roundtable:resume
 ```
 
-## Architecture (v3)
+## Architecture (v4)
+
+> **Key Constraint**: Claude Code subagents cannot spawn other subagents.
+> Solution: Orchestration logic is **inline in start.md**, not a separate agent.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -42,21 +56,28 @@ Roundtable enables AI agents with different perspectives to discuss topics, iden
                                │ SlashCommand
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ COMMAND start.md (Session Lifecycle)                            │
+│ COMMAND start.md (Session + Inline Orchestration)               │
+│                                                                 │
+│ PHASE 1: Setup                                                  │
 │ • Creates session file .s2s/sessions/{id}.yaml                  │
-│ • Launches Orchestrator Agent                                   │
-│ • Batch writes results from orchestrator                        │
-│ • Generates output document                                     │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ Task Agent
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ ORCHESTRATOR AGENT (orchestrator.md)                            │
-│ • Executes roundtable discussion loop                           │
-│ • Launches Facilitator for questions/synthesis                  │
-│ • Launches Participants in parallel (blind voting)              │
-│ • Returns structured YAML for batch write                       │
-│ • Has skills: roundtable-strategies                             │
+│ • Auto-detects strategy from topic keywords                     │
+│                                                                 │
+│ PHASE 2: Discussion Loop (INLINE)                               │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ For each round:                                             │ │
+│ │ 0. Display agenda status (v4.4.1)                           │ │
+│ │ 1. Task(facilitator) → generate question                    │ │
+│ │ 2. Task(participants) → parallel responses (blind voting)   │ │
+│ │    → Store responses for verbose mode                       │ │
+│ │ 3. Task(facilitator) → synthesize                           │ │
+│ │ 4. Write round to session file (IMMEDIATE)                  │ │
+│ │ 5. Display recap to terminal                                │ │
+│ │ 6. If interactive: AskUserQuestion (EVERY round)            │ │
+│ │ 7. Evaluate next_action (continue/phase/conclude/escalate)  │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│                                                                 │
+│ PHASE 3: Completion                                             │
+│ • Generates output document (ADR, requirements, architecture)   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -97,6 +118,7 @@ Roundtable enables AI agents with different perspectives to discuss topics, iden
 3. **Batch Write**: Session file updated only at end of round
 4. **Facilitator Decides, Command Executes**: Clear separation of concerns
 5. **Strategy as Skill**: Facilitation logic is configurable, not hardcoded
+6. **Inline Orchestration**: Loop logic in command for Claude Code compliance
 
 ## Related Commands
 
@@ -109,4 +131,4 @@ Roundtable enables AI agents with different perspectives to discuss topics, iden
 | `/s2s:roundtable:list` | View all sessions |
 
 ---
-*Part of Spec2Ship Roundtable v3 - AI-assisted software development*
+*Part of Spec2Ship Roundtable v4 - AI-assisted software development*

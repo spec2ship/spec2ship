@@ -24,15 +24,15 @@ If S2S is initialized:
 
 ---
 
-## Instructions
+# PHASE 1: LOAD SESSION
 
-### Validate environment
+## Validate environment
 
 If S2S initialized is "NOT_S2S":
 
     Error: Not an s2s project. Run /s2s:init first.
 
-### Determine which session to resume
+## Determine which session to resume
 
 Check $ARGUMENTS for session ID.
 
@@ -54,17 +54,15 @@ Check $ARGUMENTS for session ID.
     Resume: /s2s:roundtable:resume <session-id>
     Or start new: /s2s:roundtable:start "topic"
 
-### Load session state
+## Load session state
 
 Read `.s2s/sessions/{session-id}.yaml` and extract:
 - id, topic, workflow_type, strategy, status
-- current_phase, phases, participants
-- consensus, conflicts
-- config_snapshot
+- current_phase
+- participants
+- rounds[] (for state synthesis)
 
-### Validate session integrity
-
-Perform comprehensive validation:
+## Validate session integrity
 
 **1. Schema validation:**
 
@@ -74,7 +72,7 @@ Check that required fields exist:
 - `strategy` - facilitation strategy
 - `current_phase` - active phase
 - `participants` - list of participants
-- `phases` - phase definitions
+- `rounds` - rounds array
 
 If any required field is missing:
 
@@ -95,8 +93,6 @@ If strategy file not found:
 
     Error: Strategy '{strategy}' not found.
 
-    The strategy used in this session is no longer available.
-
     Options:
     1. Continue with 'standard' strategy
     2. Archive session
@@ -110,70 +106,83 @@ If any participant file missing:
 
     Warning: Participant agent files changed.
 
-    Missing: {list of missing participants}
-    Available: {list of available agents}
+    Missing: {list}
+    Available: {list}
 
     Options:
     1. Continue with available participants only
     2. Select replacement participants
     3. Archive session
 
-**4. Config drift detection:**
-
-Compare `config_snapshot` with current `.s2s/config.yaml`:
-
-Check for differences in:
-- Participants lists
-- Escalation triggers
-- Consensus thresholds
-
-If significant differences detected:
-
-    Config drift detected since session started:
-
-    Participants:
-      Session: {snapshot participants}
-      Current: {current config participants}
-
-    Escalation:
-      Session: {snapshot triggers}
-      Current: {current triggers}
-
-    Options:
-    1. Continue with original config (from session)
-    2. Update session to use current config
-    3. Review differences and decide
-
-**5. History size warning:**
-
-Count total rounds across all phases.
-
-If total rounds > 20:
-
-    Warning: Large session history ({count} rounds)
-
-    This may impact performance and context quality.
-
-    Options:
-    1. Continue with full history
-    2. Summarize early rounds (keep last 10 rounds detail)
-    3. Archive and start fresh
-
-### Validate session can be resumed
+## Validate session can be resumed
 
 If session status is "completed":
 
     Session {session-id} is already completed.
 
     Topic: {topic}
-    Outcome: {summary}
-    Output: {path}
+    Outcome: {outcome.file}
 
     To start new discussion: /s2s:roundtable:start "topic"
 
 If session status is "active" or "paused", proceed.
 
-### Display session context
+---
+
+# PHASE 2: SYNTHESIZE STATE FROM ROUNDS
+
+Calculate current state from rounds[] array (single source of truth):
+
+## Calculate current consensus
+
+```
+current_consensus = []
+for round in rounds:
+    for item in round.consensus:
+        if item not in current_consensus:
+            current_consensus.append(item)
+```
+
+## Calculate open conflicts
+
+```
+introduced_conflicts = {}
+resolved_conflict_ids = set()
+
+for round in rounds:
+    for conflict in round.conflicts:
+        introduced_conflicts[conflict.id] = conflict
+    for resolved in round.resolved:
+        resolved_conflict_ids.add(resolved.conflict_id)
+
+open_conflicts = [c for id, c in introduced_conflicts if id not in resolved_conflict_ids]
+```
+
+## Track conflict persistence
+
+```
+conflict_round_count = {}
+for round in rounds:
+    for conflict in round.conflicts:
+        if conflict.id not in resolved:
+            conflict_round_count[conflict.id] = conflict_round_count.get(conflict.id, 0) + 1
+```
+
+## Get previous synthesis
+
+```
+previous_synthesis = rounds[-1].synthesis if rounds else None
+```
+
+## Calculate rounds in current phase
+
+```
+rounds_in_phase = sum(1 for r in rounds if r.phase == current_phase)
+```
+
+---
+
+# PHASE 3: DISPLAY CONTEXT
 
     Resuming Roundtable Session
     ═══════════════════════════
@@ -186,102 +195,128 @@ If session status is "active" or "paused", proceed.
     Progress:
     ─────────
     Phase: {current_phase}
-    Rounds: {count in phase} / {total}
+    Total Rounds: {len(rounds)}
+    Rounds in Phase: {rounds_in_phase}
 
-    Consensus: {count}
-    {list if any}
+    Consensus ({len(current_consensus)}):
+    {for each item}
+    ✓ {item}
 
-    Conflicts: {count}
-    {list with positions}
+    Open Conflicts ({len(open_conflicts)}):
+    {for each conflict}
+    ⚠ {conflict.description}
+      {for each position}
+      - {participant}: {position}
 
     Participants: {list}
 
-### Update session state
+    Continuing discussion...
+
+---
+
+# PHASE 4: UPDATE STATE
 
 Update session file:
 - Set `status: "active"`
-- Add resume timestamp
+- Update `paused_at: null`
 
 Update `.s2s/state.yaml`:
 - Set `current_session: "{session-id}"`
 
-### Launch orchestrator
+---
 
-Resume discussion using orchestrator agent:
+# PHASE 5: CONTINUE DISCUSSION LOOP
+
+Use the same inline orchestration as start.md.
+
+## Initialize loop state
+
+- round_number = len(rounds)
+- rounds_in_phase = (calculated above)
+- max_rounds = config.roundtable.limits.max_rounds (default: 20)
+
+## Resume round execution
+
+Continue with the same loop as start.md:
+
+For each round until conclusion or max_rounds:
+
+### Step 1: Read current session state
+
+(Already done in PHASE 2, but refresh after each round)
+
+### Step 2: Generate question (Facilitator Task)
 
 ```
 Task(
   subagent_type="general-purpose",
-  prompt="You are the Roundtable Orchestrator resuming a session.
+  prompt="You are the Roundtable Facilitator resuming a session.
 
-Read your agent definition from: agents/roundtable/orchestrator.md
+Read your agent definition from: agents/roundtable/facilitator.md
 
-Session context (RESUMED):
+=== SESSION STATE (RESUMED) ===
+Topic: {topic}
+Strategy: {strategy}
+Current Phase: {current_phase}
+Round: {round_number + 1}
+Rounds in this phase: {rounds_in_phase}
+
+=== HISTORY ===
+Previous synthesis: {previous_synthesis}
+Current consensus: {current_consensus}
+Open conflicts: {open_conflicts with round counts}
+
+=== ESCALATION CONFIG ===
+max_rounds_per_conflict: {from config}
+confidence_below: {from config}
+critical_keywords: {from config}
+
+=== CONTEXT ===
+This is a RESUMED session. Focus on:
+1. Resolving open conflicts
+2. Building on existing consensus
+3. Completing current phase goals
+
+=== TASK ===
+Generate the next question for this phase.
+
+Return YAML:
 ```yaml
-session:
-  id: '{session-id}'
-  topic: '{topic}'
-  workflow_type: '{workflow-type}'
-  strategy: '{strategy}'
-  resumed: true
-
-strategy_config:
-  participation: '{from config_snapshot}'
-  phases: {remaining phases}
-  consensus:
-    policy: '{from snapshot}'
-    threshold: {from snapshot}
-
-participants:
-  {participant list}
-
-current_state:
-  phase: '{current phase}'
-  rounds_completed: {count}
-  consensus:
-    {existing consensus points}
-  conflicts:
-    {existing conflicts}
-
-history:
-  phases_completed:
-    {summaries of completed phases}
-  last_synthesis: '{previous synthesis}'
-
-context:
-  project: '{CONTEXT.md content}'
-
-max_rounds: {remaining rounds}
-escalation_triggers: {from config}
-```
-
-You are RESUMING this discussion:
-1. Review where the discussion left off
-2. Continue from current phase and round
-3. Focus on resolving open conflicts
-4. Execute roundtable loop until conclusion
-
-Return structured YAML with round data."
+action: 'question'
+question: '{the question}'
+participants: 'all'
+focus: '{focus area}'
+```"
 )
 ```
 
-### Process results
+### Step 3: Collect participant responses (PARALLEL)
 
-Same as start.md:
+(Same as start.md - blind voting)
 
-1. Batch write round data to session file
-2. Check status: round_complete, phase_complete, concluded, escalation_needed
-3. Handle escalation if needed
-4. Continue until conclusion
+### Step 4: Synthesize responses (Facilitator Task)
 
-### Complete session
+(Same as start.md)
 
-When orchestrator returns concluded:
+### Step 5: Update session file (Batch Write)
 
-1. Update session file with completion
-2. Generate output document based on workflow_type
-3. Clear current_session from state.yaml
-4. Display completion summary
+(Same as start.md)
+
+### Step 6: Handle next action
+
+(Same as start.md - continue, phase, conclude, escalate)
+
+### Step 7: Check safety limits
+
+(Same as start.md)
+
+---
+
+# PHASE 6: COMPLETION
+
+When discussion concludes:
+
+(Same as start.md - update session, generate output, display summary)
 
     Roundtable Complete!
     ════════════════════
@@ -289,9 +324,19 @@ When orchestrator returns concluded:
     Session: {session-id}
     Topic: {topic}
     Strategy: {strategy}
-    Total rounds: {count}
+    Total Rounds: {total_rounds}
 
     Consensus Reached:
-    {list}
+    {for each item}
+    ✓ {item}
 
-    Output: {file path}
+    {if open_conflicts}
+    Unresolved (noted for follow-up):
+    {for each conflict}
+    ⚠ {description}
+
+    Output: {outcome.file}
+
+    Next steps:
+      /s2s:roundtable:list   - View all sessions
+      /s2s:plan              - Generate implementation plans

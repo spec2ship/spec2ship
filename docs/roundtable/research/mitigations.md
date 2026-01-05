@@ -1,6 +1,6 @@
 # Mitigations for LLM Multi-Agent Limitations
 
-This document describes how Roundtable v3 addresses known issues in LLM multi-agent systems.
+This document describes how Roundtable v4 addresses known issues in LLM multi-agent systems.
 
 ## Known Issues
 
@@ -102,7 +102,7 @@ You are {role}.
 escalation:
   enabled: true
   triggers:
-    no_consensus_after_attempts: 3
+    max_rounds_per_conflict: 3
     confidence_below: 0.5
     critical_keywords: [security, must-have, blocking, legal]
 ```

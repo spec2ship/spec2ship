@@ -11,7 +11,7 @@ This document defines the terminology used in s2s Roundtable discussions.
 | **Phase** | An internal stage within a strategy | `dreamer`, `realist`, `critic` (in Disney strategy) |
 | **Round** | A single question-response cycle within a phase | Round 1, Round 2 within the `realist` phase |
 | **Participant** | An agent contributing to the discussion | `software-architect`, `qa-lead`, `devops-engineer` |
-| **Orchestrator** | Agent that manages the discussion loop (v3) | Launches facilitator and participants |
+| **Inline Orchestration** | Loop logic in command, not separate agent (v4) | start.md calls Task(facilitator) and Task(participants) |
 | **Session** | A specific instance of a roundtable discussion | `20241230-143000-api-design` |
 | **Consensus** | Agreement reached between participants | List of agreed points |
 | **Conflict** | Unresolved disagreement between participants | Divergent positions on a topic |
@@ -76,7 +76,7 @@ This document defines the terminology used in s2s Roundtable discussions.
 
 | Trigger | Description |
 |---------|-------------|
-| `no_consensus_after_attempts` | Escalate after N failed consensus attempts |
+| `max_rounds_per_conflict` | Escalate if same conflict persists for N rounds |
 | `confidence_below` | Escalate when participant confidence is too low |
 | `critical_keywords` | Escalate on security, legal, or blocking issues |
 
@@ -90,4 +90,4 @@ This document defines the terminology used in s2s Roundtable discussions.
 | `summary` | Discussion summary | Brainstorm, general |
 
 ---
-*This glossary is part of Spec2Ship Roundtable v3 documentation.*
+*This glossary is part of Spec2Ship Roundtable v4 documentation.*

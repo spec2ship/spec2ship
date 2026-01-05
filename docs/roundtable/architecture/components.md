@@ -1,8 +1,11 @@
-# Roundtable Components (v3)
+# Roundtable Components (v4)
 
-This document describes how Commands, Agents, and Skills work together in the Roundtable v3 system.
+This document describes how Commands, Agents, and Skills work together in the Roundtable v4 system.
 
 ## Component Overview
+
+> **Key Constraint (v4)**: Claude Code subagents cannot spawn other subagents.
+> Solution: Orchestration logic is **inline in start.md**, not a separate agent.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -18,25 +21,28 @@ This document describes how Commands, Agents, and Skills work together in the Ro
 │                             │ SlashCommand                      │
 │                             ▼                                   │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │ COMMAND: roundtable/start.md (Session Lifecycle)         │   │
+│  │ COMMAND: roundtable/start.md (Inline Orchestration)     │   │
+│  │                                                          │   │
+│  │ PHASE 1: Setup                                           │   │
 │  │ • Creates session file .s2s/sessions/{id}.yaml           │   │
-│  │ • Launches Orchestrator Agent                            │   │
-│  │ • Batch writes results from orchestrator                 │   │
-│  │ • Generates output document                              │   │
-│  └──────────────────────────┬──────────────────────────────┘   │
-│                             │ Task Agent                        │
-│                             ▼                                   │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ ORCHESTRATOR AGENT (orchestrator.md)                     │   │
-│  │ • Executes roundtable discussion loop                    │   │
-│  │ • Launches Facilitator for questions/synthesis           │   │
-│  │ • Launches Participants in parallel (blind voting)       │   │
-│  │ • Returns structured YAML for batch write                │   │
-│  │ • skills: roundtable-strategies                          │   │
+│  │ • Auto-detects strategy from topic keywords              │   │
+│  │                                                          │   │
+│  │ PHASE 2: Discussion Loop (INLINE)                        │   │
+│  │ ┌──────────────────────────────────────────────────────┐ │   │
+│  │ │ For each round:                                      │ │   │
+│  │ │ 1. Task(facilitator) → question                      │ │   │
+│  │ │ 2. Task(participants) → parallel (blind voting)      │ │   │
+│  │ │ 3. Task(facilitator) → synthesis                     │ │   │
+│  │ │ 4. Batch write to session file                       │ │   │
+│  │ │ 5. Evaluate next_action                              │ │   │
+│  │ └──────────────────────────────────────────────────────┘ │   │
+│  │                                                          │   │
+│  │ PHASE 3: Completion                                      │   │
+│  │ • Generates output (ADR, requirements, architecture)     │   │
 │  └──────────────────────────┬──────────────────────────────┘   │
 │                             │                                   │
 │           ┌─────────────────┼─────────────────┐                │
-│           ▼                 ▼                 ▼                │
+│           ▼                                   ▼                │
 │  ┌─────────────┐  ┌─────────────────────────────────┐         │
 │  │ FACILITATOR │  │      PARTICIPANT AGENTS         │         │
 │  │   (opus)    │  │  (parallel, blind voting)       │         │
@@ -56,22 +62,28 @@ This document describes how Commands, Agents, and Skills work together in the Ro
 
 ### roundtable/start.md
 
-The session lifecycle manager. In v3, delegates loop execution to Orchestrator Agent:
+The session lifecycle manager with **inline orchestration** (v4):
 
 | Responsibility | Description |
 |----------------|-------------|
 | Load configuration | Read `.s2s/config.yaml` for strategy, participants |
 | Create session | Initialize `.s2s/sessions/{id}.yaml` |
-| Launch orchestrator | Task(orchestrator) with session context |
-| Batch write | Update session file with orchestrator results |
+| Auto-detect strategy | Analyze topic keywords, recommend strategy |
+| Execute discussion loop | INLINE: Task(facilitator) + Task(participants) per round |
+| Batch write | Update session file after each round |
+| Handle escalation | AskUserQuestion when triggers fire |
 | Generate output | Create ADR, requirements, or architecture docs |
+
+**Why inline orchestration (v4)?**
+Claude Code subagents cannot spawn other subagents. The v3 pattern of `Task(orchestrator) → Task(facilitator)` doesn't work. Solution: keep the loop in the command, which CAN call Task() multiple times.
 
 ### roundtable/resume.md
 
 Continues an interrupted session:
 - Loads full session history
-- Passes to facilitator with `resumed: true`
-- Continues loop from where it left off
+- Synthesizes state from `rounds[]` (single source of truth)
+- Continues discussion loop from where it left off
+- Uses same inline orchestration as start.md
 
 ### roundtable/list.md
 
@@ -80,81 +92,22 @@ Displays session status:
 - Shows strategy, phase, round count
 - Marks current session
 
-## Orchestrator Agent (v3)
-
-Location: `agents/roundtable/orchestrator.md`
-
-**New in v3**: The discussion loop is now managed by a dedicated Orchestrator Agent, not the command.
-
-| Responsibility | Description |
-|----------------|-------------|
-| Execute loop | Run rounds until conclusion |
-| Launch facilitator | Task(facilitator) for questions and synthesis |
-| Launch participants | Task(participants) in parallel (blind voting) |
-| Enforce participation mode | Parallel or sequential per strategy |
-| Return structured data | YAML for batch write by command |
-| Handle fallbacks | Retry facilitator, use fallback logic if needed |
-
-**Skills**: `roundtable-strategies` (comma-separated string format)
-
-**Why this change?** Moving the loop to an agent:
-- Reduces context usage in command
-- Allows reuse across workflows (specs, design, brainstorm)
-- Better separation of concerns (command = lifecycle, agent = logic)
-
-### Orchestrator Input/Output
-
-**Input** (from command):
-```yaml
-session:
-  id: "{session-id}"
-  topic: "{topic}"
-  strategy: "disney"
-
-strategy_config:
-  participation: "parallel"
-  phases: [...]
-
-participants:
-  - id: "software-architect"
-    agent_file: "agents/roundtable/software-architect.md"
-
-current_state:
-  phase: "dreamer"
-  rounds_completed: 0
-
-escalation_triggers:
-  no_consensus_after_attempts: 3
-  confidence_below: 0.5
-  critical_keywords: [security, must-have]
-```
-
-**Output** (to command):
-```yaml
-status: "round_complete" | "concluded" | "escalation_needed"
-round_data:
-  number: 1
-  phase: "dreamer"
-  question: "{facilitator's question}"
-  responses:
-    - participant: "architect"
-      response: "{text}"
-      confidence: 0.8
-  synthesis: "{facilitator's synthesis}"
-  new_consensus: [...]
-  new_conflicts: [...]
-```
-
 ## Agents
 
 ### Facilitator Agent
 
 Location: `agents/roundtable/facilitator.md`
 
-**Role**: Orchestrate discussion, generate questions, synthesize responses
+**Role**: Generate questions, synthesize responses, decide next action
 
-**Input**: Structured YAML with session state, history, context
-**Output**: Structured YAML with action, question/synthesis, next steps
+**Called by**: start.md (twice per round: question + synthesis)
+
+**2 Action Types (v4)**:
+
+| Action | Input | Output |
+|--------|-------|--------|
+| `question` | Session state, phase, consensus, conflicts | Question, focus, participants |
+| `synthesis` | All participant responses | Synthesis, consensus, conflicts, next_action |
 
 **Key Decisions Made by Facilitator**:
 - What question to ask next
@@ -162,6 +115,8 @@ Location: `agents/roundtable/facilitator.md`
 - Whether consensus is reached
 - Whether to continue, move to next phase, or conclude
 - Whether to recommend escalation
+
+**Skills**: `roundtable-strategies` (for strategy-specific behavior)
 
 ### Participant Agents
 
@@ -176,7 +131,9 @@ Location: `agents/roundtable/`
 | Product Manager | `product-manager.md` | User needs, business value |
 
 **Input**: Topic, question, context, previous synthesis
-**Output**: Position, rationale, confidence, dependencies
+**Output**: Position, rationale, confidence, concerns
+
+**Blind Voting**: All participants are launched in a SINGLE message (parallel Task calls). No participant sees another's response until the facilitator synthesizes.
 
 ### Agent Skills Field
 
@@ -191,7 +148,6 @@ skills: arc42-templates, iso25010-requirements
 
 | Agent | Location | Skills | Why |
 |-------|----------|--------|-----|
-| orchestrator | `agents/roundtable/` | `roundtable-strategies` | Access to facilitation methods |
 | facilitator | `agents/roundtable/` | `roundtable-strategies` | Strategy-specific behavior |
 | software-architect | `agents/roundtable/` | `arc42-templates` | Architecture patterns |
 | spec-validator | `agents/validation/` | `iso25010-requirements, arc42-templates, madr-decisions` | Validation standards |
@@ -224,23 +180,24 @@ skills/roundtable-strategies/
 - Consensus policy
 - Validation rules
 
-## Data Flow
+## Data Flow (v4)
 
 ### Question Generation Flow
 
 ```
-1. Command builds facilitator input (session state, history)
-2. Command calls Task(facilitator)
-3. Facilitator returns: { action: "generate_question", question, relevant_participants }
-4. Command parses response
+1. Command reads session file, calculates current state
+2. Command builds facilitator input (session state, history)
+3. Command calls Task(facilitator) with action: question
+4. Facilitator returns: { action: "question", question, focus, participants }
+5. Command validates YAML (uses fallback if malformed)
 ```
 
 ### Participant Response Flow
 
 ```
 1. Command builds participant prompts (context, question, synthesis)
-2. Command launches Tasks in parallel (for parallel mode)
-3. Each participant returns: { position, rationale, confidence }
+2. Command launches ALL Tasks in SINGLE message (parallel, blind voting)
+3. Each participant returns: { position, rationale, confidence, concerns }
 4. Command collects all responses
 ```
 
@@ -248,24 +205,36 @@ skills/roundtable-strategies/
 
 ```
 1. Command builds synthesis input (all responses, history)
-2. Command calls Task(facilitator) for synthesis
-3. Facilitator returns: { synthesis, new_consensus, new_conflicts, next_action }
+2. Command calls Task(facilitator) with action: synthesis
+3. Facilitator returns: { synthesis, consensus, conflicts, resolved, next_action }
 4. Command updates session file (batch write)
 5. Command evaluates escalation triggers
-6. Command proceeds based on next_action
+6. Command proceeds based on next_action (continue/phase/conclude/escalate)
 ```
 
-## Separation of Concerns
+## Separation of Concerns (v4)
 
 | Component | Decides | Executes |
 |-----------|---------|----------|
-| Command | Session lifecycle | File I/O, Task launching |
-| Orchestrator | Loop coordination | Task launching (facilitator, participants) |
-| Facilitator | What questions, synthesis | Nothing (returns structured data) |
+| Command (start.md) | Session lifecycle, loop execution | File I/O, Task launching, escalation |
+| Facilitator | What questions, synthesis, next action | Nothing (returns structured data) |
 | Participants | Their perspective | Nothing (returns structured data) |
 | Strategy Skill | Facilitation method | Nothing (provides prompts) |
 
-**Key Principle**: Facilitator decides, Orchestrator coordinates, Command persists. Agents don't have side effects.
+**Key Principle**: Facilitator decides, Command orchestrates and persists. Agents don't have side effects.
+
+## Agent Isolation
+
+| Component | Reads Session? | Receives in Prompt |
+|-----------|----------------|-------------------|
+| Command (start.md) | YES | N/A (is the orchestrator) |
+| Facilitator | NO | Curated state (phase, consensus, conflicts) |
+| Participants | NO | Topic + question + project context only |
+
+This isolation ensures:
+- No direct agent-to-agent communication
+- Controlled information flow
+- Predictable behavior
 
 ## Configuration Hierarchy
 
@@ -281,3 +250,4 @@ Hardcoded fallbacks
 
 ---
 *See [flow.md](./flow.md) for sequence diagrams*
+*Part of Spec2Ship Roundtable v4 documentation*

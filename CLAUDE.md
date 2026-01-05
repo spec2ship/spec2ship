@@ -27,8 +27,7 @@ spec2ship/
 │       ├── list.md           # List sessions
 │       └── resume.md         # Resume session
 ├── agents/                   # Specialized sub-agents
-│   ├── roundtable/           # Discussion orchestration & participants
-│   │   ├── orchestrator.md   # Loop coordination (v3)
+│   ├── roundtable/           # Facilitator + participants (v4: orchestration is inline in start.md)
 │   │   ├── facilitator.md    # Decision maker
 │   │   ├── software-architect.md
 │   │   ├── technical-lead.md
@@ -77,63 +76,91 @@ We follow Anthropic's pattern from `plugin-dev` and `feature-dev`:
         └── madr-decisions (for ADR format)
 ```
 
-### SAD-002: Roundtable Implementation (v3)
+### SAD-002: Roundtable Implementation (v4.4.1)
 
-Roundtable v3 uses **Layered Orchestration**: Commands delegate via SlashCommand, Orchestrator manages loop.
+Roundtable v4.4.1 uses **Skill as Shared Library**: All commands share the same execution logic.
+
+> **Critical Constraints**:
+> 1. Claude Code subagents cannot spawn other subagents.
+> 2. SlashCommand is ASYNCHRONOUS - cannot wait for results.
+> Solution: Skill `roundtable-execution` contains shared logic, commands execute inline.
+
+> **v4.4.1 Enhancements**:
+> - Session file written after EACH round (not just at end)
+> - `--verbose` includes full participant responses
+> - `--interactive` asks EVERY round (not just on conflicts)
+> - Agenda displayed at start of each round
 
 **Architecture**:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  /s2s:specs, /s2s:design, /s2s:brainstorm                       │
-│  • Workflow-specific setup                                      │
-│  • Delegates via SlashCommand:/s2s:roundtable:start             │
-│  • Post-processing of results                                   │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ SlashCommand
-                               ▼
+│  skills/roundtable-execution/SKILL.md                           │
+│  • Session setup instructions                                   │
+│  • Round execution loop (Task calls)                            │
+│  • Definition of Done checklist                                 │
+│  • STOP conditions                                              │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │ referenced by (skills: field)
+        ┌───────────────────────┼───────────────────────┐
+        ▼                       ▼                       ▼
+┌───────────────┐     ┌───────────────┐     ┌───────────────┐
+│ /s2s:specs    │     │ /s2s:design   │     │ /s2s:brainstorm│
+│ • Setup       │     │ • Setup       │     │ • Setup       │
+│ • Execute via │     │ • Execute via │     │ • Execute via │
+│   skill       │     │   skill       │     │   skill       │
+└───────────────┘     └───────────────┘     └───────────────┘
+
+Each command executes INLINE following skill instructions:
 ┌─────────────────────────────────────────────────────────────────┐
-│  Command (start.md) - SESSION LIFECYCLE                         │
-│  • Auto-detects strategy from topic keywords                    │
-│  • Creates session file .s2s/sessions/{id}.yaml                 │
-│  • Launches Orchestrator Agent                                  │
-│  • Batch writes results from orchestrator                       │
-│  • Generates output documents                                   │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ Task Agent
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  Agent (orchestrator.md) - LOOP COORDINATION                    │
-│  • Executes roundtable loop                                     │
-│  • Launches Facilitator for questions/synthesis                 │
-│  • Launches Participants in parallel (blind voting)             │
-│  • Returns structured YAML for batch write                      │
-│  • Has access to skills: roundtable-strategies                  │
-│                                                                 │
-│    ┌─────────────────────────────────────────────────────────┐  │
-│    │ Facilitator Agent - DECISION MAKER                      │  │
-│    │ • Returns structured YAML (action, question, synthesis) │  │
-│    │ • Decides next action, never executes                   │  │
-│    │ • Has fallback logic for malformed responses            │  │
-│    └─────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│    ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐          │
-│    │ Arch    │  │ Tech    │  │ QA      │  │ DevOps  │          │
-│    │ itect   │  │ Lead    │  │ Lead    │  │ Eng     │          │
-│    └─────────┘  └─────────┘  └─────────┘  └─────────┘          │
-│    ▲                                                            │
-│    │ Launched in PARALLEL (blind voting)                        │
+│  Round Execution (from roundtable-execution skill)              │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │ For each round until conclusion:                            ││
+│  │                                                             ││
+│  │ 0. Display agenda status (v4.4.1)                           ││
+│  │ 1. Task(facilitator) → generate question                    ││
+│  │ 2. Task(p1), Task(p2), Task(p3)... → PARALLEL responses     ││
+│  │    → Store responses for verbose mode                       ││
+│  │ 3. Task(facilitator) → synthesize                           ││
+│  │ 4. Write round to session file (IMMEDIATE)                  ││
+│  │ 5. Display recap to terminal                                ││
+│  │ 6. If interactive: AskUserQuestion (EVERY round)            ││
+│  │ 7. Evaluate next_action                                     ││
+│  └─────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────┘
+
+Agents (stateless, called per-round):
+┌─────────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐
+│ Facilitator │  │ Arch    │  │ Tech    │  │ QA      │  │ DevOps  │
+│ (opus)      │  │ itect   │  │ Lead    │  │ Lead    │  │ Eng     │
+└─────────────┘  └─────────┘  └─────────┘  └─────────┘  └─────────┘
 ```
 
-**Key Features (v3)**:
-- **SlashCommand Delegation**: specs/design/brainstorm delegate to roundtable:start
-- **Single Source of Truth**: Session file management only in start.md
-- **Strategy Auto-Detection**: Topic keywords → recommended strategy
-- **Orchestrator Agent**: Loop logic extracted to reusable agent
-- **Facilitator Fallback**: Handles malformed YAML with retry + deterministic fallback
-- **Session Validation**: resume.md validates integrity before continuing
+**Key Features (v4.4.1)**:
+- **Skill as Library**: `roundtable-execution` skill contains shared orchestration logic
+- **No SlashCommand**: Commands execute roundtable inline via Task() calls
+- **Flat Rounds**: Session file uses flat `rounds[]` array (max 3 levels nesting)
+- **Single Source of Truth**: Consensus/conflicts tracked only in rounds, derived on demand
+- **2 Facilitator Actions**: question and synthesis (conclude = synthesis + next_action)
+- **Stateless Agents**: Each Task() creates new agent, no persistent state
+- **Agenda Tracking** (v4.2): Required topics for specs/design workflows
+- **Per-Round Persistence** (v4.4.1): Session file written after each round
+- **Verbose Mode** (v4.4.1): `--verbose` includes full participant responses
+- **Interactive Mode** (v4.4.1): `--interactive` asks every round
 
 **Strategies**: standard, disney, debate, consensus-driven, six-hats
+
+**Session Structure (v4)**:
+```yaml
+rounds:
+  - number: 1
+    phase: "dreamer"
+    question: "..."
+    responses: [...]
+    synthesis: "..."
+    consensus: [...]
+    conflicts: [...]
+    resolved: [...]
+```
 
 **Mitigations for LLM Multi-Agent Issues**:
 - **Blind Voting**: Parallel Task execution prevents sycophancy
@@ -1021,13 +1048,25 @@ CONFIGURATION (modifiers) → flags
 - Command renames: proj:init→init, tech→design, plan:new→plan:create
 - Merged discover into init:setup
 
-### Phase 3.5: Roundtable Architecture Refactor (v3) ✓
+### Phase 3.5: Roundtable Architecture Refactor (v3) ✓ [SUPERSEDED BY 3.6]
 - Orchestrator agent: agents/roundtable/orchestrator.md for loop coordination
 - SlashCommand delegation: specs/design/brainstorm → roundtable:start
 - Strategy auto-detection: topic keywords → recommended strategy
 - Session validation: resume.md validates integrity before continuing
 - Facilitator fallback: handles malformed YAML with retry + deterministic fallback
 - Single source of truth: session files created only by start.md
+
+### Phase 3.6: Roundtable v4 (Inline Orchestration) ✓
+> **Critical discovery**: Claude Code subagents cannot spawn other subagents.
+> v3 pattern `Task(orchestrator) → Task(facilitator)` doesn't work.
+
+- Inline orchestration: loop logic moved from orchestrator.md to start.md
+- orchestrator.md archived (was documentation-only, not executable)
+- Facilitator simplified: 2 action types (question, synthesis)
+- Session structure: flat rounds[] array, max 3 levels nesting
+- --verbose flag: binary (no responses vs full responses)
+- --pro/--con flags: debate side assignment
+- Documentation: updated all docs from v3 to v4
 
 ### Phase 4: Skills + Standards (Current)
 - Skills: arc42-templates, iso25010-requirements, madr-decisions
@@ -1107,7 +1146,7 @@ In complex multi-agent systems, LLMs can "forget" instructions from earlier cont
 | Component | Reinforcement | Why |
 |-----------|---------------|-----|
 | Facilitator prompt | Strategy phases from skill | Ensures correct phase behavior |
-| Orchestrator prompt | Escalation config | Ensures triggers are checked |
+| Facilitator prompt | Escalation config | Ensures triggers are checked |
 | Participant prompts | Contribution format | Ensures consistent output |
 
 ### Reinforcement Pattern
@@ -1118,13 +1157,13 @@ In complex multi-agent systems, LLMs can "forget" instructions from earlier cont
 
 ### Example: Facilitator Escalation
 
-The orchestrator passes escalation config to the facilitator, even though it's defined in config:
+The command (start.md) passes escalation config to the facilitator, even though it's defined in config:
 
 ```yaml
-# In orchestrator prompt to facilitator:
+# In start.md prompt to facilitator:
 escalation:
-  max_attempts_per_conflict: 3  # From config
-  confidence_threshold: 0.5      # From config
+  max_rounds_per_conflict: 3    # From config
+  confidence_below: 0.5          # From config
   critical_keywords: [security, must-have]  # From config
 ```
 
@@ -1206,6 +1245,158 @@ validation:
   requires_sequential_phases: true | false
   min_participants: 2
 ```
+
+---
+
+## Multi-Agent Orchestration Best Practices
+
+This section documents patterns learned from implementing the Roundtable system and official Anthropic documentation.
+
+### Pattern 1: Task() for Synchronization (OFFICIAL)
+
+The Task tool is **synchronous** - it waits for the subagent to complete before returning.
+Use Task() for orchestrating multi-agent discussions.
+
+```markdown
+1. **YOU MUST** call Task(facilitator) to generate question
+2. **WAIT for response**
+3. **YOU MUST** call Task for EACH participant
+4. **WAIT for ALL responses**
+5. **YOU MUST** call Task(facilitator) to synthesize
+```
+
+**Source**: Claude Agent SDK documentation, Claude Code tool behavior.
+
+### Pattern 2: Emphasis for Critical Instructions (OFFICIAL)
+
+Claude Code respects instructions better when emphasized:
+
+```markdown
+**YOU MUST** use the Task tool NOW to call the facilitator.
+
+IMPORTANT: Do NOT proceed to Step 3 until you have received the facilitator's response.
+```
+
+**Source**: [GitHub Issue #1078](https://github.com/anthropics/claude-code/issues/1078) - "At Anthropic, they occasionally tune instructions (e.g., adding emphasis with 'IMPORTANT' or 'YOU MUST') to improve adherence."
+
+### Pattern 3: Explicit Output Format with Fallback (OFFICIAL)
+
+Specify exact YAML/JSON format AND define fallback behavior:
+
+```markdown
+The facilitator MUST return YAML in this EXACT format:
+```yaml
+action: "question"
+question: "{specific question}"
+```
+
+If the facilitator returns invalid YAML, use this fallback:
+```yaml
+action: "question"
+question: "What are the key requirements for {topic}?"
+```
+```
+
+### Pattern 4: Definition of Done for Loops
+
+For multi-round loops, define **numerical** termination criteria:
+
+```markdown
+Continue rounds UNTIL:
+- consensus_count >= 3 (minimum agreements)
+- open_conflicts == 0 OR rounds >= max_rounds_per_conflict
+- facilitator.next_action == "conclude"
+- HARD LIMIT: rounds >= 20
+
+DO NOT terminate based on "feeling done".
+ALWAYS check numerical criteria.
+```
+
+---
+
+### Anti-Pattern: SlashCommand for Orchestration
+
+**SlashCommand is ASYNCHRONOUS** - it cannot wait for results!
+
+```markdown
+# WRONG - specs.md tries to delegate to roundtable:start
+Phase 1: Use SlashCommand to start roundtable
+  SlashCommand:/s2s:roundtable:start "topic"
+
+# Problem: specs.md continues WITHOUT waiting for roundtable!
+```
+
+**Solution**: Inline orchestration with Task() or Skill as library.
+
+```markdown
+# CORRECT - specs.md executes roundtable inline
+Phase 1: Execute roundtable following skill instructions
+  Task(facilitator)  question
+  Task(participants)  responses (parallel)
+  Task(facilitator)  synthesis
+```
+
+### Anti-Pattern: Pseudocode as Documentation
+
+Claude may interpret pseudocode as documentation instead of instructions:
+
+```markdown
+# WRONG - May be interpreted as documentation
+Task(
+  subagent_type="general-purpose",
+  prompt="You are the facilitator..."
+)
+```
+
+```markdown
+# CORRECT - Imperative instruction
+**NOW use the Task tool** with these parameters:
+- subagent_type: "general-purpose"
+- prompt: "You are the facilitator..."
+
+**DO NOT proceed until you have the response.**
+```
+
+### Anti-Pattern: Loops Without Numerical Criteria
+
+```markdown
+# WRONG
+Continue discussing until consensus is reached.
+```
+
+```markdown
+# CORRECT
+Continue rounds UNTIL:
+- All participants have confidence >= 0.8, OR
+- Maximum 10 rounds reached, OR
+- Facilitator returns next_action: "conclude"
+```
+
+### Anti-Pattern: Subagent Spawning Subagent
+
+**Critical constraint**: Claude Code subagents cannot spawn other subagents.
+
+```markdown
+# WRONG - Does not work!
+orchestrator.md (agent)  Task(facilitator)  Task(participant)
+```
+
+```markdown
+# CORRECT - Orchestration inline in command
+start.md (command)  Task(facilitator)  Task(participant)
+```
+
+---
+
+### Community Patterns (Medium Confidence)
+
+These patterns come from community frameworks and may work:
+
+| Pattern | Source | Notes |
+|---------|--------|-------|
+| Flow syntax `->` `\|\|` | claude-orchestration | Requires testing |
+| Confidence thresholds | SuperClaude | For loop termination |
+| Queue State File | PubNub best practices | Status tracking |
 
 ---
 

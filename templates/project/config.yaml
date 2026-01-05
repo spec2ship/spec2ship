@@ -13,6 +13,10 @@ git:
 
 # Roundtable configuration
 roundtable:
+  # === EXECUTION SETTINGS ===
+  verbose: false          # Include full participant responses in session file
+  interactive: false      # Ask user after each round (pause/continue/skip)
+
   # === STRATEGY ===
   # Loads facilitation method from skills/roundtable-strategies/
   strategy: "standard"  # standard | disney | debate | consensus-driven | six-hats
@@ -32,7 +36,7 @@ roundtable:
     by_workflow_type:
       specs:
         - product-manager
-        - software-architect
+        - business-analyst    # Focus on WHAT (requirements), not HOW
         - qa-lead
       design:
         - software-architect
@@ -48,9 +52,9 @@ roundtable:
   escalation:
     enabled: true
     triggers:
-      no_consensus_after_attempts: 3
-      confidence_below: 0.5
-      critical_keywords:
+      max_rounds_per_conflict: 3  # Escalate if same conflict persists this many rounds
+      confidence_below: 0.5       # Escalate if any participant confidence drops below
+      critical_keywords:          # Escalate if these keywords detected
         - security
         - must-have
         - blocking
@@ -59,6 +63,12 @@ roundtable:
       show_all_positions: true
       show_rationale: true
       facilitator_recommendation: true
+
+  # === SAFETY LIMITS ===
+  limits:
+    min_rounds: 3               # Minimum rounds before allowing conclusion
+    max_rounds: 20              # Force conclude after this many rounds
+    max_rounds_per_phase: 10    # Force phase advance after this many rounds
 
 # Documentation paths
 docs:
