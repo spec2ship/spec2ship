@@ -1,7 +1,7 @@
 ---
 description: Start a roundtable discussion with AI expert participants. Use for technical decisions, architecture reviews, or requirements refinement.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Read, Write, Edit, Glob, Task, AskUserQuestion
-argument-hint: "topic" [--strategy standard|disney|debate|consensus-driven|six-hats] [--participants list] [--workflow-type specs|design|brainstorm] [--output-type adr|requirements|architecture|summary] [--verbose] [--interactive]
+argument-hint: "topic" [--strategy standard|disney|debate|consensus-driven|six-hats] [--participants list] [--workflow-type specs|design|brainstorm] [--output-type adr|requirements|architecture|summary] [--verbose] [--interactive] [--pro list] [--con list]
 ---
 
 # Start Roundtable Discussion
@@ -44,6 +44,8 @@ Extract from $ARGUMENTS:
 - **--output-type**: Optional (adr|requirements|architecture|summary). Default: based on workflow
 - **--verbose**: Optional. Include full participant responses in session file
 - **--interactive**: Optional. Ask user after each round
+- **--pro**: Optional (debate only). Comma-separated list of participant IDs for Pro side
+- **--con**: Optional (debate only). Comma-separated list of participant IDs for Con side
 
 If no topic provided, ask using AskUserQuestion.
 
@@ -56,6 +58,10 @@ Read `.s2s/config.yaml` and extract:
 - Max rounds per conflict: `roundtable.escalation.max_rounds_per_conflict` (default: 3)
 
 ## Auto-detect strategy (if not specified)
+
+> **Note**: Strategy auto-detection is performed by the **command** (start.md),
+> NOT by the facilitator agent. The command analyzes topic keywords before
+> launching any agents.
 
 If --strategy not provided:
 
@@ -406,15 +412,28 @@ Create round data:
   phase: "{current_phase}"
   timestamp: "{ISO timestamp}"
   question: "{facilitator's question}"
-  responses:
-    - participant: "{id}"
-      position: "{if --verbose: full position, else: summary}"
-      confidence: 0.8
+  # responses: ONLY included if --verbose flag (see below)
   synthesis: "{facilitator's synthesis}"
   consensus: {new consensus from this round}
   conflicts: {new conflicts from this round}
   resolved: {conflicts resolved this round}
 ```
+
+**If --verbose flag is present**, also include `responses`:
+```yaml
+  responses:
+    - participant: "{id}"
+      position: "{full position text}"
+      rationale:
+        - "{reason 1}"
+        - "{reason 2}"
+      concerns:
+        - "{concern 1}"
+      confidence: 0.8
+```
+
+**Rationale**: The `synthesis` from the facilitator IS the summary of the round.
+Full participant responses are only needed for detailed audit trail.
 
 Update session file:
 - Append round to `rounds[]`
@@ -487,7 +506,7 @@ Based on facilitator's `next_action`:
 - If user provides decision, treat as resolved conflict
 - Continue loop or conclude based on user choice
 
-### Step 7: Check safety limits
+### Step 8: Check safety limits
 
 If round_number >= max_rounds:
 - Force conclude with summary
@@ -509,23 +528,104 @@ Set:
 
 Based on output_type from facilitator (or --output-type flag):
 
-**adr**:
-- Write `docs/decisions/{timestamp}-{slug}.md` with ADR format
-- Include: context, decision, options considered, consequences
+### Common steps for all output types
 
-**requirements**:
-- Append to `docs/specifications/requirements.md`
-- Include: functional requirements, non-functional requirements, constraints
+1. Read `config.docs` paths from `.s2s/config.yaml`
+2. Generate timestamp using `config.naming.timestamp_format`
+3. Create parent directory if needed using Bash: `mkdir -p {dir}`
+4. Write file using Write tool
+5. Update session: `outcome.file: "{output file path}"`
 
-**architecture**:
-- Update `docs/architecture/` files
-- Include: component decisions, technology stack, integration points
+### adr
 
-**summary**:
-- Write `.s2s/sessions/{session-id}-summary.md`
-- Include: key decisions, consensus points, unresolved items
+**Path**: `{config.docs.decisions}/{timestamp}-{slug}.md`
+**Tool**: Write
+**Template**: Reference `skills/madr-decisions` for ADR format
 
-Update session file: Set `outcome.file: "{output file path}"`
+Content structure:
+```markdown
+# {Title from topic}
+
+## Status
+Accepted
+
+## Context
+{Summary of discussion topic and why decision was needed}
+
+## Decision
+{Final consensus from roundtable}
+
+## Options Considered
+{List major alternatives discussed, including conflicts}
+
+## Consequences
+{Positive and negative implications}
+```
+
+### requirements
+
+**Path**: `{config.docs.specifications}/requirements.md`
+**Tool**: Edit (append) or Write (create new)
+
+If file exists, append new requirements.
+If file doesn't exist, create with header.
+
+Content structure:
+```markdown
+## Requirements from Roundtable: {topic}
+
+### Functional Requirements
+{From consensus items}
+
+### Non-Functional Requirements
+{Quality attributes discussed}
+
+### Constraints
+{From conflicts/escalations}
+```
+
+### architecture
+
+**Path**: `{config.docs.architecture}/{component-slug}-{timestamp}.md`
+**Tool**: Write
+**Template**: Reference `skills/arc42-templates` for structure
+
+Content structure:
+```markdown
+# {Component/Topic}
+
+## Overview
+{Summary from synthesis}
+
+## Decisions
+{Consensus points}
+
+## Open Questions
+{Unresolved conflicts}
+```
+
+### summary
+
+**Path**: `.s2s/sessions/{session-id}-summary.md`
+**Tool**: Write
+
+Content structure:
+```markdown
+# Roundtable Summary: {topic}
+
+**Session**: {session-id}
+**Strategy**: {strategy}
+**Rounds**: {total_rounds}
+
+## Key Decisions
+{All consensus items}
+
+## Unresolved Items
+{Open conflicts for follow-up}
+
+## Participants
+{List with confidence levels}
+```
 
 ## Clear state
 

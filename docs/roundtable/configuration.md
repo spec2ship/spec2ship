@@ -43,8 +43,8 @@ roundtable:
   escalation:
     enabled: true
     triggers:
-      # Escalate after N failed consensus attempts per conflict
-      no_consensus_after_attempts: 3
+      # Escalate if same conflict persists for N rounds
+      max_rounds_per_conflict: 3
 
       # Escalate if any participant confidence below threshold
       confidence_below: 0.5
@@ -93,7 +93,7 @@ Available participant agents:
 
 | Trigger | Description |
 |---------|-------------|
-| `no_consensus_after_attempts` | Number of rounds before escalating unresolved conflict |
+| `max_rounds_per_conflict` | Number of rounds before escalating unresolved conflict |
 | `confidence_below` | Minimum confidence (0.0-1.0) before escalation |
 | `critical_keywords` | Topics requiring human decision |
 

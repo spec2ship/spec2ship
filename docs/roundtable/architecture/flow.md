@@ -1,8 +1,11 @@
-# Roundtable Flow (v3)
+# Roundtable Flow (v4)
 
 This document describes the complete flow of a roundtable discussion from user command to output document.
 
 ## Architecture Overview
+
+> **Key Constraint**: Claude Code subagents cannot spawn other subagents.
+> Solution: Orchestration logic is **inline in the command** (start.md), not a separate agent.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -14,38 +17,38 @@ This document describes the complete flow of a roundtable discussion from user c
                                │ SlashCommand
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  Command (start.md) - SESSION LIFECYCLE                         │
-│  • Auto-detects strategy from topic keywords                    │
-│  • Creates session file .s2s/sessions/{id}.yaml                 │
-│  • Launches Orchestrator Agent with session context             │
-│  • Batch writes results after each round                        │
-│  • Generates output document (ADR, requirements, etc.)          │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ Task Agent
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  Orchestrator Agent - LOOP COORDINATION                         │
-│  • Manages roundtable loop (rounds until conclusion)            │
-│  • Launches Facilitator for questions and synthesis             │
-│  • Launches Participants in parallel (blind voting)             │
-│  • Checks escalation triggers                                   │
-│  • Returns structured YAML for batch write                      │
-│  • skills: roundtable-strategies                                │
+│  Command (start.md) - INLINE ORCHESTRATION                      │
 │                                                                 │
-│    ┌─────────────────────────────────────────────────────────┐  │
-│    │ Facilitator Agent (opus) - DECISION MAKER               │  │
-│    │ • Generates focused questions per phase                 │  │
-│    │ • Synthesizes participant responses                     │  │
-│    │ • Identifies consensus and conflicts                    │  │
-│    │ • Decides next action: continue, next_phase, conclude   │  │
-│    └─────────────────────────────────────────────────────────┘  │
+│  PHASE 1: SETUP                                                 │
+│  • Parse arguments, validate environment                        │
+│  • Auto-detect strategy from topic keywords                     │
+│  • Create session file .s2s/sessions/{id}.yaml                  │
+│  • Load strategy config from skill                              │
 │                                                                 │
-│    ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ │
-│    │Architect│ │TechLead │ │ QA Lead │ │ DevOps  │ │ ProdMgr │ │
-│    └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘ │
-│    ▲                                                            │
-│    │ Launched in PARALLEL (blind voting, no cross-talk)         │
+│  PHASE 2: DISCUSSION LOOP (inline, not delegated)               │
+│  ┌─────────────────────────────────────────────────────────────┐│
+│  │ For each round until conclusion:                            ││
+│  │                                                             ││
+│  │ Step 1: Task(facilitator) → generate question               ││
+│  │ Step 2: Task(participants) → parallel responses             ││
+│  │ Step 3: Task(facilitator) → synthesize                      ││
+│  │ Step 4: Batch write round to session file                   ││
+│  │ Step 5: Evaluate next_action                                ││
+│  │         continue → loop | phase → advance | conclude → exit ││
+│  │         escalate → ask user → continue or conclude          ││
+│  └─────────────────────────────────────────────────────────────┘│
+│                                                                 │
+│  PHASE 3: COMPLETION                                            │
+│  • Generate output (ADR, requirements, architecture, summary)   │
+│  • Update state.yaml                                            │
+│  • Display summary                                              │
 └─────────────────────────────────────────────────────────────────┘
+
+Agents (stateless, called per-round):
+┌─────────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐
+│ Facilitator │  │ Arch    │  │ Tech    │  │ QA      │  │ DevOps  │
+│ (opus)      │  │ itect   │  │ Lead    │  │ Lead    │  │ Eng     │
+└─────────────┘  └─────────┘  └─────────┘  └─────────┘  └─────────┘
 ```
 
 ## Complete Flow: Single Round
@@ -55,46 +58,61 @@ This document describes the complete flow of a roundtable discussion from user c
 │ ROUND N                                                          │
 ├──────────────────────────────────────────────────────────────────┤
 │                                                                  │
-│ 1. ORCHESTRATOR: Prepare round context                           │
-│    ├── Increment round counter                                   │
-│    ├── Check max_rounds limit                                    │
-│    └── Build facilitator input with history                      │
+│ 1. COMMAND: Prepare round context                                │
+│    ├── Read session file for current state                       │
+│    ├── Calculate consensus/conflicts from rounds[]               │
+│    └── Check max_rounds limit                                    │
 │                                                                  │
 │ 2. FACILITATOR: Generate question                                │
-│    ├── Task(facilitator) with session context                    │
-│    ├── Returns: { action, phase, question, focus_areas }         │
-│    └── Orchestrator validates YAML response                      │
+│    ├── Task(facilitator) with curated session context            │
+│    ├── Returns: { action: "question", question, focus }          │
+│    └── Command validates YAML, uses fallback if malformed        │
 │                                                                  │
 │ 3. PARTICIPANTS: Respond (parallel, blind voting)                │
 │    ├── Task(architect) ─┐                                        │
-│    ├── Task(tech-lead) ─┼── All launched simultaneously          │
+│    ├── Task(tech-lead) ─┼── All launched in SINGLE message       │
 │    ├── Task(qa-lead) ───┤   No agent sees other responses        │
 │    ├── Task(devops) ────┤                                        │
 │    └── Task(prod-mgr) ──┘                                        │
 │                                                                  │
-│    Each returns: { position, rationale, confidence }             │
+│    Each returns: { position, rationale, confidence, concerns }   │
 │                                                                  │
 │ 4. FACILITATOR: Synthesize responses                             │
 │    ├── Task(facilitator) with all participant responses          │
 │    ├── Identifies consensus points                               │
 │    ├── Identifies conflicts with positions                       │
-│    └── Returns: { synthesis, new_consensus, new_conflicts,       │
-│                   next_action, escalation_reason }               │
+│    └── Returns: { action: "synthesis", synthesis,                │
+│                   consensus, conflicts, resolved, next_action }  │
 │                                                                  │
-│ 5. ORCHESTRATOR: Evaluate next action                            │
-│    ├── continue_round → Loop back to step 1                      │
-│    ├── next_phase → Update phase, loop back                      │
-│    ├── conclude → Prepare final output                           │
-│    └── escalate → Return escalation data, await user             │
+│ 5. COMMAND: Evaluate next action                                 │
+│    ├── continue → Loop back to step 1                            │
+│    ├── phase → Update phase, loop back                           │
+│    ├── conclude → Exit loop, generate output                     │
+│    └── escalate → AskUserQuestion, record decision               │
 │                                                                  │
-│ 6. ORCHESTRATOR: Return round data to command                    │
-│    └── { status, round_data, updated_state }                     │
-│                                                                  │
-│ 7. COMMAND: Batch write to session file                          │
-│    └── Atomic update at end of round                             │
+│ 6. COMMAND: Batch write to session file                          │
+│    └── Append round to rounds[], atomic update                   │
 │                                                                  │
 └──────────────────────────────────────────────────────────────────┘
 ```
+
+## Why Inline Orchestration (v4)
+
+Previous architecture (v3) used a separate orchestrator agent:
+
+```
+❌ v3 (BROKEN): start.md → Task(orchestrator) → Task(facilitator)
+                                              → Task(participants)
+```
+
+This fails because **subagents cannot spawn other subagents** in Claude Code.
+
+```
+✅ v4 (WORKS): start.md contains loop → Task(facilitator)
+                                      → Task(participants)
+```
+
+The **main agent** (executing the command) CAN call Task() multiple times.
 
 ## Participation Modes
 
@@ -103,7 +121,7 @@ This document describes the complete flow of a roundtable discussion from user c
 Used by: Standard, Disney (within phase), Debate (within side)
 
 ```
-Orchestrator launches:
+Command launches in SINGLE message:
     Task(architect) ──┬── All execute simultaneously
     Task(tech-lead) ──┤   Responses collected together
     Task(qa-lead) ────┤   No agent sees others' responses
@@ -121,7 +139,7 @@ Orchestrator launches:
 Used by: Six Hats, Consensus-Driven (iterative)
 
 ```
-Orchestrator launches:
+Command launches sequentially:
     Task(participant-1) → response
         ↓ passed to
     Task(participant-2) → response
@@ -135,23 +153,62 @@ Orchestrator launches:
 - Iterative refinement
 - Deeper exploration
 
+## Session File Structure (v4)
+
+Single source of truth with flat `rounds[]` array:
+
+```yaml
+id: "20260105-140000-api-design"
+topic: "API Design Requirements"
+strategy: "disney"
+status: "active"
+
+rounds:
+  - number: 1
+    phase: "dreamer"
+    timestamp: "2026-01-05T14:00:00Z"
+    question: "What are ideal requirements?"
+    # responses: ONLY included if --verbose flag
+    synthesis: "Participants agreed on..."
+    consensus: ["REST API", "OAuth 2.0"]
+    conflicts:
+      - id: "rate-limiting"
+        description: "Per-user vs per-key"
+        positions:
+          architect: "Per-user"
+          tech-lead: "Per-key"
+    resolved: []
+```
+
+**Key design decisions**:
+- `responses[]` omitted by default (synthesis is the summary)
+- `responses[]` included only with `--verbose` flag
+- Consensus/conflicts tracked per-round, derived on demand
+- Max 3 levels of nesting for LLM parsing reliability
+
 ## Fallback Behavior
 
 When facilitator returns invalid YAML:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ 1. First failure:                                               │
-│    └── Retry facilitator with error message                     │
+│ 1. Parse YAML response                                          │
+│    └── If valid: use response                                   │
 │                                                                 │
-│ 2. Second failure:                                              │
-│    └── Use deterministic fallback:                              │
-│        ├── For generate_question:                               │
-│        │   "What are the key considerations for {topic}?"       │
-│        ├── For synthesize:                                      │
-│        │   Extract keywords, basic synthesis                    │
-│        └── For conclude:                                        │
-│            List all consensus + remaining conflicts             │
+│ 2. If invalid: use deterministic fallback                       │
+│    ├── For question:                                            │
+│    │   action: "question"                                       │
+│    │   question: "What are the key considerations for {topic}?" │
+│    │   participants: "all"                                      │
+│    │   focus: "Core requirements"                               │
+│    │                                                            │
+│    └── For synthesis:                                           │
+│        action: "synthesis"                                      │
+│        synthesis: "Discussion continues on {topic}."            │
+│        consensus: []                                            │
+│        conflicts: []                                            │
+│        resolved: []                                             │
+│        next_action: "continue"                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -162,25 +219,29 @@ When escalation triggers fire:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ TRIGGER CONDITIONS:                                             │
-│ ├── Same conflict persists after N rounds                       │
+│ ├── Same conflict persists after max_rounds_per_conflict        │
 │ ├── Participant confidence below threshold                      │
 │ ├── Critical keywords detected (security, must-have, blocking)  │
-│ └── Facilitator explicitly returns action: escalate             │
+│ └── Facilitator explicitly returns next_action: "escalate"      │
 ├─────────────────────────────────────────────────────────────────┤
 │ ESCALATION FLOW:                                                │
 │                                                                 │
-│ 1. Orchestrator includes escalation data in round result        │
-│    { escalation: { triggered: true, reason, positions } }       │
+│ 1. Facilitator returns:                                         │
+│    { next_action: "escalate", escalation_reason, positions }    │
 │                                                                 │
-│ 2. Command receives escalation status                           │
+│ 2. Command displays positions to user:                          │
+│    "⚠️ Escalation Required"                                      │
+│    "Reason: {escalation_reason}"                                │
+│    Positions: {all participant positions}                       │
 │                                                                 │
-│ 3. Command asks user for decision:                              │
-│    "Escalation needed: {reason}"                                │
-│    Options: [Choose position A] [Choose position B] [Continue]  │
+│ 3. Command asks user via AskUserQuestion:                       │
+│    - Accept facilitator recommendation                          │
+│    - Provide your own decision                                  │
+│    - Continue discussion for N more rounds                      │
 │                                                                 │
 │ 4. Based on user choice:                                        │
-│    ├── Position chosen → Add to consensus, continue             │
-│    └── Continue → Add user input to context, resume             │
+│    ├── Decision provided → Record in escalations[], continue    │
+│    └── Continue → Resume loop with user input as context        │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -216,6 +277,8 @@ Con presents case      Con addresses Pro       Con final summary
                        Produces recommendation
 ```
 
+**Debate sides** are auto-assigned by facilitator, or override with `--pro` and `--con` flags.
+
 ## Data Flow Summary
 
 ```
@@ -224,14 +287,10 @@ User Command
     ▼
 ┌─────────────┐
 │ start.md    │──┬── Creates session file
-│             │  └── Launches orchestrator
-└─────────────┘
-       │
-       ▼
-┌─────────────┐
-│Orchestrator │──┬── Manages loop
-│             │  ├── Launches facilitator (2x/round)
-│             │  └── Launches participants (parallel)
+│ (inline     │  ├── Runs discussion loop
+│ orchestr.)  │  ├── Launches facilitator (2x/round)
+│             │  ├── Launches participants (parallel)
+│             │  └── Batch writes after each round
 └─────────────┘
        │
        ▼
@@ -247,7 +306,7 @@ User Command
        │
        ▼
 ┌─────────────┐
-│ start.md    │──┬── Batch writes session
+│ start.md    │──┬── Evaluates next_action
 │             │  └── Generates output document
 └─────────────┘
        │
@@ -255,6 +314,19 @@ User Command
 Output: ADR, Requirements, Architecture, Summary
 ```
 
+## Agent Isolation
+
+| Component | Reads Session? | Receives in Prompt |
+|-----------|----------------|-------------------|
+| **start.md** | ✅ YES | N/A (is the orchestrator) |
+| **Facilitator** | ❌ NO | Curated state (phase, consensus, conflicts) |
+| **Participants** | ❌ NO | Topic + question + project context only |
+
+This isolation ensures:
+- No direct agent-to-agent communication
+- Controlled information flow
+- Predictable behavior
+
 ---
 *See [components.md](./components.md) for detailed component documentation*
-*Part of Spec2Ship Roundtable v3 documentation*
+*Part of Spec2Ship Roundtable v4 documentation*
