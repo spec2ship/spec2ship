@@ -1,7 +1,8 @@
 ---
 description: Define functional requirements through a roundtable discussion. Reads CONTEXT.md and produces structured requirements.md.
-allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(date:*), Read, Write, Edit, Glob, AskUserQuestion, SlashCommand:/s2s:roundtable:start:*
-argument-hint: [--skip-roundtable] [--format srs|volere|simple] [--strategy standard|disney|consensus-driven]
+allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Read, Write, Edit, Glob, Task, AskUserQuestion
+argument-hint: [--skip-roundtable] [--format srs|volere|simple] [--strategy standard|disney|consensus-driven] [--verbose] [--interactive]
+skills: roundtable-execution, roundtable-strategies, iso25010-requirements
 ---
 
 # Define Functional Requirements
@@ -58,6 +59,17 @@ Extract from $ARGUMENTS:
 - **--format**: Document format (srs|volere|simple). Default: srs
 - **--strategy**: Override strategy for roundtable. Default: consensus-driven
 
+**Boolean flags** (convert to true/false):
+
+| Argument | Type | Parsed Value |
+|----------|------|--------------|
+| `--verbose` | boolean | present in $ARGUMENTS → `true`, absent → `false` |
+| `--interactive` | boolean | present in $ARGUMENTS → `true`, absent → `false` |
+
+Store as:
+- **verbose_flag**: true or false
+- **interactive_flag**: true or false
+
 ### Reference Skills
 
 For detailed requirement patterns, the `iso25010-requirements` skill provides:
@@ -85,27 +97,105 @@ For detailed requirement patterns, the `iso25010-requirements` skill provides:
 
 If --skip-roundtable is NOT present:
 
-**Invoke roundtable:start with specs workflow parameters:**
+**IMPORTANT: Follow the `roundtable-execution` skill instructions EXACTLY.**
+**DO NOT use SlashCommand. Execute the roundtable inline using Task().**
 
-Use the SlashCommand tool to start a roundtable session:
+#### Roundtable Configuration
 
-    /s2s:roundtable:start "Requirements definition for {project name}"
-      --workflow-type specs
-      --strategy {--strategy or consensus-driven}
-      --output-type requirements
+Configure the roundtable with these parameters:
+- **topic**: "Requirements definition for {project name}"
+- **workflow_type**: "specs"
+- **strategy**: {--strategy argument or "consensus-driven"}
+- **output_type**: "requirements"
+- **participants**: product-manager, business-analyst, qa-lead (from config)
+- **verbose**: {verbose_flag}
+- **interactive**: {interactive_flag}
 
-The roundtable will:
-- Create session file in `.s2s/sessions/`
-- Run discussion with product-manager, software-architect, qa-lead
-- Focus on functional requirements, priorities, acceptance criteria
-- Return consensus on requirements
+#### Load Agenda (v4.2)
 
-After roundtable completes, read the session file to extract:
+**YOU MUST** read the agenda file for specs workflow:
+- Read `skills/roundtable-execution/references/agenda-specs.md`
+- Extract REQUIRED_TOPICS list (4 topics: core-functional, nfr, acceptance-criteria, out-of-scope)
+- Track coverage status for each topic (pending → partial → covered)
+
+#### Execute Roundtable
+
+**YOU MUST** now execute the roundtable following the `roundtable-execution` skill:
+
+1. **Session Setup** (PHASE 2 of skill):
+   - Create sessions directory: `mkdir -p .s2s/sessions`
+   - Generate session ID: `{timestamp}-requirements-{project-slug}`
+
+   **NOW use Write tool** to create `.s2s/sessions/{session-id}.yaml`:
+   ```yaml
+   id: "{session-id}"
+   topic: "Requirements definition for {project name}"
+   workflow_type: "specs"
+   strategy: "{strategy}"
+   status: "active"
+   started: "{ISO timestamp}"
+   participants:
+     - role: product-manager
+     - role: business-analyst
+     - role: qa-lead
+   config:
+     min_rounds: 3
+     verbose: {verbose_flag}
+     interactive: {interactive_flag}
+   rounds: []
+   ```
+
+   **NOW use Edit tool** to update `.s2s/state.yaml`:
+   - Set `current_session: "{session-id}"`
+
+2. **Round Execution Loop** (PHASE 3 of skill):
+   - Step 3.1: **YOU MUST** use Task tool to call facilitator for question
+     - Include `REQUIRED_TOPICS` and current `agenda_coverage` in prompt
+     - Include `min_rounds: 3` in escalation config
+   - Step 3.2: **YOU MUST** launch ALL participant Tasks in SINGLE message
+
+   **CRITICAL - Store responses for verbose mode:**
+   After ALL participant Tasks complete, store results in `participant_responses`:
+   ```
+   participant_responses = [
+     { id, role, position, rationale, concerns, confidence, context_challenge }
+     // for each participant
+   ]
+   ```
+   **This array is REQUIRED for:**
+   - Step 3.3: Pass to facilitator synthesis prompt
+   - Step 3.4: Include in session file when verbose=true
+
+   - Step 3.3: **YOU MUST** use Task tool for facilitator synthesis
+     - Facilitator returns `agenda_coverage` status for each topic
+   - Step 3.4: **NOW use Edit tool** to append round to session file:
+     - Append to `rounds:` array with: number, question, synthesis, consensus, conflicts
+     - **IF verbose_flag == true**: Include `responses:` with full participant_responses array
+   - Step 3.5: **min_rounds CHECK** (v4.2):
+     - If `round_number < 3` AND facilitator says "conclude" → OVERRIDE to "continue"
+     - Log: "Minimum rounds not reached, continuing"
+   - Step 3.6: **Agenda CHECK** (v4.2):
+     - If any critical topic (core-functional, nfr) is "pending" → OVERRIDE to "continue"
+     - Generate question targeting pending topic
+   - REPEAT until: facilitator returns "conclude" AND round_number >= 3 AND critical topics covered
+
+3. **Completion** (PHASE 4 of skill):
+   - Update session status
+   - The output_type "requirements" will be handled in Phase 3 below
+
+**CRITICAL REMINDERS (v4.4):**
+
+- **Store participant responses**: After Step 3.2, keep responses in `participant_responses` array
+- **Write session file per-round**: After Step 3.3, IMMEDIATELY write to session file using Write/Edit tool
+- **Display recap ALWAYS**: After Step 3.4, show round summary to terminal (not just interactive mode)
+- **If verbose=true**: Include full `responses[]` in session file round data
+
+After roundtable completes, extract from session file:
 - Consensus points (these become requirements)
 - Unresolved conflicts (flag for user review)
 - Participant recommendations
 
-If --skip-roundtable IS present:
+**If --skip-roundtable IS present:**
 - Analyze CONTEXT.md directly
 - Infer requirements from objectives and scope
 - Generate basic requirement list

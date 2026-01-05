@@ -1,4 +1,4 @@
-# Roundtable v4
+# Roundtable v4.4.1
 
 The Roundtable is Spec2Ship's multi-agent discussion system for collaborative decision-making.
 
@@ -14,6 +14,17 @@ Roundtable enables AI agents with different perspectives to discuss topics, iden
 - **Session Persistence**: Resume interrupted discussions
 - **Parallel Execution**: Blind voting to prevent sycophancy
 - **Inline Orchestration**: Loop logic in command (v4 - Claude Code compliant)
+- **Agenda Tracking** (v4.2): Required topics for specs/design workflows
+- **Per-Round Persistence** (v4.4.1): Session file written after each round
+
+## Flags
+
+| Flag | Description |
+|------|-------------|
+| `--verbose` | Include full participant responses in session file |
+| `--interactive` | Ask user after each round: continue/skip/pause |
+| `--strategy` | Override strategy (standard/disney/debate/consensus-driven/six-hats) |
+| `--participants` | Override default participants |
 
 ## Quick Start
 
@@ -54,11 +65,15 @@ Roundtable enables AI agents with different perspectives to discuss topics, iden
 │ PHASE 2: Discussion Loop (INLINE)                               │
 │ ┌─────────────────────────────────────────────────────────────┐ │
 │ │ For each round:                                             │ │
+│ │ 0. Display agenda status (v4.4.1)                           │ │
 │ │ 1. Task(facilitator) → generate question                    │ │
 │ │ 2. Task(participants) → parallel responses (blind voting)   │ │
+│ │    → Store responses for verbose mode                       │ │
 │ │ 3. Task(facilitator) → synthesize                           │ │
-│ │ 4. Batch write round to session file                        │ │
-│ │ 5. Evaluate next_action (continue/phase/conclude/escalate)  │ │
+│ │ 4. Write round to session file (IMMEDIATE)                  │ │
+│ │ 5. Display recap to terminal                                │ │
+│ │ 6. If interactive: AskUserQuestion (EVERY round)            │ │
+│ │ 7. Evaluate next_action (continue/phase/conclude/escalate)  │ │
 │ └─────────────────────────────────────────────────────────────┘ │
 │                                                                 │
 │ PHASE 3: Completion                                             │

@@ -76,45 +76,56 @@ We follow Anthropic's pattern from `plugin-dev` and `feature-dev`:
         └── madr-decisions (for ADR format)
 ```
 
-### SAD-002: Roundtable Implementation (v4)
+### SAD-002: Roundtable Implementation (v4.4.1)
 
-Roundtable v4 uses **Inline Orchestration**: The command itself contains the loop logic.
+Roundtable v4.4.1 uses **Skill as Shared Library**: All commands share the same execution logic.
 
-> **Critical Constraint**: Claude Code subagents cannot spawn other subagents.
-> This means orchestrator.md (as an agent) cannot call Task() for facilitator/participants.
-> Solution: Inline the loop logic in start.md.
+> **Critical Constraints**:
+> 1. Claude Code subagents cannot spawn other subagents.
+> 2. SlashCommand is ASYNCHRONOUS - cannot wait for results.
+> Solution: Skill `roundtable-execution` contains shared logic, commands execute inline.
+
+> **v4.4.1 Enhancements**:
+> - Session file written after EACH round (not just at end)
+> - `--verbose` includes full participant responses
+> - `--interactive` asks EVERY round (not just on conflicts)
+> - Agenda displayed at start of each round
 
 **Architecture**:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  /s2s:specs, /s2s:design, /s2s:brainstorm                       │
-│  • Workflow-specific setup                                      │
-│  • Delegates via SlashCommand:/s2s:roundtable:start             │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ SlashCommand
-                               ▼
+│  skills/roundtable-execution/SKILL.md                           │
+│  • Session setup instructions                                   │
+│  • Round execution loop (Task calls)                            │
+│  • Definition of Done checklist                                 │
+│  • STOP conditions                                              │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │ referenced by (skills: field)
+        ┌───────────────────────┼───────────────────────┐
+        ▼                       ▼                       ▼
+┌───────────────┐     ┌───────────────┐     ┌───────────────┐
+│ /s2s:specs    │     │ /s2s:design   │     │ /s2s:brainstorm│
+│ • Setup       │     │ • Setup       │     │ • Setup       │
+│ • Execute via │     │ • Execute via │     │ • Execute via │
+│   skill       │     │   skill       │     │   skill       │
+└───────────────┘     └───────────────┘     └───────────────┘
+
+Each command executes INLINE following skill instructions:
 ┌─────────────────────────────────────────────────────────────────┐
-│  Command (start.md) - ORCHESTRATOR INLINE                       │
-│                                                                 │
-│  PHASE 1: Setup                                                 │
-│  • Parse arguments, validate environment                        │
-│  • Create session file with flat rounds[] structure             │
-│  • Load strategy config from skill                              │
-│                                                                 │
-│  PHASE 2: Discussion Loop (INLINE)                              │
+│  Round Execution (from roundtable-execution skill)              │
 │  ┌─────────────────────────────────────────────────────────────┐│
 │  │ For each round until conclusion:                            ││
 │  │                                                             ││
+│  │ 0. Display agenda status (v4.4.1)                           ││
 │  │ 1. Task(facilitator) → generate question                    ││
 │  │ 2. Task(p1), Task(p2), Task(p3)... → PARALLEL responses     ││
+│  │    → Store responses for verbose mode                       ││
 │  │ 3. Task(facilitator) → synthesize                           ││
-│  │ 4. Batch write round to session file                        ││
-│  │ 5. Evaluate next_action                                     ││
+│  │ 4. Write round to session file (IMMEDIATE)                  ││
+│  │ 5. Display recap to terminal                                ││
+│  │ 6. If interactive: AskUserQuestion (EVERY round)            ││
+│  │ 7. Evaluate next_action                                     ││
 │  └─────────────────────────────────────────────────────────────┘│
-│                                                                 │
-│  PHASE 3: Completion                                            │
-│  • Generate output (adr/requirements/architecture/summary)      │
-│  • Update state.yaml                                            │
 └─────────────────────────────────────────────────────────────────┘
 
 Agents (stateless, called per-round):
@@ -124,12 +135,17 @@ Agents (stateless, called per-round):
 └─────────────┘  └─────────┘  └─────────┘  └─────────┘  └─────────┘
 ```
 
-**Key Features (v4)**:
-- **Inline Orchestration**: Loop logic in start.md, not a separate agent
+**Key Features (v4.4.1)**:
+- **Skill as Library**: `roundtable-execution` skill contains shared orchestration logic
+- **No SlashCommand**: Commands execute roundtable inline via Task() calls
 - **Flat Rounds**: Session file uses flat `rounds[]` array (max 3 levels nesting)
 - **Single Source of Truth**: Consensus/conflicts tracked only in rounds, derived on demand
 - **2 Facilitator Actions**: question and synthesis (conclude = synthesis + next_action)
 - **Stateless Agents**: Each Task() creates new agent, no persistent state
+- **Agenda Tracking** (v4.2): Required topics for specs/design workflows
+- **Per-Round Persistence** (v4.4.1): Session file written after each round
+- **Verbose Mode** (v4.4.1): `--verbose` includes full participant responses
+- **Interactive Mode** (v4.4.1): `--interactive` asks every round
 
 **Strategies**: standard, disney, debate, consensus-driven, six-hats
 
@@ -1229,6 +1245,158 @@ validation:
   requires_sequential_phases: true | false
   min_participants: 2
 ```
+
+---
+
+## Multi-Agent Orchestration Best Practices
+
+This section documents patterns learned from implementing the Roundtable system and official Anthropic documentation.
+
+### Pattern 1: Task() for Synchronization (OFFICIAL)
+
+The Task tool is **synchronous** - it waits for the subagent to complete before returning.
+Use Task() for orchestrating multi-agent discussions.
+
+```markdown
+1. **YOU MUST** call Task(facilitator) to generate question
+2. **WAIT for response**
+3. **YOU MUST** call Task for EACH participant
+4. **WAIT for ALL responses**
+5. **YOU MUST** call Task(facilitator) to synthesize
+```
+
+**Source**: Claude Agent SDK documentation, Claude Code tool behavior.
+
+### Pattern 2: Emphasis for Critical Instructions (OFFICIAL)
+
+Claude Code respects instructions better when emphasized:
+
+```markdown
+**YOU MUST** use the Task tool NOW to call the facilitator.
+
+IMPORTANT: Do NOT proceed to Step 3 until you have received the facilitator's response.
+```
+
+**Source**: [GitHub Issue #1078](https://github.com/anthropics/claude-code/issues/1078) - "At Anthropic, they occasionally tune instructions (e.g., adding emphasis with 'IMPORTANT' or 'YOU MUST') to improve adherence."
+
+### Pattern 3: Explicit Output Format with Fallback (OFFICIAL)
+
+Specify exact YAML/JSON format AND define fallback behavior:
+
+```markdown
+The facilitator MUST return YAML in this EXACT format:
+```yaml
+action: "question"
+question: "{specific question}"
+```
+
+If the facilitator returns invalid YAML, use this fallback:
+```yaml
+action: "question"
+question: "What are the key requirements for {topic}?"
+```
+```
+
+### Pattern 4: Definition of Done for Loops
+
+For multi-round loops, define **numerical** termination criteria:
+
+```markdown
+Continue rounds UNTIL:
+- consensus_count >= 3 (minimum agreements)
+- open_conflicts == 0 OR rounds >= max_rounds_per_conflict
+- facilitator.next_action == "conclude"
+- HARD LIMIT: rounds >= 20
+
+DO NOT terminate based on "feeling done".
+ALWAYS check numerical criteria.
+```
+
+---
+
+### Anti-Pattern: SlashCommand for Orchestration
+
+**SlashCommand is ASYNCHRONOUS** - it cannot wait for results!
+
+```markdown
+# WRONG - specs.md tries to delegate to roundtable:start
+Phase 1: Use SlashCommand to start roundtable
+  SlashCommand:/s2s:roundtable:start "topic"
+
+# Problem: specs.md continues WITHOUT waiting for roundtable!
+```
+
+**Solution**: Inline orchestration with Task() or Skill as library.
+
+```markdown
+# CORRECT - specs.md executes roundtable inline
+Phase 1: Execute roundtable following skill instructions
+  Task(facilitator)  question
+  Task(participants)  responses (parallel)
+  Task(facilitator)  synthesis
+```
+
+### Anti-Pattern: Pseudocode as Documentation
+
+Claude may interpret pseudocode as documentation instead of instructions:
+
+```markdown
+# WRONG - May be interpreted as documentation
+Task(
+  subagent_type="general-purpose",
+  prompt="You are the facilitator..."
+)
+```
+
+```markdown
+# CORRECT - Imperative instruction
+**NOW use the Task tool** with these parameters:
+- subagent_type: "general-purpose"
+- prompt: "You are the facilitator..."
+
+**DO NOT proceed until you have the response.**
+```
+
+### Anti-Pattern: Loops Without Numerical Criteria
+
+```markdown
+# WRONG
+Continue discussing until consensus is reached.
+```
+
+```markdown
+# CORRECT
+Continue rounds UNTIL:
+- All participants have confidence >= 0.8, OR
+- Maximum 10 rounds reached, OR
+- Facilitator returns next_action: "conclude"
+```
+
+### Anti-Pattern: Subagent Spawning Subagent
+
+**Critical constraint**: Claude Code subagents cannot spawn other subagents.
+
+```markdown
+# WRONG - Does not work!
+orchestrator.md (agent)  Task(facilitator)  Task(participant)
+```
+
+```markdown
+# CORRECT - Orchestration inline in command
+start.md (command)  Task(facilitator)  Task(participant)
+```
+
+---
+
+### Community Patterns (Medium Confidence)
+
+These patterns come from community frameworks and may work:
+
+| Pattern | Source | Notes |
+|---------|--------|-------|
+| Flow syntax `->` `\|\|` | claude-orchestration | Requires testing |
+| Confidence thresholds | SuperClaude | For loop termination |
+| Queue State File | PubNub best practices | Status tracking |
 
 ---
 

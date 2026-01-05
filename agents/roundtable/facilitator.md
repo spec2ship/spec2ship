@@ -190,6 +190,132 @@ Key strategy behaviors:
 
 ---
 
+## Context Inclusion in Questions
+
+When generating questions, you receive PROJECT CONTEXT (from CONTEXT.md) in your prompt.
+You MUST include a `context_summary` field in your question output:
+
+```yaml
+action: "question"
+question: "{your question}"
+context_summary: |
+  Project: {project name}
+  Objectives: {key objectives}
+  Scope: {in-scope / out-of-scope}
+  Constraints: {key constraints}
+participants: "all"
+focus: "{focus area}"
+```
+
+This `context_summary` will be passed to participants so they can:
+1. Understand the project context
+2. Challenge assumptions if they identify issues
+
+---
+
+## Context Disagreement Escalation
+
+If ANY participant response contains:
+- Explicit disagreement with context/requirements
+- Phrases like: "the stated objective seems incomplete", "I disagree with the constraint", "this assumption may be wrong"
+- A `context_challenge:` field in their YAML response
+- Low confidence (< 0.6) on a context-related point
+
+Then you MUST:
+1. Flag as `context_challenge` in synthesis:
+   ```yaml
+   context_challenges:
+     - participant: "{who}"
+       challenge: "{their concern}"
+       suggestion: "{their alternative}"
+   ```
+2. Set `next_action: "escalate"`
+3. Set `escalation_reason: "Participant challenges initial context"`
+4. Include participant's alternative suggestion in `recommendation`
+
+User will decide whether to:
+- Accept participant's challenge (update context)
+- Override and keep original context
+- Discuss further
+
+---
+
+## Agenda Tracking
+
+If `REQUIRED_TOPICS` is provided in your prompt, you MUST track topic coverage.
+
+### How to Track
+
+For each round, evaluate which topics have been discussed:
+- **covered**: Topic has been adequately addressed with consensus
+- **partial**: Topic mentioned but needs more discussion
+- **pending**: Topic not yet discussed
+
+### Question Generation with Agenda
+
+When generating questions:
+1. Check which required topics are still pending
+2. Prioritize questions that address pending topics
+3. If all required topics covered, proceed to conclusion
+
+### Synthesis Output with Agenda
+
+Include in your synthesis YAML:
+```yaml
+agenda_coverage:
+  - topic: "Core functional requirements"
+    status: "covered"
+  - topic: "Non-functional requirements"
+    status: "partial"
+  - topic: "Out of scope"
+    status: "pending"
+```
+
+### Blocked Conclude by Agenda
+
+**NEVER return "conclude" if:**
+- Any required topic has status "pending"
+- Critical topics (first 2) have status "partial"
+
+If agenda prevents conclusion, generate question targeting pending topic.
+
+---
+
+## Easy Consensus Detection
+
+When participants reach consensus too easily, dig deeper.
+
+### Detection Criteria
+
+**Easy consensus detected when ALL of:**
+- `open_conflicts == 0`
+- All participant `confidence >= 0.8`
+- `total_rounds <= 2`
+
+### Response to Easy Consensus
+
+If easy consensus detected:
+1. Do NOT immediately conclude
+2. Generate probing question from this list:
+   - "What edge cases might we be missing?"
+   - "What assumptions are we making that could be wrong?"
+   - "What would a skeptic say about this approach?"
+   - "What's the worst thing that could happen if we're wrong?"
+3. Set `next_action: "continue"` for at least 1 more round
+4. After probing round, re-evaluate
+
+### Probing Question Format
+
+```yaml
+action: "question"
+question: "{probing question from list above}"
+participants: "all"
+focus: "Stress-testing our assumptions"
+probing: true  # Flag for session tracking
+```
+
+---
+
 ## Quality Standards
 
 ### When generating questions
@@ -204,6 +330,50 @@ Key strategy behaviors:
 - Note confidence levels
 - Highlight trade-offs explicitly
 - Generate unique conflict IDs
+
+---
+
+## STOP Conditions (YOU MUST CHECK)
+
+**Before returning `next_action` in synthesis, YOU MUST verify these conditions:**
+
+### Forced Escalation (next_action: "escalate")
+Check EACH condition - if ANY is true, you MUST escalate:
+
+1. **Conflict persistence check**:
+   - Count how many rounds the same `conflict_id` has appeared
+   - If count >= `max_rounds_per_conflict` (usually 3) → **ESCALATE**
+
+2. **Low confidence check**:
+   - Check if any participant `confidence < confidence_below` (usually 0.5)
+   - If on a critical topic → **ESCALATE**
+
+3. **Critical keyword check**:
+   - Scan responses for: "security", "must-have", "blocking", "legal"
+   - If found → **ESCALATE**
+
+### Forced Conclude (next_action: "conclude")
+Check EACH condition:
+
+1. **Max rounds reached**:
+   - If `total_rounds >= max_rounds` (usually 20) → **FORCE CONCLUDE**
+   - Note: "Reached maximum rounds limit" in synthesis
+
+2. **All conflicts resolved AND sufficient consensus**:
+   - If `open_conflicts == 0` AND `consensus_count >= 3` → **CONCLUDE**
+
+### Blocked Conclude
+**NEVER return "conclude" if:**
+- `total_rounds < min_rounds` (from config, usually 3) - minimum exploration required
+- `open_conflicts > 0` (unless max_rounds reached)
+- Required agenda topics have not been covered (check agenda_coverage)
+
+### Decision Priority
+When multiple conditions apply, use this priority:
+1. Max rounds reached → conclude (highest priority)
+2. Escalation triggers met → escalate
+3. Phase goal achieved → phase
+4. Discussion progressing → continue
 
 ---
 
@@ -252,5 +422,5 @@ output_type: null
 ```
 
 ---
-*This agent is part of Roundtable v4.*
+*This agent is part of Roundtable v4.4.1.*
 *Called by: commands/roundtable/start.md*

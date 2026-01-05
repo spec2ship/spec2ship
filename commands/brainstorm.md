@@ -1,7 +1,8 @@
 ---
 description: Creative brainstorming session using the Disney strategy (Dreamer → Realist → Critic). Use for ideation and exploring new ideas without constraints.
-allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Read, Write, Edit, Glob, AskUserQuestion, SlashCommand:/s2s:roundtable:start:*
-argument-hint: "topic" [--participants <list>]
+allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Read, Write, Edit, Glob, Task, AskUserQuestion
+argument-hint: "topic" [--participants <list>] [--verbose] [--interactive]
+skills: roundtable-execution, roundtable-strategies
 ---
 
 # Brainstorm Session
@@ -37,6 +38,17 @@ Based on the Directory contents output, determine:
 Extract from $ARGUMENTS:
 - **topic**: Required. The subject for brainstorming (first quoted argument)
 - **--participants**: Optional. Comma-separated list to override defaults
+
+**Boolean flags** (convert to true/false):
+
+| Argument | Type | Parsed Value |
+|----------|------|--------------|
+| `--verbose` | boolean | present in $ARGUMENTS → `true`, absent → `false` |
+| `--interactive` | boolean | present in $ARGUMENTS → `true`, absent → `false` |
+
+Store as:
+- **verbose_flag**: true or false
+- **interactive_flag**: true or false
 
 If topic is missing, ask using AskUserQuestion:
 - "What would you like to brainstorm?"
@@ -74,15 +86,88 @@ If --participants specified, use that list instead.
 
 ### Launch Roundtable
 
-**Invoke roundtable:start with brainstorm workflow and disney strategy:**
+**IMPORTANT: Follow the `roundtable-execution` skill instructions EXACTLY.**
+**DO NOT use SlashCommand. Execute the roundtable inline using Task().**
 
-Use the SlashCommand tool:
+#### Roundtable Configuration
 
-    /s2s:roundtable:start "{topic}"
-      --workflow-type brainstorm
-      --strategy disney
-      --participants {participant list}
-      --output-type summary
+Configure the roundtable with these parameters:
+- **topic**: {parsed topic}
+- **workflow_type**: "brainstorm"
+- **strategy**: "disney"
+- **output_type**: "summary"
+- **participants**: {--participants or defaults: product-manager, software-architect, technical-lead, devops-engineer}
+- **verbose**: {verbose_flag}
+- **interactive**: {interactive_flag}
+
+#### Execute Roundtable
+
+**YOU MUST** now execute the roundtable following the `roundtable-execution` skill:
+
+1. **Session Setup** (PHASE 2 of skill):
+   - Create sessions directory: `mkdir -p .s2s/sessions`
+   - Generate session ID: `{timestamp}-brainstorm-{topic-slug}`
+
+   **NOW use Write tool** to create `.s2s/sessions/{session-id}.yaml`:
+   ```yaml
+   id: "{session-id}"
+   topic: "{topic}"
+   workflow_type: "brainstorm"
+   strategy: "disney"
+   status: "active"
+   started: "{ISO timestamp}"
+   participants:
+     - role: product-manager
+     - role: software-architect
+     - role: technical-lead
+     - role: devops-engineer
+   config:
+     min_rounds: 3
+     verbose: {verbose_flag}
+     interactive: {interactive_flag}
+   rounds: []
+   ```
+
+   **NOW use Edit tool** to update `.s2s/state.yaml`:
+   - Set `current_session: "{session-id}"`
+
+2. **Round Execution Loop** (PHASE 3 of skill):
+   - Step 3.1: **YOU MUST** use Task tool to call facilitator for question
+     - Include `min_rounds: 3` in escalation config
+     - Note: Brainstorm has NO agenda (free-form creativity)
+   - Step 3.2: **YOU MUST** launch ALL participant Tasks in SINGLE message
+
+   **CRITICAL - Store responses for verbose mode:**
+   After ALL participant Tasks complete, store results in `participant_responses`:
+   ```
+   participant_responses = [
+     { id, role, position, rationale, concerns, confidence, context_challenge }
+     // for each participant
+   ]
+   ```
+   **This array is REQUIRED for:**
+   - Step 3.3: Pass to facilitator synthesis prompt
+   - Step 3.4: Include in session file when verbose=true
+
+   - Step 3.3: **YOU MUST** use Task tool for facilitator synthesis
+   - Step 3.4: **NOW use Edit tool** to append round to session file:
+     - Append to `rounds:` array with: number, question, synthesis, consensus, conflicts
+     - **IF verbose_flag == true**: Include `responses:` with full participant_responses array
+   - Step 3.5: **min_rounds CHECK** (v4.2):
+     - If `round_number < 3` AND facilitator says "conclude" → OVERRIDE to "continue"
+     - Log: "Minimum rounds not reached, continuing"
+   - REPEAT through all Disney phases (dreamer → realist → critic), minimum 3 rounds total
+
+3. **Completion** (PHASE 4 of skill):
+   - Update session status
+   - The output_type "summary" will be handled below
+
+**CRITICAL REMINDERS (v4.4):**
+
+- **Store participant responses**: After Step 3.2, keep responses in `participant_responses` array
+- **Write session file per-round**: After Step 3.3, IMMEDIATELY write to session file using Write/Edit tool
+- **Display recap ALWAYS**: After Step 3.4, show round summary to terminal (not just interactive mode)
+- **If verbose=true**: Include full `responses[]` in session file round data
 
 The roundtable will:
 - Create session file in `.s2s/sessions/` (if s2s initialized)
