@@ -55,7 +55,7 @@ Read `.s2s/config.yaml` and extract:
 - Default strategy: `roundtable.strategy`
 - Default participants: `roundtable.participants.by_workflow_type[workflow_type]`
 - Escalation settings: `roundtable.escalation`
-- Max rounds per conflict: `roundtable.escalation.max_rounds_per_conflict` (default: 3)
+- Max rounds per conflict: `roundtable.escalation.triggers.max_rounds_per_conflict` (default: 3)
 
 ## Auto-detect strategy (if not specified)
 
@@ -258,7 +258,7 @@ Open conflicts: {open_conflicts or 'None'}
 
 === ESCALATION CONFIG ===
 max_rounds_per_conflict: {from config}
-confidence_threshold: {from config}
+confidence_below: {from config}
 critical_keywords: {from config}
 
 === TASK ===
@@ -358,7 +358,7 @@ Phase goal: {phase.goal}
 
 === ESCALATION CONFIG ===
 max_rounds_per_conflict: {from config}
-confidence_threshold: {from config}
+confidence_below: {from config}
 critical_keywords: {from config}
 
 === CURRENT STATE ===

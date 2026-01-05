@@ -268,7 +268,7 @@ Open conflicts: {open_conflicts with round counts}
 
 === ESCALATION CONFIG ===
 max_rounds_per_conflict: {from config}
-confidence_threshold: {from config}
+confidence_below: {from config}
 critical_keywords: {from config}
 
 === CONTEXT ===

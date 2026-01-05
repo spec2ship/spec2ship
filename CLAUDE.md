@@ -1147,7 +1147,7 @@ The command (start.md) passes escalation config to the facilitator, even though 
 # In start.md prompt to facilitator:
 escalation:
   max_rounds_per_conflict: 3    # From config
-  confidence_threshold: 0.5      # From config
+  confidence_below: 0.5          # From config
   critical_keywords: [security, must-have]  # From config
 ```
 

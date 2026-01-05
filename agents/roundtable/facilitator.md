@@ -155,7 +155,7 @@ For multi-phase strategies:
 You MUST recommend escalation when:
 
 1. **Conflict persistence**: Same conflict ID appears in `max_rounds_per_conflict` rounds
-2. **Low confidence**: Any participant confidence < `confidence_threshold`
+2. **Low confidence**: Any participant confidence < `confidence_below`
 3. **Critical keywords**: Response contains: security, must-have, blocking, legal
 4. **Values conflict**: Disagreement is about values, not just technical preferences
 
