@@ -59,16 +59,7 @@ Extract from $ARGUMENTS:
 - **--format**: Document format (srs|volere|simple). Default: srs
 - **--strategy**: Override strategy for roundtable. Default: consensus-driven
 
-**Boolean flags** (convert to true/false):
-
-| Argument | Type | Parsed Value |
-|----------|------|--------------|
-| `--verbose` | boolean | present in $ARGUMENTS → `true`, absent → `false` |
-| `--interactive` | boolean | present in $ARGUMENTS → `true`, absent → `false` |
-
-Store as:
-- **verbose_flag**: true or false
-- **interactive_flag**: true or false
+**Boolean flags**: `--verbose` and `--interactive` → parse as `true` if present, `false` if absent.
 
 ### Reference Skills
 
@@ -117,56 +108,23 @@ Read `skills/roundtable-execution/references/agenda-specs.md` and extract REQUIR
 
 #### Execute Roundtable
 
-**YOU MUST** now execute the roundtable following the `roundtable-execution` skill:
+**YOU MUST** execute the roundtable following `roundtable-execution` skill (PHASE 2-4) with these workflow-specific values:
 
-1. **Session Setup** (PHASE 2 of skill):
-   - Create sessions directory: `mkdir -p .s2s/sessions`
-   - Generate session ID: `{timestamp}-requirements-{project-slug}`
-   - Create session file following schema in `skills/roundtable-execution/references/session-schema.md`
-   - Set workflow_type="specs", participants=[product-manager, business-analyst, qa-lead]
-   - Update `.s2s/state.yaml` with `current_session`
+| Parameter | Value |
+|-----------|-------|
+| session_id | `{timestamp}-requirements-{project-slug}` |
+| workflow_type | `specs` |
+| participants | `[product-manager, business-analyst, qa-lead]` |
+| agenda | `REQUIRED_TOPICS` from agenda-specs.md |
+| critical_topics | `core-functional`, `nfr` |
 
-2. **Round Execution Loop** (PHASE 3 of skill):
-   - Step 3.1: **YOU MUST** use Task tool to call facilitator for question
-     - Include `REQUIRED_TOPICS` and current `agenda_coverage` in prompt
-     - Include `min_rounds: 3` in escalation config
-   - Step 3.2: **YOU MUST** launch ALL participant Tasks in SINGLE message
-
-   **CRITICAL - Store responses for verbose mode:**
-   After ALL participant Tasks complete, store results in `participant_responses`:
-   ```
-   participant_responses = [
-     { id, role, position, rationale, concerns, confidence, context_challenge }
-     // for each participant
-   ]
-   ```
-   **This array is REQUIRED for:**
-   - Step 3.3: Pass to facilitator synthesis prompt
-   - Step 3.4: Include in session file when verbose=true
-
-   - Step 3.3: **YOU MUST** use Task tool for facilitator synthesis
-     - Facilitator returns `agenda_coverage` status for each topic
-   - Step 3.4: **NOW use Edit tool** to append round to session file:
-     - Append to `rounds:` array with: number, question, synthesis, consensus, conflicts
-     - **IF verbose_flag == true**: Include `responses:` with full participant_responses array
-   - Step 3.5: **min_rounds CHECK**:
-     - If `round_number < 3` AND facilitator says "conclude" → OVERRIDE to "continue"
-     - Log: "Minimum rounds not reached, continuing"
-   - Step 3.6: **Agenda CHECK**:
-     - If any critical topic (core-functional, nfr) is "pending" → OVERRIDE to "continue"
-     - Generate question targeting pending topic
-   - REPEAT until: facilitator returns "conclude" AND round_number >= 3 AND critical topics covered
-
-3. **Completion** (PHASE 4 of skill):
-   - Update session status
-   - The output_type "requirements" will be handled in Phase 3 below
-
-**CRITICAL REMINDERS:**
-
-- **Store participant responses**: After Step 3.2, keep responses in `participant_responses` array
-- **Write session file per-round**: After Step 3.3, IMMEDIATELY write to session file using Write/Edit tool
-- **Display recap ALWAYS**: After Step 3.4, show round summary to terminal (not just interactive mode)
+**CRITICAL REMINDERS** (pattern reinforcement):
+- **Store participant responses** in `participant_responses` array after Step 3.2
+- **Write session file per-round** using Write/Edit tool after Step 3.3
+- **Display recap ALWAYS** after each round
 - **If verbose=true**: Include full `responses[]` in session file round data
+- **min_rounds CHECK**: Override "conclude" if round < 3
+- **Agenda CHECK**: Override "conclude" if critical topics pending
 
 After roundtable completes, extract from session file:
 - Consensus points (these become requirements)

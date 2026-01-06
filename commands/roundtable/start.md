@@ -46,16 +46,7 @@ Extract from $ARGUMENTS:
 - **--verbose**: Optional. Include full participant responses in session file
 - **--interactive**: Optional. Ask user after each round
 
-**Boolean flags** (convert to true/false):
-
-| Argument | Type | Parsed Value |
-|----------|------|--------------|
-| `--verbose` | boolean | present in $ARGUMENTS → `true`, absent → `false` |
-| `--interactive` | boolean | present in $ARGUMENTS → `true`, absent → `false` |
-
-Store as:
-- **verbose_flag**: true or false
-- **interactive_flag**: true or false
+**Boolean flags**: `--verbose` and `--interactive` → parse as `true` if present, `false` if absent.
 
 Other optional arguments:
 - **--pro**: Optional (debate only). Comma-separated list of participant IDs for Pro side

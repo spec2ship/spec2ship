@@ -39,16 +39,7 @@ Extract from $ARGUMENTS:
 - **topic**: Required. The subject for brainstorming (first quoted argument)
 - **--participants**: Optional. Comma-separated list to override defaults
 
-**Boolean flags** (convert to true/false):
-
-| Argument | Type | Parsed Value |
-|----------|------|--------------|
-| `--verbose` | boolean | present in $ARGUMENTS → `true`, absent → `false` |
-| `--interactive` | boolean | present in $ARGUMENTS → `true`, absent → `false` |
-
-Store as:
-- **verbose_flag**: true or false
-- **interactive_flag**: true or false
+**Boolean flags**: `--verbose` and `--interactive` → parse as `true` if present, `false` if absent.
 
 If topic is missing, ask using AskUserQuestion:
 - "What would you like to brainstorm?"
@@ -102,53 +93,23 @@ Configure the roundtable with these parameters:
 
 #### Execute Roundtable
 
-**YOU MUST** now execute the roundtable following the `roundtable-execution` skill:
+**YOU MUST** execute the roundtable following `roundtable-execution` skill (PHASE 2-4) with these workflow-specific values:
 
-1. **Session Setup** (PHASE 2 of skill):
-   - Create sessions directory: `mkdir -p .s2s/sessions`
-   - Generate session ID: `{timestamp}-brainstorm-{topic-slug}`
-   - Create session file following schema in `skills/roundtable-execution/references/session-schema.md`
-   - Set workflow_type="brainstorm", strategy="disney", participants=[product-manager, software-architect, technical-lead, devops-engineer]
-   - Update `.s2s/state.yaml` with `current_session`
-   - Note: Brainstorm has NO agenda (free-form creativity)
+| Parameter | Value |
+|-----------|-------|
+| session_id | `{timestamp}-brainstorm-{topic-slug}` |
+| workflow_type | `brainstorm` |
+| strategy | `disney` |
+| participants | `[product-manager, software-architect, technical-lead, devops-engineer]` |
+| agenda | **None** (free-form creativity) |
 
-2. **Round Execution Loop** (PHASE 3 of skill):
-   - Step 3.1: **YOU MUST** use Task tool to call facilitator for question
-     - Include `min_rounds: 3` in escalation config
-     - Note: Brainstorm has NO agenda (free-form creativity)
-   - Step 3.2: **YOU MUST** launch ALL participant Tasks in SINGLE message
-
-   **CRITICAL - Store responses for verbose mode:**
-   After ALL participant Tasks complete, store results in `participant_responses`:
-   ```
-   participant_responses = [
-     { id, role, position, rationale, concerns, confidence, context_challenge }
-     // for each participant
-   ]
-   ```
-   **This array is REQUIRED for:**
-   - Step 3.3: Pass to facilitator synthesis prompt
-   - Step 3.4: Include in session file when verbose=true
-
-   - Step 3.3: **YOU MUST** use Task tool for facilitator synthesis
-   - Step 3.4: **NOW use Edit tool** to append round to session file:
-     - Append to `rounds:` array with: number, question, synthesis, consensus, conflicts
-     - **IF verbose_flag == true**: Include `responses:` with full participant_responses array
-   - Step 3.5: **min_rounds CHECK**:
-     - If `round_number < 3` AND facilitator says "conclude" → OVERRIDE to "continue"
-     - Log: "Minimum rounds not reached, continuing"
-   - REPEAT through all Disney phases (dreamer → realist → critic), minimum 3 rounds total
-
-3. **Completion** (PHASE 4 of skill):
-   - Update session status
-   - The output_type "summary" will be handled below
-
-**CRITICAL REMINDERS:**
-
-- **Store participant responses**: After Step 3.2, keep responses in `participant_responses` array
-- **Write session file per-round**: After Step 3.3, IMMEDIATELY write to session file using Write/Edit tool
-- **Display recap ALWAYS**: After Step 3.4, show round summary to terminal (not just interactive mode)
+**CRITICAL REMINDERS** (pattern reinforcement):
+- **Store participant responses** in `participant_responses` array after Step 3.2
+- **Write session file per-round** using Write/Edit tool after Step 3.3
+- **Display recap ALWAYS** after each round
 - **If verbose=true**: Include full `responses[]` in session file round data
+- **min_rounds CHECK**: Override "conclude" if round < 3
+- **Disney phases**: Cycle through dreamer → realist → critic
 
 The roundtable will:
 - Create session file in `.s2s/sessions/` (if s2s initialized)
