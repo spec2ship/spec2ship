@@ -118,7 +118,7 @@ Configure the roundtable with these parameters:
 - **verbose**: {verbose_flag}
 - **interactive**: {interactive_flag}
 
-#### Load Agenda (v4.2)
+#### Load Agenda
 
 **YOU MUST** read the agenda file for design workflow:
 - Read `skills/roundtable-execution/references/agenda-design.md`
@@ -178,10 +178,10 @@ Configure the roundtable with these parameters:
    - Step 3.4: **NOW use Edit tool** to append round to session file:
      - Append to `rounds:` array with: number, question, synthesis, consensus, conflicts
      - **IF verbose_flag == true**: Include `responses:` with full participant_responses array
-   - Step 3.5: **min_rounds CHECK** (v4.2):
+   - Step 3.5: **min_rounds CHECK**:
      - If `round_number < 3` AND facilitator says "conclude" → OVERRIDE to "continue"
      - Log: "Minimum rounds not reached, continuing"
-   - Step 3.6: **Agenda CHECK** (v4.2):
+   - Step 3.6: **Agenda CHECK**:
      - If any critical topic (high-level-arch, components) is "pending" → OVERRIDE to "continue"
      - Generate question targeting pending topic
    - REPEAT until: facilitator returns "conclude" AND round_number >= 3 AND critical topics covered
@@ -190,7 +190,7 @@ Configure the roundtable with these parameters:
    - Update session status
    - The output_type "architecture" will be handled in Phase 3 below
 
-**CRITICAL REMINDERS (v4.4):**
+**CRITICAL REMINDERS:**
 
 - **Store participant responses**: After Step 3.2, keep responses in `participant_responses` array
 - **Write session file per-round**: After Step 3.3, IMMEDIATELY write to session file using Write/Edit tool

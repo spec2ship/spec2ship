@@ -241,7 +241,7 @@ Pass these values to the skill execution:
 - **verbose**: {verbose_flag}
 - **interactive**: {interactive_flag}
 
-## Load Agenda (v4.2)
+## Load Agenda
 
 Based on workflow_type, load agenda if available:
 - If workflow_type == "specs": Read `skills/roundtable-execution/references/agenda-specs.md`
@@ -263,7 +263,7 @@ Extract REQUIRED_TOPICS list and track coverage status.
    - Step 3.3: Facilitator Synthesis (use Task tool)
    - Step 3.4: Update Session File (include agenda_coverage)
    - Step 3.5: Handle --interactive mode (if enabled)
-   - Step 3.6: Evaluate Next Action with v4.2 checks:
+   - Step 3.6: Evaluate Next Action:
      - **min_rounds CHECK**: If round < 3 AND "conclude" → OVERRIDE to "continue"
      - **Agenda CHECK**: If critical topics pending → OVERRIDE to "continue"
    - REPEAT until: next_action == "conclude" AND round >= 3 AND critical topics covered
@@ -284,7 +284,7 @@ Extract REQUIRED_TOPICS list and track coverage status.
 - **Minimum 3 rounds** - do NOT conclude before round 3
 - **Maximum 20 rounds** - force conclude if reached
 
-**CRITICAL REMINDERS (v4.4):**
+**ADDITIONAL REMINDERS:**
 
 - **Store participant responses**: After Step 3.2, keep responses in `participant_responses` array
 - **Write session file per-round**: After Step 3.3, IMMEDIATELY write to session file using Write/Edit tool

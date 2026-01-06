@@ -1056,9 +1056,9 @@ CONFIGURATION (modifiers) → flags
 - Facilitator fallback: handles malformed YAML with retry + deterministic fallback
 - Single source of truth: session files created only by start.md
 
-### Phase 3.6: Roundtable v4 (Inline Orchestration) ✓
+### Phase 3.6: Inline Orchestration ✓
 > **Critical discovery**: Claude Code subagents cannot spawn other subagents.
-> v3 pattern `Task(orchestrator) → Task(facilitator)` doesn't work.
+> Pattern `Task(orchestrator) → Task(facilitator)` doesn't work.
 
 - Inline orchestration: loop logic moved from orchestrator.md to start.md
 - orchestrator.md archived (was documentation-only, not executable)
