@@ -7,6 +7,7 @@ description: "Use this agent when user asks to 'review testing strategy', 'ident
 model: inherit
 color: red
 tools: ["Read", "Glob", "Grep"]
+skills: iso25010-requirements
 ---
 
 # QA Lead
