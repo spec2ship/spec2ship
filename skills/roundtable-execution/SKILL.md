@@ -85,12 +85,10 @@ Based on `workflow_type`, load required topics from:
 
 ## Workflow Agendas
 
-See `references/workflow-agendas.md` for detailed agenda definitions per workflow type.
-
-**Quick summary**:
-- `specs`: Core functional + NFR (critical), acceptance criteria + out-of-scope (optional)
-- `design`: Architecture + components (critical), data flow + tech choices + integration (optional)
-- `brainstorm`: No agenda (free-form)
+See workflow-specific agenda files for detailed topic definitions:
+- `references/agenda-specs.md` - Requirements topics for specs workflow
+- `references/agenda-design.md` - Architecture topics for design workflow
+- Brainstorm: No agenda (free-form creativity)
 
 Pass agenda to facilitator in prompts using `=== AGENDA ===` section.
 

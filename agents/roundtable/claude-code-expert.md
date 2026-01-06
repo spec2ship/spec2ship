@@ -7,7 +7,6 @@ description: "Use this agent when user asks about 'Claude Code best practices', 
 model: opus
 color: purple
 tools: ["Read", "Glob", "Grep", "WebSearch", "WebFetch"]
-skills: claude-code-guide
 ---
 
 # Claude Code Expert
