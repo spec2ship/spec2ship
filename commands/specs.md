@@ -108,7 +108,7 @@ Read `skills/roundtable-execution/references/agenda-specs.md` and extract REQUIR
 
 #### Execute Roundtable
 
-**YOU MUST** execute the roundtable following `roundtable-execution` skill (PHASE 2-4) with these workflow-specific values:
+**YOU MUST** execute these steps from `roundtable-execution` skill with workflow-specific values:
 
 | Parameter | Value |
 |-----------|-------|
@@ -118,13 +118,26 @@ Read `skills/roundtable-execution/references/agenda-specs.md` and extract REQUIR
 | agenda | `REQUIRED_TOPICS` from agenda-specs.md |
 | critical_topics | `core-functional`, `nfr` |
 
-**CRITICAL REMINDERS** (pattern reinforcement):
-- **Store participant responses** in `participant_responses` array after Step 3.2
-- **Write session file per-round** using Write/Edit tool after Step 3.3
-- **Display recap ALWAYS** after each round
-- **If verbose=true**: Include full `responses[]` in session file round data
-- **min_rounds CHECK**: Override "conclude" if round < 3
-- **Agenda CHECK**: Override "conclude" if critical topics pending
+**PHASE 2 - Session Setup:**
+Create session file following `references/session-schema.md`. Update `.s2s/state.yaml`.
+
+**PHASE 3 - Round Execution Loop** (repeat until conclusion):
+
+1. **Step 3.0.5**: Display agenda status to terminal
+2. **Step 3.1**: **YOU MUST use Task tool NOW** to call facilitator for question
+   - See SKILL.md for full prompt template
+3. **Step 3.2**: **YOU MUST launch ALL participant Tasks in SINGLE message**
+   - This ensures blind voting (parallel execution)
+   - Store responses in `participant_responses` array
+4. **Step 3.3**: **YOU MUST use Task tool** for facilitator synthesis
+5. **Step 3.4**: **YOU MUST use Write/Edit tool NOW** to update session file
+6. **Step 3.5**: Display round recap to terminal
+7. **Step 3.6**: Evaluate next_action (continue/phase/conclude/escalate)
+   - **min_rounds CHECK**: Override "conclude" if round < 3
+   - **Agenda CHECK**: Override "conclude" if critical topics pending
+
+**PHASE 4 - Completion:**
+Update session status, generate output based on output_type.
 
 After roundtable completes, extract from session file:
 - Consensus points (these become requirements)
