@@ -113,10 +113,7 @@ Configure the roundtable with these parameters:
 
 #### Load Agenda
 
-**YOU MUST** read the agenda file for specs workflow:
-- Read `skills/roundtable-execution/references/agenda-specs.md`
-- Extract REQUIRED_TOPICS list (4 topics: core-functional, nfr, acceptance-criteria, out-of-scope)
-- Track coverage status for each topic (pending → partial → covered)
+Read `skills/roundtable-execution/references/agenda-specs.md` and extract REQUIRED_TOPICS (4 topics: core-functional, nfr, acceptance-criteria, out-of-scope).
 
 #### Execute Roundtable
 
@@ -125,28 +122,9 @@ Configure the roundtable with these parameters:
 1. **Session Setup** (PHASE 2 of skill):
    - Create sessions directory: `mkdir -p .s2s/sessions`
    - Generate session ID: `{timestamp}-requirements-{project-slug}`
-
-   **NOW use Write tool** to create `.s2s/sessions/{session-id}.yaml`:
-   ```yaml
-   id: "{session-id}"
-   topic: "Requirements definition for {project name}"
-   workflow_type: "specs"
-   strategy: "{strategy}"
-   status: "active"
-   started: "{ISO timestamp}"
-   participants:
-     - role: product-manager
-     - role: business-analyst
-     - role: qa-lead
-   config:
-     min_rounds: 3
-     verbose: {verbose_flag}
-     interactive: {interactive_flag}
-   rounds: []
-   ```
-
-   **NOW use Edit tool** to update `.s2s/state.yaml`:
-   - Set `current_session: "{session-id}"`
+   - Create session file following schema in `skills/roundtable-execution/references/session-schema.md`
+   - Set workflow_type="specs", participants=[product-manager, business-analyst, qa-lead]
+   - Update `.s2s/state.yaml` with `current_session`
 
 2. **Round Execution Loop** (PHASE 3 of skill):
    - Step 3.1: **YOU MUST** use Task tool to call facilitator for question

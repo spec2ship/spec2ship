@@ -120,10 +120,7 @@ Configure the roundtable with these parameters:
 
 #### Load Agenda
 
-**YOU MUST** read the agenda file for design workflow:
-- Read `skills/roundtable-execution/references/agenda-design.md`
-- Extract REQUIRED_TOPICS list (5 topics: high-level-arch, components, data-flow, tech-choices, integration)
-- Track coverage status for each topic (pending → partial → covered)
+Read `skills/roundtable-execution/references/agenda-design.md` and extract REQUIRED_TOPICS (5 topics: high-level-arch, components, data-flow, tech-choices, integration).
 
 #### Execute Roundtable
 
@@ -132,28 +129,9 @@ Configure the roundtable with these parameters:
 1. **Session Setup** (PHASE 2 of skill):
    - Create sessions directory: `mkdir -p .s2s/sessions`
    - Generate session ID: `{timestamp}-design-{project-slug}`
-
-   **NOW use Write tool** to create `.s2s/sessions/{session-id}.yaml`:
-   ```yaml
-   id: "{session-id}"
-   topic: "Architecture design for {project name}"
-   workflow_type: "design"
-   strategy: "{strategy}"
-   status: "active"
-   started: "{ISO timestamp}"
-   participants:
-     - role: software-architect
-     - role: technical-lead
-     - role: devops-engineer
-   config:
-     min_rounds: 3
-     verbose: {verbose_flag}
-     interactive: {interactive_flag}
-   rounds: []
-   ```
-
-   **NOW use Edit tool** to update `.s2s/state.yaml`:
-   - Set `current_session: "{session-id}"`
+   - Create session file following schema in `skills/roundtable-execution/references/session-schema.md`
+   - Set workflow_type="design", participants=[software-architect, technical-lead, devops-engineer]
+   - Update `.s2s/state.yaml` with `current_session`
 
 2. **Round Execution Loop** (PHASE 3 of skill):
    - Step 3.1: **YOU MUST** use Task tool to call facilitator for question

@@ -154,55 +154,10 @@ If active session exists:
 ## Create session
 
 1. Create sessions directory: `mkdir -p .s2s/sessions`
-
-2. Generate session ID: `{timestamp}-{topic-slug}`
-   - Slug: lowercase, spaces to hyphens, max 30 chars
-
+2. Generate session ID: `{timestamp}-{topic-slug}` (slug: lowercase, hyphens, max 30 chars)
 3. Determine initial phase from strategy phases[0]
-
-4. Write `.s2s/sessions/{session-id}.yaml`:
-
-```yaml
-# === IDENTIFICATION ===
-id: "{session-id}"
-topic: "{topic}"
-workflow_type: "{workflow-type}"
-strategy: "{strategy}"
-status: "active"
-
-# === TIMESTAMPS ===
-started: "{ISO timestamp}"
-paused_at: null
-completed_at: null
-
-# === PARTICIPANTS ===
-participants:
-  - id: "{participant-1}"
-    name: "{Participant 1 Display Name}"
-  - id: "{participant-2}"
-    name: "{Participant 2 Display Name}"
-
-# === DEBATE ONLY ===
-# (Only include if strategy = debate)
-debate_sides:
-  pro: ["{participant-ids}"]
-  con: ["{participant-ids}"]
-  proposal: "{topic}"
-
-# === EXECUTION STATE ===
-current_phase: "{initial phase}"
-total_rounds: 0
-
-# === ROUNDS (Single Source of Truth) ===
-rounds: []
-
-# === ESCALATIONS ===
-escalations: []
-
-# === OUTPUT ===
-outcome: null
-```
-
+4. Create session file following schema in `skills/roundtable-execution/references/session-schema.md`
+   - If strategy="debate", include `debate_sides` with pro/con participant assignments
 5. Update `.s2s/state.yaml`: Set `current_session: "{session-id}"`
 
 ## Display session start
@@ -243,12 +198,7 @@ Pass these values to the skill execution:
 
 ## Load Agenda
 
-Based on workflow_type, load agenda if available:
-- If workflow_type == "specs": Read `skills/roundtable-execution/references/agenda-specs.md`
-- If workflow_type == "design": Read `skills/roundtable-execution/references/agenda-design.md`
-- If workflow_type == "brainstorm": No agenda (free-form)
-
-Extract REQUIRED_TOPICS list and track coverage status.
+Load agenda from `skills/roundtable-execution/references/agenda-{workflow_type}.md` if workflow_type is specs or design. Brainstorm has no agenda (free-form).
 
 ## Execute roundtable
 
