@@ -40,16 +40,56 @@ ISO 25010 defines a product quality model with 8 characteristics and 31 sub-char
 | **Maintainability** | Modularity, Reusability, Analysability, Modifiability, Testability | Can it be maintained? |
 | **Portability** | Adaptability, Installability, Replaceability | Can it run in different environments? |
 
-## Requirement ID Conventions
+## Requirement ID Conventions (S2S Canonical Schema)
+
+**These IDs are immutable across roundtable rounds and output formats.**
+
+| Prefix | Format | Description | Example |
+|--------|--------|-------------|---------|
+| `FR-{AREA}-{NNN}` | Functional Requirement | What the system does | FR-AUTH-001 |
+| `NFR-{QUAL}-{NNN}` | Non-Functional Requirement | How well it does it | NFR-PERF-001 |
+| `BR-{NNN}` | Business Rule | Domain logic constraints | BR-001 |
+| `UC-{NNN}` | Use Case | User workflow | UC-001 |
+| `EX-{NNN}` | Exclusion | Out-of-scope item | EX-001 |
+| `CN-{NNN}` | Constraint | Technical/business constraint | CN-001 |
+| `AS-{NNN}` | Assumption | Hypothesis to validate | AS-001 |
+
+**Area codes for FR-** (functional):
+- AUTH: Authentication/Authorization
+- USER: User management
+- DATA: Data handling
+- API: API/Integration
+- UI: User interface
+- NOTIF: Notifications
+- REPORT: Reporting
+
+**Quality codes for NFR-** (non-functional):
+- PERF: Performance Efficiency
+- REL: Reliability
+- SEC: Security
+- MAINT: Maintainability
+- USE: Usability
+- COMPAT: Compatibility
+
+**Mapping to Output Formats**:
+
+| Internal ID | SRS Section | Volere | Checklist |
+|-------------|-------------|--------|-----------|
+| FR-AUTH-001 | 3.1.1 | FR-1 | ☐ Feature |
+| NFR-PERF-001 | 4.1 | NFR-1 | ☐ Quality |
+| EX-001 | 5.x | Excluded | (omitted) |
 
 ```
-FR-{AREA}-{NUMBER}    Functional Requirement
-NFR-{QUALITY}-{NUMBER} Non-Functional Requirement
-
 Examples:
-FR-AUTH-001          Authentication functional requirement
-NFR-PERF-001         Performance requirement
-NFR-SEC-001          Security requirement
+FR-AUTH-001          Login with email/password
+FR-USER-002          View user profile
+NFR-PERF-001         Response time < 2s
+NFR-SEC-001          Data encryption at rest
+BR-001               Maximum 5 login attempts
+UC-001               New user registration flow
+EX-001               Mobile app (future phase)
+CN-001               Must use existing PostgreSQL
+AS-001               Users have stable internet
 ```
 
 ## Requirement Template

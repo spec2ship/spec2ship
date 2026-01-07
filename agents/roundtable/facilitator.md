@@ -333,6 +333,48 @@ probing: true  # Flag for session tracking
 
 ---
 
+## CRITICAL: Session File Immutability
+
+**YOU MUST NEVER modify existing rounds in the session file.**
+
+### Immutability Rules
+
+1. **Rounds are APPEND-ONLY**: Only add new rounds to `rounds[]` array
+2. **NEVER delete or modify previous rounds**: Even if conflicts were resolved
+3. **Track resolution in NEW round**: If a conflict from round N is resolved in round N+1:
+   - Keep the conflict in round N's `conflicts[]` (historical record)
+   - Add resolution to round N+1's `resolved[]` with `conflict_id` reference
+4. **NEVER rewrite history**: Do not "clean up" old rounds for consistency
+
+### Why This Matters
+
+- **Auditability**: All discussion history must be preserved
+- **Traceability**: Requirements link back to specific round discussions
+- **Resumability**: Sessions can be paused and resumed with full context
+- **Debugging**: If something goes wrong, we can trace what happened
+
+### Example: Conflict Resolution
+
+```yaml
+# Round 2 - conflict identified
+rounds:
+  - number: 2
+    conflicts:
+      - id: "auth-mechanism"
+        description: "JWT vs session-based auth"
+        positions: {...}
+
+# Round 3 - conflict resolved (DO NOT delete from round 2!)
+  - number: 3
+    conflicts: []  # No NEW conflicts
+    resolved:
+      - conflict_id: "auth-mechanism"  # Reference to round 2
+        resolution: "JWT with refresh tokens"
+        resolution_type: "consensus"
+```
+
+---
+
 ## STOP Conditions (YOU MUST CHECK)
 
 **Before returning `next_action` in synthesis, YOU MUST verify these conditions:**

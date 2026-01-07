@@ -104,7 +104,7 @@ Configure the roundtable with these parameters:
 
 #### Load Agenda
 
-Read `skills/roundtable-execution/references/agenda-specs.md` and extract REQUIRED_TOPICS (4 topics: core-functional, nfr, acceptance-criteria, out-of-scope).
+Read `skills/roundtable-execution/references/agenda-specs.md` and extract REQUIRED_TOPICS (6 topics: user-workflows, functional-requirements, business-rules, nfr-measurable, acceptance-criteria, out-of-scope).
 
 #### Execute Roundtable
 
@@ -116,7 +116,7 @@ Read `skills/roundtable-execution/references/agenda-specs.md` and extract REQUIR
 | workflow_type | `specs` |
 | participants | `[product-manager, business-analyst, qa-lead]` |
 | agenda | `REQUIRED_TOPICS` from agenda-specs.md |
-| critical_topics | `core-functional`, `nfr` |
+| critical_topics | `user-workflows`, `functional-requirements` |
 
 **PHASE 2 - Session Setup:**
 
@@ -139,6 +139,10 @@ config:
   max_rounds: 20
   verbose: {verbose_flag}
   interactive: {interactive_flag}
+  escalation:
+    max_rounds_per_conflict: 3
+    confidence_below: 0.5
+    critical_keywords: ["security", "must-have", "blocking", "legal"]
 rounds: []
 ```
 4. **NOW use Edit tool** to update `.s2s/state.yaml` with `current_session: "{session-id}"`
@@ -148,7 +152,14 @@ rounds: []
 1. **Step 3.0.5**: Display agenda status to terminal
 2. **Step 3.1**: **YOU MUST use Task tool NOW** to call facilitator for question
    - Include REQUIRED_TOPICS and agenda_coverage in prompt
-   - Include min_rounds: 3 in escalation config
+   - Include escalation config section in prompt:
+   ```
+   === ESCALATION CONFIG ===
+   max_rounds_per_conflict: 3
+   confidence_below: 0.5
+   min_rounds: 3
+   critical_keywords: [security, must-have, blocking, legal]
+   ```
 3. **Step 3.2**: **YOU MUST launch ALL participant Tasks in SINGLE message**
    - This ensures blind voting (parallel execution)
    - **Store responses in `participant_responses` array:**
@@ -168,12 +179,23 @@ rounds: []
    - **Interactive mode**: Only ask user if `interactive_flag == true`
 
 **PHASE 4 - Completion:**
-Update session status to "completed", generate output based on output_type.
 
-After roundtable completes, extract from session file:
-- Consensus points (these become requirements)
+1. **Update session status**: Edit session file, set `status: "completed"` and `completed_at: "{ISO timestamp}"`
+
+2. **CRITICAL - Read session file for summary**:
+   - **YOU MUST use Read tool** to read the completed session file
+   - Extract ALL consensus points from ALL rounds
+   - Extract unresolved conflicts (those without resolution in any round)
+   - This ensures summary matches persisted data (Single Source of Truth)
+
+3. **Generate output**: Based on output_type ("requirements"), create requirements document
+
+**Summary MUST be derived from session file, NOT from facilitator memory.**
+
+After reading session file, extract:
+- Consensus points from all rounds (these become requirements)
 - Unresolved conflicts (flag for user review)
-- Participant recommendations
+- Participant recommendations (from verbose responses if available)
 
 **If --skip-roundtable IS present:**
 - Analyze CONTEXT.md directly

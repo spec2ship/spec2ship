@@ -125,11 +125,30 @@ Initialize:
 
 ### Step 3.0.5: Display Agenda Status
 
-**At the START of each round**, display agenda status to terminal.
+**At the START of each round**, display agenda status to terminal using this template:
 
-Show: Round number, agenda topics with status icons (✓ covered, ◐ partial, ○ pending).
+```
+Roundtable Session: {workflow_type title}
+───────────────────────────────────────────
+Session ID: {session-id}
+Strategy: {strategy}
+Participants: {list of participant names}
+
+Agenda:
+{for each topic in REQUIRED_TOPICS}
+{status_icon} {topic_name}
+{/for}
+
+Starting Round {round_number}...
+```
+
+**Status icons:**
+- `☐` = pending (not yet discussed)
+- `◐` = partial (needs more depth)
+- `✓` = covered (adequately discussed)
+
 Update status based on `agenda_coverage` from previous synthesis.
-For brainstorm workflow, display "Free-form discussion" instead.
+For brainstorm workflow (no agenda), display "Free-form discussion (Disney Strategy)" instead.
 
 ### Step 3.1: Facilitator Question
 
@@ -366,11 +385,46 @@ output_type: null  # if conclude: adr|requirements|architecture|summary
 
 ### Step 3.4.5: Display Round Recap (ALWAYS)
 
-**YOU MUST** display round summary to terminal after EVERY round (not conditional on --interactive).
+**YOU MUST** display round summary to terminal after EVERY round using this template:
 
-Display: Phase, Focus, Synthesis, Consensus items (✓), Open conflicts (⚠), Resolved items, Agenda coverage, Next focus.
+```
+────────────────────────────────────────────────────
+Round {round_number} Complete
+────────────────────────────────────────────────────
 
-This provides user visibility into discussion progress.
+Phase: {current_phase}
+Focus: {facilitator's focus from question}
+
+Synthesis:
+{facilitator's synthesis - 2-4 sentences}
+
+Consensus Reached This Round:
+{for each consensus item}
+  ✓ {item}
+{/for}
+
+{if conflicts}
+Open Conflicts:
+{for each conflict}
+  ⚠ {conflict_id}: {description}
+{/for}
+
+{if resolved}
+Resolved This Round:
+{for each resolved}
+  ✓ {conflict_id}: {resolution}
+{/for}
+
+Agenda Coverage:
+{for each topic}
+  {status_icon} {topic_name}
+{/for}
+
+Next: {next_focus or "Conclusion pending"}
+────────────────────────────────────────────────────
+```
+
+This is NOT conditional on --interactive. Always display for user visibility.
 
 ### Step 3.5: Handle --interactive Mode (EVERY ROUND)
 

@@ -125,6 +125,10 @@ config:
   max_rounds: 20
   verbose: {verbose_flag}
   interactive: {interactive_flag}
+  escalation:
+    max_rounds_per_conflict: 3
+    confidence_below: 0.5
+    critical_keywords: ["security", "must-have", "blocking", "legal"]
 current_phase: "dreamer"
 rounds: []
 ```
@@ -135,7 +139,14 @@ rounds: []
 1. **Step 3.0.5**: Display current phase to terminal (Dreamer/Realist/Critic)
 2. **Step 3.1**: **YOU MUST use Task tool NOW** to call facilitator for question
    - Include current Disney phase in prompt
-   - Include min_rounds: 3 in escalation config
+   - Include escalation config section in prompt:
+   ```
+   === ESCALATION CONFIG ===
+   max_rounds_per_conflict: 3
+   confidence_below: 0.5
+   min_rounds: 3
+   critical_keywords: [security, must-have, blocking, legal]
+   ```
 3. **Step 3.2**: **YOU MUST launch ALL participant Tasks in SINGLE message**
    - This ensures blind voting (parallel execution)
    - **Store responses in `participant_responses` array:**
@@ -155,17 +166,22 @@ rounds: []
    - **Interactive mode**: Only ask user if `interactive_flag == true`
 
 **PHASE 4 - Completion:**
-Update session status to "completed", generate summary output.
 
-The roundtable will:
-- Create session file in `.s2s/sessions/` (if s2s initialized)
-- Run Disney strategy: Dreamer → Realist → Critic phases
-- Each phase generates focused discussion
-- Return synthesized results for each phase
+1. **Update session status**: Edit session file, set `status: "completed"` and `completed_at: "{ISO timestamp}"`
+
+2. **CRITICAL - Read session file for summary**:
+   - **YOU MUST use Read tool** to read the completed session file
+   - Extract consensus from each Disney phase (dreamer, realist, critic)
+   - Extract unresolved conflicts (those without resolution)
+   - This ensures summary matches persisted data (Single Source of Truth)
+
+3. **Generate output**: Based on output_type ("summary"), create brainstorm summary
+
+**Summary MUST be derived from session file, NOT from facilitator memory.**
 
 ### Process Results
 
-After roundtable completes, extract from session:
+After reading session file, extract from each phase:
 
 1. **Dreamer phase ideas**: Big thinking, no constraints
 2. **Realist assessment**: Feasibility evaluation
