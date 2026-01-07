@@ -119,25 +119,56 @@ Read `skills/roundtable-execution/references/agenda-specs.md` and extract REQUIR
 | critical_topics | `core-functional`, `nfr` |
 
 **PHASE 2 - Session Setup:**
-Create session file following `references/session-schema.md`. Update `.s2s/state.yaml`.
+
+1. Create sessions directory: `mkdir -p .s2s/sessions`
+2. Generate session ID: `{timestamp}-requirements-{project-slug}`
+3. **NOW use Write tool** to create `.s2s/sessions/{session-id}.yaml`:
+```yaml
+id: "{session-id}"
+topic: "Requirements definition for {project name}"
+workflow_type: "specs"
+strategy: "{strategy}"
+status: "active"
+started: "{ISO timestamp}"
+participants:
+  - id: product-manager
+  - id: business-analyst
+  - id: qa-lead
+config:
+  min_rounds: 3
+  max_rounds: 20
+  verbose: {verbose_flag}
+  interactive: {interactive_flag}
+rounds: []
+```
+4. **NOW use Edit tool** to update `.s2s/state.yaml` with `current_session: "{session-id}"`
 
 **PHASE 3 - Round Execution Loop** (repeat until conclusion):
 
 1. **Step 3.0.5**: Display agenda status to terminal
 2. **Step 3.1**: **YOU MUST use Task tool NOW** to call facilitator for question
-   - See SKILL.md for full prompt template
+   - Include REQUIRED_TOPICS and agenda_coverage in prompt
+   - Include min_rounds: 3 in escalation config
 3. **Step 3.2**: **YOU MUST launch ALL participant Tasks in SINGLE message**
    - This ensures blind voting (parallel execution)
-   - Store responses in `participant_responses` array
+   - **Store responses in `participant_responses` array:**
+   ```
+   participant_responses = [
+     { id, role, position, rationale, concerns, confidence }
+   ]
+   ```
 4. **Step 3.3**: **YOU MUST use Task tool** for facilitator synthesis
-5. **Step 3.4**: **YOU MUST use Write/Edit tool NOW** to update session file
+5. **Step 3.4**: **NOW use Edit tool** to append round to session file:
+   - Append to `rounds:` array with: number, question, synthesis, consensus, conflicts
+   - **IF verbose_flag == true**: Include `responses:` with full participant_responses array
 6. **Step 3.5**: Display round recap to terminal
-7. **Step 3.6**: Evaluate next_action (continue/phase/conclude/escalate)
-   - **min_rounds CHECK**: Override "conclude" if round < 3
-   - **Agenda CHECK**: Override "conclude" if critical topics pending
+7. **Step 3.6**: Evaluate next_action:
+   - **min_rounds CHECK**: If round < 3 AND "conclude" → OVERRIDE to "continue"
+   - **Agenda CHECK**: If critical topics pending → OVERRIDE to "continue"
+   - **Interactive mode**: Only ask user if `interactive_flag == true`
 
 **PHASE 4 - Completion:**
-Update session status, generate output based on output_type.
+Update session status to "completed", generate output based on output_type.
 
 After roundtable completes, extract from session file:
 - Consensus points (these become requirements)

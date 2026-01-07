@@ -104,24 +104,58 @@ Configure the roundtable with these parameters:
 | agenda | **None** (free-form creativity) |
 
 **PHASE 2 - Session Setup:**
-Create session file following `references/session-schema.md`. Update `.s2s/state.yaml`.
 
-**PHASE 3 - Round Execution Loop** (repeat through Disney phases: dreamer → realist → critic):
+1. Create sessions directory: `mkdir -p .s2s/sessions`
+2. Generate session ID: `{timestamp}-brainstorm-{topic-slug}`
+3. **NOW use Write tool** to create `.s2s/sessions/{session-id}.yaml`:
+```yaml
+id: "{session-id}"
+topic: "{topic}"
+workflow_type: "brainstorm"
+strategy: "disney"
+status: "active"
+started: "{ISO timestamp}"
+participants:
+  - id: product-manager
+  - id: software-architect
+  - id: technical-lead
+  - id: devops-engineer
+config:
+  min_rounds: 3
+  max_rounds: 20
+  verbose: {verbose_flag}
+  interactive: {interactive_flag}
+current_phase: "dreamer"
+rounds: []
+```
+4. **NOW use Edit tool** to update `.s2s/state.yaml` with `current_session: "{session-id}"`
+
+**PHASE 3 - Round Execution Loop** (cycle through Disney phases: dreamer → realist → critic):
 
 1. **Step 3.0.5**: Display current phase to terminal (Dreamer/Realist/Critic)
 2. **Step 3.1**: **YOU MUST use Task tool NOW** to call facilitator for question
-   - See SKILL.md for full prompt template
+   - Include current Disney phase in prompt
+   - Include min_rounds: 3 in escalation config
 3. **Step 3.2**: **YOU MUST launch ALL participant Tasks in SINGLE message**
    - This ensures blind voting (parallel execution)
-   - Store responses in `participant_responses` array
+   - **Store responses in `participant_responses` array:**
+   ```
+   participant_responses = [
+     { id, role, position, rationale, concerns, confidence }
+   ]
+   ```
 4. **Step 3.3**: **YOU MUST use Task tool** for facilitator synthesis
-5. **Step 3.4**: **YOU MUST use Write/Edit tool NOW** to update session file
+5. **Step 3.4**: **NOW use Edit tool** to append round to session file:
+   - Append to `rounds:` array with: number, phase, question, synthesis, consensus, conflicts
+   - **IF verbose_flag == true**: Include `responses:` with full participant_responses array
 6. **Step 3.5**: Display round recap to terminal
-7. **Step 3.6**: Evaluate next_action (continue/phase/conclude)
-   - **min_rounds CHECK**: Override "conclude" if round < 3
+7. **Step 3.6**: Evaluate next_action:
+   - **min_rounds CHECK**: If round < 3 AND "conclude" → OVERRIDE to "continue"
+   - **Phase progression**: dreamer (1+ rounds) → realist (1+ rounds) → critic (1+ rounds)
+   - **Interactive mode**: Only ask user if `interactive_flag == true`
 
 **PHASE 4 - Completion:**
-Update session status, generate summary output.
+Update session status to "completed", generate summary output.
 
 The roundtable will:
 - Create session file in `.s2s/sessions/` (if s2s initialized)
