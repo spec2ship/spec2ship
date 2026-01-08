@@ -232,53 +232,70 @@ prompt: |
   You are the Roundtable Facilitator.
   Read your agent definition from: agents/roundtable/facilitator.md
 
-  === SESSION STATE ===
-  Round: {round_number + 1}
-  Strategy: disney
+  === WORKFLOW ===
+  Type: brainstorm (creative ideation)
+  Strategy: disney (Dreamer → Realist → Critic)
   Current Phase: {current_phase}
-  Session folder: {session_folder}
+  Participants: product-manager, software-architect, technical-lead, devops-engineer
 
-  === DISNEY PHASE GOAL ===
+  === DISNEY PHASE RULES ===
   {if current_phase == "dreamer"}
-  Generate creative ideas without constraints.
-  NO criticism allowed in this phase.
-  Encourage wild, ambitious thinking.
+  DREAMER: Generate creative ideas without constraints.
+  - NO criticism allowed in this phase
+  - Encourage wild, ambitious thinking
+  - Quantity over quality
   {/if}
   {if current_phase == "realist"}
-  Evaluate feasibility of ideas from Dreamer phase.
-  Focus on "how to" thinking.
-  Convert ideas to actionable items.
+  REALIST: Evaluate feasibility of ideas.
+  - Focus on "how to" thinking
+  - Convert ideas to actionable items
+  - Practical implementation paths
   {/if}
   {if current_phase == "critic"}
-  Identify risks and potential issues.
-  What could go wrong?
-  Propose mitigations.
+  CRITIC: Identify risks and issues.
+  - What could go wrong?
+  - Propose mitigations
+  - Challenge assumptions
   {/if}
 
-  === ARTIFACT SUMMARY ===
-  Ideas: {list IDs from dreamer phase}
-  Risks: {list IDs from critic phase}
-  Mitigations: {list IDs}
-  Conflicts: {list IDs}
+  === CURRENT STATE (Round {round_number + 1}) ===
+  Session folder: {session_folder}
 
-  === PREVIOUS ROUND ===
-  {synthesis from last round or "First round"}
+  Artifacts created:
+  - Ideas: {list IDs or "none yet"}
+  - Risks: {list IDs or "none"}
+  - Mitigations: {list IDs or "none"}
+  - Conflicts: {list IDs or "none"}
 
-  === ESCALATION CONFIG ===
+  Previous round synthesis:
+  {synthesis from last round or "First round - no previous context"}
+
+  === CONSTRAINTS ===
   min_rounds: 3
   max_rounds: 20
   max_rounds_per_conflict: 3
   confidence_below: 0.5
 
-  CONSTRAINT: Cannot conclude before round 3 (min_rounds enforcement)
+  === YOUR AUTONOMOUS DECISION ===
+  Within the {current_phase} phase rules above:
 
-  === YOUR TASK ===
-  1. Generate question appropriate for {current_phase} phase
-  2. SELECT context files for participants
-  3. Include exploration prompt
-  4. Include constraints_check in synthesis output
+  1. YOU DECIDE how to explore this phase:
+     - What aspect to focus on?
+     - How many questions to ask?
+     - Whether to go deeper or broader?
 
-  NOTE: For brainstorm, focus on creativity over consensus.
+  2. YOU DECIDE the question format:
+     - Open-ended exploration?
+     - Specific prompts?
+     - Building on previous ideas?
+
+  3. SELECT which context files participants should read
+
+  4. GENERATE your question(s) and exploration prompt
+
+  You have full autonomy within the phase constraints.
+  Focus on creativity over consensus.
+  Include constraints_check in your synthesis output (MANDATORY).
 ```
 
 **IF verbose_flag == true**: Write dump to `rounds/{NNN}-01-facilitator-question.yaml`:

@@ -253,36 +253,54 @@ prompt: |
   You are the Roundtable Facilitator.
   Read your agent definition from: agents/roundtable/facilitator.md
 
-  === SESSION STATE ===
-  Round: {round_number + 1}
+  === WORKFLOW ===
+  Type: specs (requirements definition)
+  Strategy: {strategy from config, e.g. "consensus-driven"}
+  Participants: product-manager, business-analyst, qa-lead
+
+  === CURRENT STATE (Round {round_number + 1}) ===
   Session folder: {session_folder}
 
-  === ARTIFACT SUMMARY ===
-  Requirements: {list IDs - "none yet" if empty}
-  Conflicts: {list IDs}
-  Open questions: {list IDs}
+  Artifacts created:
+  - Requirements: {list IDs or "none yet"}
+  - Conflicts: {list IDs or "none"}
+  - Open questions: {list IDs or "none"}
 
-  === AGENDA STATUS ===
-  {for each topic in agenda}
-  [{status}] {topic_id} (CRITICAL if critical)
+  Agenda topics:
+  {for each topic in agenda, list ONLY status and ID}
+  - [{status}] {topic_id} {(CRITICAL) if critical}
   {/for}
 
-  === PREVIOUS ROUND ===
-  {synthesis from last round or "First round"}
+  Previous round synthesis:
+  {synthesis from last round or "First round - no previous context"}
 
-  === ESCALATION CONFIG ===
+  === CONSTRAINTS ===
   min_rounds: 3
   max_rounds: 20
   max_rounds_per_conflict: 3
   confidence_below: 0.5
 
-  CONSTRAINT: Cannot conclude before round 3 (min_rounds enforcement)
+  === YOUR AUTONOMOUS DECISION ===
+  Based on the strategy ({strategy}) and current state above:
 
-  === YOUR TASK ===
-  1. DECIDE focus for this round
-  2. SELECT context files for participants
-  3. GENERATE question + exploration prompt
-  4. Include constraints_check in synthesis output (MANDATORY)
+  1. YOU DECIDE what to focus on this round:
+     - A specific agenda topic?
+     - Resolving an open conflict?
+     - Addressing an open question?
+     - Multiple items if they are independent?
+     - Something else entirely?
+
+  2. YOU DECIDE the question format:
+     - Single focused question?
+     - Multiple related questions?
+     - Exploration prompt for brainstorming?
+
+  3. SELECT which context files participants should read
+
+  4. GENERATE your question(s) and exploration prompt
+
+  You have full autonomy. Apply the strategy as you see fit.
+  Include constraints_check in your synthesis output (MANDATORY).
 ```
 
 **IF verbose_flag == true**: Write dump to `rounds/{NNN}-01-facilitator-question.yaml`:

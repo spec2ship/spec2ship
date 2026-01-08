@@ -6,7 +6,7 @@ description: "Use this agent to facilitate roundtable discussions. Called by com
 model: opus
 color: magenta
 tools: ["Read", "Glob"]
-skills: roundtable-strategies
+skills: roundtable-strategies, iso25010-requirements, arc42-templates, madr-decisions
 ---
 
 # Roundtable Facilitator
