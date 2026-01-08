@@ -40,19 +40,44 @@ ISO 25010 defines a product quality model with 8 characteristics and 31 sub-char
 | **Maintainability** | Modularity, Reusability, Analysability, Modifiability, Testability | Can it be maintained? |
 | **Portability** | Adaptability, Installability, Replaceability | Can it run in different environments? |
 
-## Requirement ID Conventions (S2S Canonical Schema)
+## Artifact ID Schema (S2S Canonical)
 
 **These IDs are immutable across roundtable rounds and output formats.**
 
-| Prefix | Format | Description | Example |
-|--------|--------|-------------|---------|
-| `FR-{AREA}-{NNN}` | Functional Requirement | What the system does | FR-AUTH-001 |
-| `NFR-{QUAL}-{NNN}` | Non-Functional Requirement | How well it does it | NFR-PERF-001 |
-| `BR-{NNN}` | Business Rule | Domain logic constraints | BR-001 |
-| `UC-{NNN}` | Use Case | User workflow | UC-001 |
-| `EX-{NNN}` | Exclusion | Out-of-scope item | EX-001 |
-| `CN-{NNN}` | Constraint | Technical/business constraint | CN-001 |
-| `AS-{NNN}` | Assumption | Hypothesis to validate | AS-001 |
+### Specs Workflow (Requirements)
+
+| Prefix | Description | Example |
+|--------|-------------|---------|
+| `REQ-{NNN}` | Generic requirement | REQ-001 |
+| `FR-{AREA}-{NNN}` | Functional requirement (with area) | FR-AUTH-001 |
+| `NFR-{QUAL}-{NNN}` | Non-functional requirement | NFR-PERF-001 |
+| `BR-{NNN}` | Business rule | BR-001 |
+| `EX-{NNN}` | Exclusion (out-of-scope) | EX-001 |
+
+### Design Workflow (Architecture)
+
+| Prefix | Description | Example |
+|--------|-------------|---------|
+| `ARCH-{NNN}` | Architecture decision | ARCH-001 |
+| `COMP-{NNN}` | Component definition | COMP-001 |
+
+### Brainstorm Workflow (Ideas)
+
+| Prefix | Description | Example |
+|--------|-------------|---------|
+| `IDEA-{NNN}` | Idea from dreamer phase | IDEA-001 |
+| `RISK-{NNN}` | Risk from critic phase | RISK-001 |
+| `MIT-{NNN}` | Mitigation for risk | MIT-001 |
+
+### Cross-Workflow (Shared)
+
+| Prefix | Description | Example |
+|--------|-------------|---------|
+| `OQ-{NNN}` | Open question | OQ-001 |
+| `CONF-{NNN}` | Conflict between participants | CONF-001 |
+| `UC-{NNN}` | Use case / user workflow | UC-001 |
+| `CN-{NNN}` | Technical/business constraint | CN-001 |
+| `AS-{NNN}` | Assumption to validate | AS-001 |
 
 **Area codes for FR-** (functional):
 - AUTH: Authentication/Authorization
