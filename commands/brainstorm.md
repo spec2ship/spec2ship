@@ -281,7 +281,34 @@ prompt: |
   NOTE: For brainstorm, focus on creativity over consensus.
 ```
 
-**IF verbose_flag == true**: Write dump file.
+**IF verbose_flag == true**: Write dump to `rounds/{NNN}-01-facilitator-question.yaml`:
+```yaml
+# Round {N} - Facilitator Question ({phase} phase)
+round: {N}
+phase: 1
+actor: "facilitator"
+action: "question"
+disney_phase: "{dreamer|realist|critic}"
+started: "{ISO timestamp}"
+completed: "{ISO timestamp}"
+
+prompt:
+  session_state: "{summary}"
+  disney_phase_goal: "{phase instructions}"
+  artifact_summary: "{counts}"
+
+response:
+  question: "{question}"
+  exploration: "{exploration}"
+  context_files: [...]
+
+result:
+  status: "completed"
+
+tokens:
+  input_estimate: {N}
+  output_estimate: {N}
+```
 
 #### Step 2.3: Participant Responses
 
@@ -338,7 +365,36 @@ prompt: |
   {/if}
 ```
 
-**IF verbose_flag == true**: Write dump for each participant.
+**IF verbose_flag == true**: Write dump for each participant to `rounds/{NNN}-02-{participant-id}.yaml`:
+```yaml
+# Round {N} - {Role} Response ({disney_phase} phase)
+round: {N}
+phase: 2
+actor: "{participant-id}"
+action: "response"
+disney_phase: "{dreamer|realist|critic}"
+started: "{ISO timestamp}"
+completed: "{ISO timestamp}"
+
+prompt:
+  question: "{question}"
+  disney_phase_instructions: "{phase-specific instructions}"
+
+response:
+  position: "{full response}"
+  confidence: {0.0-1.0}
+  ideas: [...]      # dreamer phase
+  risks: [...]      # critic phase
+  mitigations: [...] # critic phase
+
+result:
+  artifacts_proposed: {count}
+  status: "completed"
+
+tokens:
+  input_estimate: {N}
+  output_estimate: {N}
+```
 
 #### Step 2.4: Facilitator Synthesis
 
@@ -349,7 +405,35 @@ Include phase-specific artifact extraction:
 - **Realist**: Assess feasibility, categorize ideas
 - **Critic**: Extract risks as RISK-*, mitigations as MIT-*
 
-**IF verbose_flag == true**: Write dump file.
+**IF verbose_flag == true**: Write dump to `rounds/{NNN}-03-facilitator-synthesis.yaml`:
+```yaml
+# Round {N} - Facilitator Synthesis ({disney_phase} phase)
+round: {N}
+phase: 3
+actor: "facilitator"
+action: "synthesis"
+disney_phase: "{dreamer|realist|critic}"
+started: "{ISO timestamp}"
+completed: "{ISO timestamp}"
+
+prompt:
+  participant_responses: "{summary}"
+
+response:
+  synthesis: "{summary}"
+  proposed_artifacts: [...]
+  phase_recommendation: "{stay|advance|conclude}"
+  constraints_check: {rounds_completed, min_rounds, can_conclude, reason}
+  next: "{continue|phase|conclude}"
+
+result:
+  artifacts_proposed: {count}
+  status: "completed"
+
+tokens:
+  input_estimate: {N}
+  output_estimate: {N}
+```
 
 #### Step 2.5: Process Artifacts
 

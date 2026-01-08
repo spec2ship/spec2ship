@@ -264,7 +264,34 @@ prompt: |
   4. Include constraints_check in synthesis output (MANDATORY)
 ```
 
-**IF verbose_flag == true**: Write dump file.
+**IF verbose_flag == true**: Write dump to `rounds/{NNN}-01-facilitator-question.yaml`:
+```yaml
+# Round {N} - Facilitator Question
+round: {N}
+phase: 1
+actor: "facilitator"
+action: "question"
+started: "{ISO timestamp}"
+completed: "{ISO timestamp}"
+
+prompt:
+  session_state: "{summary}"
+  artifact_summary: "{counts}"
+  agenda_status: "{state}"
+
+response:
+  decision: {focus_type, topic_id, rationale}
+  question: "{question}"
+  exploration: "{exploration}"
+  context_files: [...]
+
+result:
+  status: "completed"
+
+tokens:
+  input_estimate: {N}
+  output_estimate: {N}
+```
 
 #### Step 2.3: Participant Responses
 
@@ -294,13 +321,70 @@ prompt: |
   Return YAML with position, rationale, confidence, concerns, suggestions.
 ```
 
-**IF verbose_flag == true**: Write dump for each participant.
+**IF verbose_flag == true**: Write dump for each participant to `rounds/{NNN}-02-{participant-id}.yaml`:
+```yaml
+# Round {N} - {Role} Response
+round: {N}
+phase: 2
+actor: "{participant-id}"
+action: "response"
+started: "{ISO timestamp}"
+completed: "{ISO timestamp}"
+
+prompt:
+  question: "{question}"
+  exploration: "{exploration}"
+  context_files: [...]
+
+response:
+  position: "{full response}"
+  rationale: [...]
+  confidence: {0.0-1.0}
+  concerns: [...]
+  suggestions: [...]
+
+result:
+  artifacts_proposed: {count}
+  status: "completed"
+
+tokens:
+  input_estimate: {N}
+  output_estimate: {N}
+```
 
 #### Step 2.4: Facilitator Synthesis
 
 **YOU MUST use Task tool NOW** for synthesis.
 
-**IF verbose_flag == true**: Write dump file.
+**IF verbose_flag == true**: Write dump to `rounds/{NNN}-03-facilitator-synthesis.yaml`:
+```yaml
+# Round {N} - Facilitator Synthesis
+round: {N}
+phase: 3
+actor: "facilitator"
+action: "synthesis"
+started: "{ISO timestamp}"
+completed: "{ISO timestamp}"
+
+prompt:
+  participant_responses: "{summary}"
+
+response:
+  synthesis: "{summary}"
+  proposed_artifacts: [...]
+  resolved_conflicts: [...]
+  agenda_update: {...}
+  constraints_check: {rounds_completed, min_rounds, can_conclude, reason}
+  next: "{continue|conclude|escalate}"
+
+result:
+  artifacts_proposed: {count}
+  status: "completed"
+
+tokens:
+  input_estimate: {N}
+  output_estimate: {N}
+```
 
 #### Step 2.5: Process Artifacts
 
@@ -312,7 +396,35 @@ For each `proposed_artifact`:
 
 #### Step 2.6: Update Session File
 
-**YOU MUST use Edit tool NOW** to append round and update metrics.
+**YOU MUST use Edit tool NOW** to update session file with:
+
+1. **Append round** to `rounds:` array:
+```yaml
+rounds:
+  - round: {N}
+    topic: "{focus topic_id}"
+    timestamp: "{ISO timestamp}"
+    artifacts_created: ["{ID}", ...]
+    consensus_reached: {true|false}
+    next_action: "{continue|conclude|escalate}"
+```
+
+2. **Update agenda status** from facilitator's `agenda_update`:
+```yaml
+agenda:
+  - topic_id: "{agenda_update.topic_id}"
+    status: "{agenda_update.new_status}"  # open → partial → complete
+    coverage:
+      - "{existing coverage}"
+      - "{agenda_update.coverage_added}"  # append new items
+```
+
+3. **Update metrics**:
+```yaml
+metrics:
+  rounds: {increment}
+  tasks: {increment by participant count + 2}
+```
 
 #### Step 2.7: Display Round Recap
 

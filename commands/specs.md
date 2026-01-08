@@ -285,7 +285,38 @@ prompt: |
   4. Include constraints_check in synthesis output (MANDATORY)
 ```
 
-**IF verbose_flag == true**: Write dump to `rounds/{NNN}-01-facilitator-question.yaml`
+**IF verbose_flag == true**: Write dump to `rounds/{NNN}-01-facilitator-question.yaml`:
+```yaml
+# Round {N} - Facilitator Question
+round: {N}
+phase: 1
+actor: "facilitator"
+action: "question"
+started: "{ISO timestamp when Task started}"
+completed: "{ISO timestamp when Task returned}"
+
+prompt:
+  session_state: "{summary of state passed to facilitator}"
+  artifact_summary: "{artifact counts}"
+  agenda_status: "{agenda state}"
+
+response:
+  decision:
+    focus_type: "{agenda|conflict|open_question}"
+    topic_id: "{topic}"
+    rationale: "{reason}"
+  question: "{the question}"
+  exploration: "{exploration prompt}"
+  context_files: [...]
+  participants: "{all or list}"
+
+result:
+  status: "completed"
+
+tokens:
+  input_estimate: {estimated input tokens}
+  output_estimate: {estimated output tokens}
+```
 
 #### Step 2.3: Participant Responses
 
@@ -317,7 +348,40 @@ prompt: |
 
 **Store responses** for synthesis and verbose dump.
 
-**IF verbose_flag == true**: Write dump for each participant.
+**IF verbose_flag == true**: Write dump for each participant to `rounds/{NNN}-02-{participant-id}.yaml`:
+```yaml
+# Round {N} - {Participant Role} Response
+round: {N}
+phase: 2
+actor: "{participant-id}"
+action: "response"
+started: "{ISO timestamp when Task started}"
+completed: "{ISO timestamp when Task returned}"
+
+prompt:
+  question: "{facilitator's question}"
+  exploration: "{facilitator's exploration}"
+  context_files: [...]
+
+response:
+  position: "{full response text}"
+  rationale: [...]
+  confidence: {0.0-1.0}
+  concerns: [...]
+  suggestions:
+    - type: "{requirement|business_rule|etc}"
+      title: "{title}"
+      description: "{description}"
+      priority: "{must|should|could}"
+
+result:
+  artifacts_proposed: {count}
+  status: "completed"
+
+tokens:
+  input_estimate: {estimated input tokens}
+  output_estimate: {estimated output tokens}
+```
 
 #### Step 2.4: Facilitator Synthesis
 
@@ -329,7 +393,45 @@ Include all participant responses and ask facilitator to:
 3. UPDATE agenda status
 4. DECIDE next action
 
-**IF verbose_flag == true**: Write dump to `rounds/{NNN}-03-facilitator-synthesis.yaml`
+**IF verbose_flag == true**: Write dump to `rounds/{NNN}-03-facilitator-synthesis.yaml`:
+```yaml
+# Round {N} - Facilitator Synthesis
+round: {N}
+phase: 3
+actor: "facilitator"
+action: "synthesis"
+started: "{ISO timestamp}"
+completed: "{ISO timestamp}"
+
+prompt:
+  participant_responses: "{summary of all responses}"
+  request: "SYNTHESIZE, PROPOSE, UPDATE, DECIDE"
+
+response:
+  synthesis: "{2-4 sentence summary}"
+  proposed_artifacts: [...]
+  resolved_conflicts: [...]
+  agenda_update:
+    topic_id: "{topic}"
+    new_status: "{open|partial|closed}"
+    coverage_added: [...]
+  constraints_check:
+    rounds_completed: {N}
+    min_rounds: 3
+    can_conclude: {true|false}
+    reason: "{reason}"
+  next: "{continue|conclude|escalate}"
+  next_focus: {...}
+
+result:
+  artifacts_proposed: {count}
+  conflicts_resolved: {count}
+  status: "completed"
+
+tokens:
+  input_estimate: {estimated input tokens}
+  output_estimate: {estimated output tokens}
+```
 
 #### Step 2.5: Process Artifacts
 
@@ -347,7 +449,35 @@ For each `resolved_conflict`:
 
 #### Step 2.6: Update Session File
 
-**YOU MUST use Edit tool NOW** to append round and update metrics.
+**YOU MUST use Edit tool NOW** to update session file with:
+
+1. **Append round** to `rounds:` array:
+```yaml
+rounds:
+  - round: {N}
+    topic: "{focus topic_id}"
+    timestamp: "{ISO timestamp}"
+    artifacts_created: ["{ID}", ...]
+    consensus_reached: {true|false}
+    next_action: "{continue|conclude|escalate}"
+```
+
+2. **Update agenda status** from facilitator's `agenda_update`:
+```yaml
+agenda:
+  - topic_id: "{agenda_update.topic_id}"
+    status: "{agenda_update.new_status}"  # open → partial → complete
+    coverage:
+      - "{existing coverage}"
+      - "{agenda_update.coverage_added}"  # append new items
+```
+
+3. **Update metrics**:
+```yaml
+metrics:
+  rounds: {increment}
+  tasks: {increment by participant count + 2}
+```
 
 #### Step 2.7: Display Round Recap
 
