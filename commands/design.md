@@ -245,10 +245,11 @@ prompt: |
   - Conflicts: {list IDs or "none"}
   - Open questions: {list IDs or "none"}
 
-  Agenda topics:
-  {for each topic in agenda, list ONLY status and ID}
-  - [{status}] {topic_id} {(CRITICAL) if critical}
+  Agenda topics (in priority order):
+  {for each topic in agenda, list status and ID - order implies priority}
+  - [{status}] {topic_id}
   {/for}
+  Note: Topics are listed in priority order. First = highest priority.
 
   Previous round synthesis:
   {synthesis from last round or "First round - no previous context"}
@@ -279,7 +280,12 @@ prompt: |
   4. GENERATE your question(s) and exploration prompt
 
   You have full autonomy. Apply the strategy as you see fit.
-  Include constraints_check in your synthesis output (MANDATORY).
+
+  IMPORTANT REMINDERS:
+  - Focus on ONE topic per round (no mixing agenda + OQ + conflicts)
+  - You have up to {max_rounds} rounds - do NOT rush
+  - Coverage ≠ Closure. Take time to achieve depth.
+  - Include constraints_check in your synthesis output (MANDATORY).
 ```
 
 **IF verbose_flag == true**: Write dump to `rounds/{NNN}-01-facilitator-question.yaml`:

@@ -172,14 +172,17 @@ The facilitator tracks coverage as:
 
 ## Question Prioritization
 
-When generating questions, facilitator should:
+When generating questions, facilitator should follow the **single-topic focus rule**:
 
-1. Address `open` critical topics first
-2. Then `partial` critical topics (focus on unmet DoD criteria)
-3. Then `open` non-critical topics
-4. Then `partial` non-critical topics
-5. Use `exploration` prompt to gather additional insights
-6. Only allow conclusion when closure rules are met
+1. Select ONE topic per round (no mixing)
+2. Address topics in priority order (order in YAML = priority)
+3. Each topic gets at least one dedicated round
+4. Use `exploration` prompt to gather additional insights
+5. Only allow conclusion when closure rules are met
+
+**Pacing guidance**:
+- Topics at top of list = higher priority = address earlier
+- But priority ≠ urgency. Take time for depth on each topic.
 
 ---
 

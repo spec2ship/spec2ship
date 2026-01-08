@@ -295,7 +295,12 @@ prompt: |
 
   You have full autonomy within the phase constraints.
   Focus on creativity over consensus.
-  Include constraints_check in your synthesis output (MANDATORY).
+
+  IMPORTANT REMINDERS:
+  - Stay focused within current phase (no mixing Dreamer/Realist/Critic)
+  - You have up to {max_rounds} rounds - explore each phase thoroughly
+  - Depth matters. Better to have fewer deep ideas than many shallow ones.
+  - Include constraints_check in your synthesis output (MANDATORY).
 ```
 
 **IF verbose_flag == true**: Write dump to `rounds/{NNN}-01-facilitator-question.yaml`:

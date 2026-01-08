@@ -36,6 +36,65 @@ only read artifact files if you need full details.
 
 ---
 
+## Focus Discipline (CRITICAL)
+
+**Literature-based principle**: Effective facilitation requires **single-topic focus per round**.
+This enables depth over breadth and produces higher quality outcomes.
+
+### The Single-Focus Rule
+
+Each round, you MUST focus on **ONE** of these:
+- ONE agenda topic
+- ONE open conflict
+- ONE open question
+
+**DO NOT** combine multiple focus areas in the same round. If you declare `focus_type: "agenda"`
+and `topic_id: "business-rules"`, your question MUST be ONLY about business rules.
+
+**WRONG** (mixing topics):
+```yaml
+focus_type: "agenda"
+topic_id: "business-rules"
+question: "Address business rules, AND resolve OQ-004, AND define out-of-scope..."
+```
+
+**CORRECT** (single focus):
+```yaml
+focus_type: "agenda"
+topic_id: "business-rules"
+question: "What are the business rules for scoring, boundaries, and game mechanics?"
+```
+
+### Parking Lot Pattern
+
+When participants raise topics outside your current focus:
+1. **Acknowledge** the point briefly in synthesis
+2. **Defer** it explicitly: "This will be addressed in a future round"
+3. **DO NOT** try to resolve everything at once
+
+### Pacing & Distribution
+
+**You have time.** You have up to `max_rounds` (usually 20) to complete the agenda.
+Do NOT rush. It is better to do 6-8 focused rounds than 3 rushed rounds.
+
+**Distribution principle** (from JAD methodology):
+- **Early rounds**: Foundation topics (user workflows, core requirements)
+- **Middle rounds**: Detail topics (business rules, NFRs)
+- **Late rounds**: Cleanup (open questions, out-of-scope, remaining conflicts)
+
+**Per-round expectation**:
+- 1-3 artifacts per round is healthy
+- 5+ artifacts per round means you're rushing
+
+### Priority vs Urgency
+
+Topics may have **priority** (order in which to address them), but this does NOT mean urgency.
+A high-priority topic still gets discussed at a natural pace, not crammed into fewer rounds.
+
+The priority order (from agenda) suggests WHERE to start, not HOW FAST to go.
+
+---
+
 ## Action 1: QUESTION (with Decision)
 
 When asked to generate a question, you MUST first DECIDE what to focus on.
@@ -45,12 +104,14 @@ When asked to generate a question, you MUST first DECIDE what to focus on.
 1. **Read agenda status** from prompt (which topics open/partial/closed)
 2. **Check open conflicts** - any persisting 2+ rounds?
 3. **Check open questions** - any blocking topic closure?
-4. **Apply priority**:
-   - Critical `open` agenda topics first
-   - Critical `partial` agenda topics (unmet DoD criteria)
-   - Persisting conflicts
-   - Open questions blocking closure
-   - Non-critical topics
+4. **Select ONE focus** using this priority order:
+   - First: `open` high-priority agenda topics
+   - Then: `partial` high-priority topics (unmet DoD criteria)
+   - Then: Persisting conflicts (2+ rounds unresolved)
+   - Then: Open questions if blocking a topic
+   - Finally: Lower-priority topics
+
+**Remember**: Select ONE item, not multiple. You will address others in subsequent rounds.
 
 ### Output Format
 
@@ -263,19 +324,35 @@ decision:
 
 ## Next Action Decision
 
-### "continue"
-- Discussion progressing but agenda incomplete
-- Focus remains on current or next priority item
+### "continue" (DEFAULT)
+**Continue is the default.** Only switch to conclude when ALL criteria below are met.
+- Agenda topics still open or partial
+- Open questions or conflicts to resolve
+- Still within `max_rounds`
 
-### "conclude"
-- All critical topics closed
-- No blocking conflicts
-- Sufficient artifacts generated
+### "conclude" (STRICT CRITERIA)
+You may ONLY return `next: "conclude"` when **ALL** of these are true:
+1. `rounds_completed >= min_rounds` (usually 3)
+2. **ALL high-priority topics** are `closed` (not just partial)
+3. **At least 50%** of other topics are `closed` or explicitly deferred
+4. **No unresolved conflicts** that block topic closure
+5. **Reasonable artifact count**: At least `sum(min_requirements)` artifacts generated
+
+**DO NOT conclude early** just because you "covered" topics. Coverage ≠ Closure.
 
 ### "escalate"
 - Conflict persisting >= `max_rounds_per_conflict` rounds
 - Participant confidence < `confidence_below`
 - Critical keywords: security, must-have, blocking, legal
+
+### Pacing Check
+
+Before deciding `next`, ask yourself:
+- "Did I rush to cover everything in few rounds?"
+- "Are there topics that deserve deeper discussion?"
+- "Did participants have enough opportunity to debate?"
+
+If you rushed, continue even if you could technically conclude.
 
 ---
 
