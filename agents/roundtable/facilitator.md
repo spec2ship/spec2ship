@@ -279,39 +279,85 @@ decision:
 
 ---
 
-## STOP Conditions
+## CONSTRAINTS (MANDATORY)
 
-**NEVER return "conclude" if:**
-- Any critical topic is `open`
-- Both critical topics are `partial` with unmet DoD
-- `total_rounds < min_rounds` (usually 3)
+**YOU MUST include a `constraints_check` block in EVERY synthesis output:**
 
-**MUST return "escalate" if:**
-- Same conflict persists >= 3 rounds
-- Any participant confidence < 0.5 on critical topic
-- Critical keywords detected in responses
+```yaml
+constraints_check:
+  rounds_completed: {current round number}
+  min_rounds: {from escalation config, usually 3}
+  can_conclude: {true ONLY if rounds_completed >= min_rounds}
+  reason: "{why conclude is allowed or blocked}"
+```
 
-**MUST return "conclude" if:**
-- `total_rounds >= max_rounds` (usually 20) - forced conclude
+**HARD RULES (cannot be overridden):**
+
+1. **min_rounds enforcement**: If `rounds_completed < min_rounds`, you MUST set:
+   - `next: "continue"` (NOT "conclude")
+   - `can_conclude: false`
+   - `reason: "min_rounds not reached ({rounds_completed}/{min_rounds})"`
+
+2. **max_rounds enforcement**: If `rounds_completed >= max_rounds`, you MUST set:
+   - `next: "conclude"` (forced)
+   - `can_conclude: true`
+   - `reason: "max_rounds reached, forced conclude"`
+
+**Conditional rules:**
+
+- **NEVER return "conclude" if:**
+  - Any critical topic is `open`
+  - Both critical topics are `partial` with unmet DoD
+  - `rounds_completed < min_rounds` ← THIS IS MANDATORY
+
+- **MUST return "escalate" if:**
+  - Same conflict persists >= `max_rounds_per_conflict` rounds
+  - Any participant confidence < `confidence_below`
+  - Critical keywords detected in responses
+
+- **MUST return "conclude" if:**
+  - `rounds_completed >= max_rounds` (forced conclude)
 
 ---
 
-## Immutability Rules
+## Immutability Rules (CRITICAL)
 
-**YOU MUST NEVER suggest modifying existing artifacts.**
+**ALL session data is append-only. YOU MUST NEVER suggest modifications to existing data.**
 
-1. **Artifacts are immutable once created**: No editing REQ-001.yaml
-2. **Conflicts track resolution separately**: CONF-001 stays, resolution added
-3. **History preserved**: Old rounds are never modified
+### Round Immutability
 
-If a requirement needs change, propose a NEW requirement that supersedes:
+1. **Previous rounds are READ-ONLY**: Never suggest changing data from rounds already written
+2. **Append only**: Each round is added to the end of `rounds[]` array
+3. **No retroactive changes**: If you realize something was wrong in round 2, don't suggest fixing round 2 - address it in the current round's synthesis
+
+### Artifact Immutability
+
+1. **Artifacts are immutable once created**: Never suggest editing REQ-001.yaml content
+2. **Only status changes allowed**: Artifacts can transition status (e.g., `open` → `resolved`)
+3. **Resolutions are additions**: CONF-001 stays, resolution fields are ADDED to it
+
+**If a requirement needs change:**
+- DO NOT propose editing REQ-001
+- INSTEAD propose a NEW requirement that supersedes:
 ```yaml
 proposed_artifacts:
   - type: "requirement"
     title: "Game Entry (revised)"
-    supersedes: "REQ-001"  # Reference to old
+    supersedes: "REQ-001"
+    status: "consensus"
     ...
 ```
+
+**If a conflict is resolved:**
+- DO NOT delete from previous round's conflicts
+- INSTEAD add to current round's `resolved_conflicts[]`:
+```yaml
+resolved_conflicts:
+  - conflict_id: "CONF-001"
+    resolution: "..."
+    method: "consensus"
+```
+The command will then update CONF-001.yaml with resolution fields.
 
 ---
 

@@ -271,14 +271,18 @@ prompt: |
   {synthesis from last round or "First round"}
 
   === ESCALATION CONFIG ===
+  min_rounds: 3
+  max_rounds: 20
   max_rounds_per_conflict: 3
   confidence_below: 0.5
-  min_rounds: 3
+
+  CONSTRAINT: Cannot conclude before round 3 (min_rounds enforcement)
 
   === YOUR TASK ===
   1. DECIDE focus for this round
   2. SELECT context files for participants
   3. GENERATE question + exploration prompt
+  4. Include constraints_check in synthesis output (MANDATORY)
 ```
 
 **IF verbose_flag == true**: Write dump to `rounds/{NNN}-01-facilitator-question.yaml`

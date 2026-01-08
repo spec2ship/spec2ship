@@ -250,14 +250,18 @@ prompt: |
   {synthesis from last round or "First round"}
 
   === ESCALATION CONFIG ===
+  min_rounds: 3
+  max_rounds: 20
   max_rounds_per_conflict: 3
   confidence_below: 0.5
-  min_rounds: 3
+
+  CONSTRAINT: Cannot conclude before round 3 (min_rounds enforcement)
 
   === YOUR TASK ===
   1. DECIDE focus for this round
   2. SELECT context files for participants
   3. GENERATE question + exploration prompt
+  4. Include constraints_check in synthesis output (MANDATORY)
 ```
 
 **IF verbose_flag == true**: Write dump file.
@@ -306,9 +310,33 @@ For each `proposed_artifact`:
 - Conflicts: `CONF-{NNN}.yaml`
 - Open questions: `OQ-{NNN}.yaml`
 
-#### Step 2.6-2.9: Standard roundtable steps
+#### Step 2.6: Update Session File
 
-Follow roundtable-execution skill for update, recap, interactive, and next action.
+**YOU MUST use Edit tool NOW** to append round and update metrics.
+
+#### Step 2.7: Display Round Recap
+
+Show synthesis, new artifacts, resolved conflicts, agenda status.
+
+#### Step 2.8: Handle Interactive Mode
+
+**IF interactive_flag == true**: Ask user to continue, skip, or pause.
+**IF interactive_flag == false**: Proceed automatically.
+
+#### Step 2.9: Evaluate Next Action (CRITICAL)
+
+**MANDATORY min_rounds enforcement:**
+
+```
+IF round_number < min_rounds (default: 3) AND next == "conclude":
+  OVERRIDE next to "continue"
+  Display: "⚠️ min_rounds not reached ({round_number}/{min_rounds}), continuing..."
+```
+
+Then evaluate based on `next`:
+- **continue**: Loop back to Step 2.1
+- **conclude**: Proceed to Phase 3
+- **escalate**: Ask user with AskUserQuestion, then continue or conclude
 
 ---
 

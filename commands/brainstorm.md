@@ -264,10 +264,19 @@ prompt: |
   === PREVIOUS ROUND ===
   {synthesis from last round or "First round"}
 
+  === ESCALATION CONFIG ===
+  min_rounds: 3
+  max_rounds: 20
+  max_rounds_per_conflict: 3
+  confidence_below: 0.5
+
+  CONSTRAINT: Cannot conclude before round 3 (min_rounds enforcement)
+
   === YOUR TASK ===
   1. Generate question appropriate for {current_phase} phase
   2. SELECT context files for participants
   3. Include exploration prompt
+  4. Include constraints_check in synthesis output
 
   NOTE: For brainstorm, focus on creativity over consensus.
 ```
@@ -365,9 +374,30 @@ When facilitator returns `next: "phase"`:
 When in `critic` phase and facilitator returns `next: "conclude"`:
 - Exit loop, proceed to completion
 
-#### Step 2.7-2.9: Standard roundtable steps
+#### Step 2.7: Display Round Recap
 
-Follow roundtable-execution skill for recap, interactive, and next action.
+Show synthesis, new artifacts, phase progress.
+
+#### Step 2.8: Handle Interactive Mode
+
+**IF interactive_flag == true**: Ask user to continue, skip phase, or pause.
+**IF interactive_flag == false**: Proceed automatically.
+
+#### Step 2.9: Evaluate Next Action (CRITICAL)
+
+**MANDATORY min_rounds enforcement:**
+
+```
+IF round_number < min_rounds (default: 3) AND next == "conclude":
+  OVERRIDE next to "continue"
+  Display: "⚠️ min_rounds not reached ({round_number}/{min_rounds}), continuing..."
+```
+
+Then evaluate based on `next`:
+- **continue**: Loop back to Step 2.1 (same phase)
+- **phase**: Advance to next Disney phase (dreamer → realist → critic)
+- **conclude**: Only valid in critic phase AND round_number >= min_rounds
+- **escalate**: Ask user with AskUserQuestion
 
 ---
 
