@@ -172,19 +172,25 @@ If mode is "component":
 
 Collect project information through quick questions.
 
-### 4.1 Confirm Overview
-
-**IMPORTANT**: Show the detected info IN the question text, not separately.
+### 4.1 Confirm Project Description
 
 Ask using AskUserQuestion:
-- Question: "Detected: **{Detected.project.name}** - {Detected.project.description or 'No description'}. Tech: {Detected.tech_stack.languages or 'Not detected'}. Is this accurate?"
+- Question: "Project: **{Detected.project.name}** - {Detected.project.description or 'No description found'}. Is this correct?"
 - Options: "Yes, continue" / "Let me provide corrections"
 
-If corrections: ask for name and description
+If corrections: ask for name and description separately.
 
-### 4.2 Tech Stack (if not detected)
+### 4.2 Tech Stack
 
-If **Detected.tech_stack.languages** is empty:
+**If tech stack WAS detected** (Detected.tech_stack.languages is not empty):
+
+Ask using AskUserQuestion:
+- Question: "Detected tech stack: **{Detected.tech_stack.languages}**{If frameworks: ', ' + Detected.tech_stack.frameworks}. Is this correct?"
+- Options: "Yes, continue" / "Let me provide corrections"
+
+If corrections: ask what tech stack to use.
+
+**If tech stack was NOT detected** (Detected.tech_stack.languages is empty):
 
 Ask using AskUserQuestion:
 - "What tech stack will this project use?"
