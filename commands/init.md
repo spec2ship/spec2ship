@@ -203,6 +203,37 @@ Write `.s2s/CONTEXT.md` with gathered information:
 *Last updated: {date}*
 ```
 
+### Step 2.7: Generate CLAUDE.md
+
+Create `.claude/` directory and write `.claude/CLAUDE.md`:
+
+```markdown
+# {Project Name}
+
+@../.s2s/CONTEXT.md
+
+<!-- Claude-specific directives - add as needed:
+
+## Code Style
+- Prefer composition over inheritance
+- Use TypeScript strict mode
+
+## Testing
+- Run tests before committing
+
+## Project Commands
+- /s2s:specs - Define requirements
+- /s2s:design - Design architecture
+- /s2s:plan:create - Create implementation plan
+-->
+```
+
+### Step 2.8: Generate config.yaml
+
+Write `.s2s/config.yaml` using the template from `templates/project/config.yaml`:
+- Replace `{project-name}` with actual project name
+- Adjust `type` based on detected mode (standalone/workspace/component)
+
 ---
 
 ## Phase 3: Output
@@ -219,6 +250,9 @@ Domain: {domain}
 Created:
 - .s2s/config.yaml
 - .s2s/CONTEXT.md
+- .s2s/state.yaml
+- .s2s/sessions/ (roundtable sessions will be stored here)
+- .claude/CLAUDE.md (with @../.s2s/CONTEXT.md reference)
 - docs/ (architecture, specifications, decisions)
 
 What's next?
