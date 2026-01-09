@@ -56,21 +56,15 @@ Only read files that EXIST in the directory:
 
 Use `Glob("*.md", path=directory + "/.s2s/plans")` to count plans.
 
-### Step 4: Assess Complexity
+### Step 4: Assess Implementation Status
 
-**Two dimensions:**
+Based on files present, determine current implementation status:
+- **none**: Empty or only docs/config files
+- **minimal**: Some source files, basic structure
+- **partial**: Substantial code, tests present
+- **complete**: Full implementation with tests and docs
 
-1. **Implementation status** (based on files present):
-   - **none**: Empty or only docs/config
-   - **minimal**: Some source files, basic structure
-   - **partial**: Substantial code, tests present
-   - **complete**: Full implementation with tests and docs
-
-2. **Idea complexity** (inferred from README/CONTEXT if present):
-   - **simple**: Single feature, straightforward
-   - **moderate**: Multiple features, some integration
-   - **complex**: Multi-platform, AI/ML, distributed, enterprise
-   - **null**: Cannot determine (no description found)
+This is used by init to decide the flow (new project vs existing).
 
 ### Step 5: Return YAML
 
@@ -103,10 +97,7 @@ detected_files:
   readme: "{filename or null}"
   config_files: ["{files found}"]
 
-complexity:
-  idea: "{simple|moderate|complex|null}"           # From README/CONTEXT description
-  implementation: "{none|minimal|partial|complete}" # From files present
-  reasons: ["{reason}"]
+implementation_status: "{none|minimal|partial|complete}"  # Current state of the project
 
 changes_detected:
   any_changes: {true|false}
@@ -153,10 +144,7 @@ tech_stack:
 detected_files:
   readme: null
   config_files: []
-complexity:
-  idea: null           # No description to analyze
-  implementation: "none"
-  reasons: ["Empty or nearly empty directory"]
+implementation_status: "none"
 changes_detected:
   any_changes: false
   details: null
@@ -186,10 +174,7 @@ tech_stack:
 detected_files:
   readme: null
   config_files: []
-complexity:
-  idea: "simple"           # Inferred from CONTEXT.md description
-  implementation: "none"   # No source code yet
-  reasons: ["Game concept described, no implementation yet"]
+implementation_status: "none"
 changes_detected:
   any_changes: false
   details: null

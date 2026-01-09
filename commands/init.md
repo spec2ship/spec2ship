@@ -202,18 +202,7 @@ Ask using AskUserQuestion:
 
 Store selection as **Context.tech_stack** (or "TBD" if deferred).
 
-### 4.3 Project Complexity (idea)
-
-Ask using AskUserQuestion:
-- "How complex is the project you're building?"
-- Options:
-  - "Simple - single feature, straightforward implementation"
-  - "Moderate - multiple features, some integration"
-  - "Complex - multi-platform, AI/ML, distributed systems, or enterprise-scale"
-
-Store as **Context.idea_complexity**.
-
-### 4.4 Business Domain
+### 4.3 Business Domain
 
 Ask using AskUserQuestion:
 - "What is the business domain?"
@@ -223,7 +212,7 @@ Ask using AskUserQuestion:
   - "Data / Analytics"
   - "Web Application"
 
-### 4.5 Objectives
+### 4.4 Objectives
 
 Ask using AskUserQuestion (multiSelect: true):
 - "What are the main objectives?"
@@ -235,7 +224,7 @@ Ask using AskUserQuestion (multiSelect: true):
 
 Follow up: "Briefly describe the specific goals:"
 
-### 4.6 Scope
+### 4.5 Scope
 
 Ask using AskUserQuestion:
 - "What type of project is this?"
@@ -246,7 +235,7 @@ Ask using AskUserQuestion:
 
 Ask: "What is explicitly OUT of scope?"
 
-### 4.7 Constraints
+### 4.6 Constraints
 
 Ask using AskUserQuestion (multiSelect: true):
 - "Are there technical constraints?"
@@ -409,11 +398,6 @@ Write `.s2s/CONTEXT.md`:
 
 {Context.domain}
 
-## Project Complexity
-
-**Idea**: {Context.idea_complexity}
-**Implementation**: {Detected.complexity.implementation}
-
 ## Objectives
 
 {Context.objectives as bullet points}
@@ -545,7 +529,7 @@ Spec2Ship initialized successfully!
 Project: {name}
 Type: {mode}
 Domain: {Context.domain}
-Complexity: {Context.idea_complexity} idea, {Detected.complexity.implementation} implementation
+Scope: {Context.scope_type}
 
 Created:
 - .s2s/config.yaml
@@ -557,7 +541,7 @@ Created:
 
 What's next?
 
-{If Context.idea_complexity is "complex" or "moderate"}
+{If Context.scope_type is "Full implementation"}
 For in-depth project setup with stakeholder discussion:
   /s2s:roundtable:start --workflow setup
   (Participants: product-manager, documentation-specialist, oss-community-manager)
