@@ -261,6 +261,26 @@ escalation_config:
   max_rounds_per_conflict: {from config-snapshot.yaml: escalation.max_rounds_per_conflict}
   confidence_below: {from config-snapshot.yaml: escalation.confidence_below}
 
+# Project context (from context-snapshot.yaml)
+project_context:
+  name: "{project name}"
+  description: "{project description}"
+  domain: "{domain}"
+  tech_stack: ["{tech}"]
+  constraints: ["{constraint}"]
+
+# Current session state (from session file)
+session_state:
+  artifacts:
+    requirements: [{id, title, status, description, ...}]
+    conflicts: [{id, title, status, positions, ...}]
+    open_questions: [{id, title, status, description, ...}]
+  rounds:
+    - round: 1
+      focus: "{topic_id}"
+      synthesis: "{synthesis text}"
+    # ... previous rounds
+
 agenda:
   - id: "user-workflows"
     title: "User Workflows"
@@ -273,10 +293,10 @@ agenda:
       min_requirements: 2
   # ... more topics from agenda.yaml
 
-open_conflicts: []  # or list of {id, description, rounds_persisted}
-open_questions: []  # or list of {id, description, blocking_topic}
-artifacts_count: {count from session}
-previous_synthesis: "{synthesis from last round or null}"
+participants:
+  - "product-manager"
+  - "business-analyst"
+  - "qa-lead"
 ```
 
 The facilitator will return:
@@ -289,7 +309,22 @@ decision:
 question: "{the question}"
 exploration: "{exploration prompt}"
 participants: "all"
-context_files: ["context-snapshot.yaml", ...]
+
+# Context for participants (they have NO tools)
+participant_context:
+  shared:
+    project_summary: |
+      {condensed project info}
+    relevant_artifacts:
+      - id: "REQ-001"
+        title: "..."
+        # full artifact content
+    open_conflicts: [...]
+    open_questions: [...]
+    recent_rounds:
+      - round: 1
+        synthesis: "..."
+  overrides: null  # or per-participant directives for debate/six-hats
 ```
 
 **IF verbose_flag == true**: Write dump to `rounds/{NNN}-01-facilitator-question.yaml`:
@@ -311,7 +346,9 @@ response:
     rationale: "{reason}"
   question: "{the question}"
   exploration: "{exploration prompt}"
-  context_files: [...]
+  participant_context:
+    shared: {... project_summary, relevant_artifacts, etc ...}
+    overrides: {... or null ...}
   participants: "{all or list}"
 
 result:
@@ -328,6 +365,10 @@ tokens:
 
 For each of: product-manager, business-analyst, qa-lead
 
+**Build participant input** by merging:
+1. `participant_context.shared` (common to all)
+2. `participant_context.overrides[participant-id]` (if present)
+
 **Use the roundtable-{participant-id} agent** with this input:
 
 ```yaml
@@ -340,9 +381,32 @@ question: "{facilitator's question}"
 
 exploration: "{facilitator's exploration prompt}"
 
-context_files:
-  - "{session_folder}/context-snapshot.yaml"
-  # ... other files from facilitator's context_files
+# Optional: Include if present in overrides[participant-id]
+# facilitator_directive: |
+#   {from participant_context.overrides[participant-id].facilitator_directive}
+
+# ALL context inline (participants have NO tools)
+context:
+  project_summary: |
+    {from participant_context.shared.project_summary}
+
+  relevant_artifacts:
+    - id: "REQ-001"
+      title: "..."
+      status: "consensus"
+      description: "..."
+      # {from participant_context.shared.relevant_artifacts}
+
+  open_conflicts:
+    # {from participant_context.shared.open_conflicts}
+
+  open_questions:
+    # {from participant_context.shared.open_questions}
+
+  recent_rounds:
+    - round: 1
+      synthesis: "..."
+    # {from participant_context.shared.recent_rounds}
 ```
 
 Each participant will return:

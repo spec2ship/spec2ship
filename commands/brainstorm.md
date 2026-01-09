@@ -240,21 +240,36 @@ escalation_config:
   max_rounds_per_conflict: {from config-snapshot.yaml: escalation.max_rounds_per_conflict}
   confidence_below: {from config-snapshot.yaml: escalation.confidence_below}
 
+# Project context (from context-snapshot.yaml)
+project_context:
+  name: "{from CONTEXT.md or directory name}"
+  description: "{from CONTEXT.md or topic}"
+  brainstorm_topic: "{topic}"
+
+# Current session state (from session file)
+session_state:
+  artifacts:
+    ideas: [{id, title, status, description, ...}]
+    risks: [{id, title, status, description, severity, ...}]
+    mitigations: [{id, title, risk_id, description, ...}]
+    conflicts: [{id, title, status, positions, ...}]
+    open_questions: [{id, title, status, description, ...}]
+  rounds:
+    - round: 1
+      focus: "{phase}"
+      synthesis: "{synthesis text}"
+    # ... previous rounds
+
 disney_phase_rules:
   dreamer: "Generate creative ideas without constraints. NO criticism. Wild, ambitious thinking."
   realist: "Evaluate feasibility. Focus on 'how to' thinking. Practical implementation paths."
   critic: "Identify risks. What could go wrong? Propose mitigations. Challenge assumptions."
 
-artifacts_summary:
-  ideas: []  # or list of IDEA-* IDs
-  risks: []  # or list of RISK-* IDs
-  mitigations: []  # or list of MIT-* IDs
-  conflicts: []
-
-open_conflicts: []
-open_questions: []
-artifacts_count: {count}
-previous_synthesis: "{synthesis from last round or null}"
+participants:
+  - "product-manager"
+  - "software-architect"
+  - "technical-lead"
+  - "devops-engineer"
 ```
 
 The facilitator will return:
@@ -267,7 +282,22 @@ decision:
 question: "{the question}"
 exploration: "{exploration prompt}"
 participants: "all"
-context_files: ["context-snapshot.yaml", ...]
+
+# Context for participants (they have NO tools)
+participant_context:
+  shared:
+    project_summary: |
+      {condensed project/topic info}
+    relevant_artifacts:
+      - id: "IDEA-001"
+        title: "..."
+        # full artifact content
+    open_conflicts: [...]
+    open_questions: [...]
+    recent_rounds:
+      - round: 1
+        synthesis: "..."
+  overrides: null  # typically null for brainstorm
 ```
 
 **IF verbose_flag == true**: Write dump to `rounds/{NNN}-01-facilitator-question.yaml`:
@@ -286,7 +316,9 @@ input: {... the YAML input sent to facilitator ...}
 response:
   question: "{question}"
   exploration: "{exploration}"
-  context_files: [...]
+  participant_context:
+    shared: {... project_summary, relevant_artifacts, etc ...}
+    overrides: {... or null ...}
 
 result:
   status: "completed"
@@ -301,6 +333,10 @@ tokens:
 **Launch ALL participant agents in SINGLE message** (parallel execution):
 
 For each of: product-manager, software-architect, technical-lead, devops-engineer
+
+**Build participant input** by merging:
+1. `participant_context.shared` (common to all)
+2. `participant_context.overrides[participant-id]` (if present, rare for brainstorm)
 
 **Use the roundtable-{participant-id} agent** with this input:
 
@@ -319,9 +355,32 @@ question: "{facilitator's question}"
 
 exploration: "{facilitator's exploration prompt}"
 
-context_files:
-  - "{session_folder}/context-snapshot.yaml"
-  # ... other files from facilitator's context_files
+# Optional: Include if present in overrides[participant-id]
+# facilitator_directive: |
+#   {from participant_context.overrides[participant-id].facilitator_directive}
+
+# ALL context inline (participants have NO tools)
+context:
+  project_summary: |
+    {from participant_context.shared.project_summary}
+
+  relevant_artifacts:
+    - id: "IDEA-001"
+      title: "..."
+      status: "draft"
+      description: "..."
+      # {from participant_context.shared.relevant_artifacts}
+
+  open_conflicts:
+    # {from participant_context.shared.open_conflicts}
+
+  open_questions:
+    # {from participant_context.shared.open_questions}
+
+  recent_rounds:
+    - round: 1
+      synthesis: "..."
+    # {from participant_context.shared.recent_rounds}
 ```
 
 Each participant will return:
