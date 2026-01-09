@@ -174,16 +174,10 @@ Collect project information through quick questions.
 
 ### 4.1 Confirm Overview
 
-Display:
-```
-Detected Project:
-  Name: {Detected.project.name}
-  Description: {Detected.project.description}
-  Tech stack: {Detected.tech_stack.languages or "Not detected"}, {Detected.tech_stack.frameworks or ""}
-```
+**IMPORTANT**: Show the detected info IN the question text, not separately.
 
 Ask using AskUserQuestion:
-- "Is this information accurate?"
+- Question: "Detected: **{Detected.project.name}** - {Detected.project.description or 'No description'}. Tech: {Detected.tech_stack.languages or 'Not detected'}. Is this accurate?"
 - Options: "Yes, continue" / "Let me provide corrections"
 
 If corrections: ask for name and description
