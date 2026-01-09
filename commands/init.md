@@ -155,7 +155,8 @@ docs/
 ├── decisions/
 └── guides/
 
-CLAUDE.md
+.claude/
+└── CLAUDE.md
 ```
 
 **Component**:
@@ -164,7 +165,8 @@ CLAUDE.md
 ├── component.yaml
 └── plans/
 
-CLAUDE.md
+.claude/
+└── CLAUDE.md
 ```
 
 ### Step 2.6: Generate CONTEXT.md

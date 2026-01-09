@@ -344,6 +344,8 @@ last_sync: null
 
 ### Step 5.5: Generate CLAUDE.md
 
+Create `.claude/` directory and generate `.claude/CLAUDE.md`:
+
 ```markdown
 # {Project Name}
 
@@ -377,7 +379,7 @@ Created:
 - .s2s/CONTEXT.md
 - .s2s/state.yaml
 - docs/ structure
-- CLAUDE.md
+- .claude/CLAUDE.md
 
 What's next?
 
