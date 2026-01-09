@@ -1,13 +1,21 @@
 ---
 description: Initialize or update a Spec2Ship project. Analyzes existing structure, creates .s2s/ configuration, and gathers project context.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(git:*), Read, Write, Glob, Grep, Edit, Task, TodoWrite, AskUserQuestion
-argument-hint: [--workspace | --component [path]]
+argument-hint: [--workspace | --component [path]] [--detect | --context]
 ---
 
 # Initialize Spec2Ship Project
 
-This is the smart orchestrator command that runs the full initialization flow:
-`detect → setup → context`
+Smart orchestrator command that runs the full initialization flow: `detect → setup → context`
+
+**Modes:**
+- **(default)**: Full initialization - detect, setup, gather context
+- **--detect**: Detection only - analyze project, report findings (read-only)
+- **--context**: Update CONTEXT.md only - for already initialized projects
+- **--workspace**: Initialize as parent workspace
+- **--component [path]**: Initialize as component of existing workspace
+
+**Note:** Subcommands `/s2s:init:detect`, `/s2s:init:setup`, `/s2s:init:context` are available as standalone utilities but this main command handles all cases automatically.
 
 ## Context
 
@@ -23,6 +31,16 @@ Based on the Directory contents output, determine:
 - **Directory name**: Extract the last segment from the `pwd` output
 - **Is git repo**: If `.git` directory appears in listing → "yes", otherwise → "no"
 - **S2S initialized**: If `.s2s` directory appears in listing → "yes", otherwise → "no"
+
+---
+
+## Phase 0: Parse Flags
+
+Parse $ARGUMENTS for special modes:
+- **--detect**: If present, run only Phase 1 (detect) and stop with report
+- **--context**: If present, skip to context update logic (requires S2S initialized)
+
+If neither flag, proceed with full flow.
 
 ---
 
@@ -139,15 +157,27 @@ If quick setup OR after roundtable, gather user input:
 
 ### Step 2.5: Create Structure
 
-Create directory structure based on mode:
+Create directory structure based on mode using `mkdir -p`:
 
 **Standalone/Workspace**:
+```bash
+mkdir -p .s2s/plans
+mkdir -p .s2s/sessions
+mkdir -p .claude
+mkdir -p docs/architecture
+mkdir -p docs/specifications
+mkdir -p docs/decisions
+mkdir -p docs/guides
+```
+
+Result:
 ```
 .s2s/
 ├── config.yaml
 ├── CONTEXT.md
+├── state.yaml
 ├── plans/
-└── state.yaml
+└── sessions/
 
 docs/
 ├── architecture/
@@ -160,6 +190,12 @@ docs/
 ```
 
 **Component**:
+```bash
+mkdir -p .s2s/plans
+mkdir -p .claude
+```
+
+Result:
 ```
 .s2s/
 ├── component.yaml
@@ -233,6 +269,47 @@ Create `.claude/` directory and write `.claude/CLAUDE.md`:
 Write `.s2s/config.yaml` using the template from `templates/project/config.yaml`:
 - Replace `{project-name}` with actual project name
 - Adjust `type` based on detected mode (standalone/workspace/component)
+
+### Step 2.9: Generate state.yaml
+
+Write `.s2s/state.yaml`:
+
+```yaml
+current_plan: null
+plans: {}
+last_sync: null
+```
+
+### Step 2.10: Generate docs/ Starter Files (Standalone/Workspace only)
+
+Create minimal starter files in docs/:
+
+**docs/architecture/README.md**:
+```markdown
+# Architecture
+
+This folder contains architecture documentation.
+
+Run `/s2s:design` to generate architecture documentation.
+```
+
+**docs/specifications/requirements.md**:
+```markdown
+# Requirements
+
+This file will contain project requirements.
+
+Run `/s2s:specs` to generate requirements documentation.
+```
+
+**docs/decisions/README.md**:
+```markdown
+# Architecture Decision Records
+
+This folder contains ADRs (Architecture Decision Records).
+
+Decisions will be added during `/s2s:design` sessions.
+```
 
 ---
 

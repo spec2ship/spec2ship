@@ -6,6 +6,8 @@ argument-hint: [--full]
 
 # Update Project Context
 
+**Standalone utility** - can also be run via `/s2s:init --context`
+
 Updates `.s2s/CONTEXT.md` with new information from project files or user input.
 
 ## Context

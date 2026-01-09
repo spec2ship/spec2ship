@@ -6,6 +6,8 @@ argument-hint: [--verbose]
 
 # Detect Project State
 
+**Standalone utility** - can also be run via `/s2s:init --detect`
+
 Analyzes the current directory to understand the project structure. This command is **read-only** and does not create or modify any files.
 
 ## Context

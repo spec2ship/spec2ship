@@ -6,6 +6,8 @@ argument-hint: [--workspace | --component [path]] [--roundtable]
 
 # Setup Spec2Ship Project
 
+**Standalone utility** - the main `/s2s:init` command includes this functionality and is preferred for most use cases.
+
 Creates the .s2s/ directory structure and gathers project context. This command merges structure creation with context discovery.
 
 ## Context
@@ -349,7 +351,21 @@ Create `.claude/` directory and generate `.claude/CLAUDE.md`:
 ```markdown
 # {Project Name}
 
-@.s2s/CONTEXT.md
+@../.s2s/CONTEXT.md
+
+<!-- Claude-specific directives - add as needed:
+
+## Code Style
+- Prefer composition over inheritance
+
+## Testing
+- Run tests before committing
+
+## Project Commands
+- /s2s:specs - Define requirements
+- /s2s:design - Design architecture
+- /s2s:plan:create - Create implementation plan
+-->
 ```
 
 ### Step 5.6: Generate docs/ Structure
