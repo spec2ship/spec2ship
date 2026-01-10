@@ -1,6 +1,6 @@
 ---
 description: Validate session consistency with structural and optional semantic checks.
-allowed-tools: Bash(pwd:*), Bash(ls:*), Read, Glob, Grep
+allowed-tools: Bash(pwd:*), Bash(ls:*), Read, Edit, Glob, Grep
 argument-hint: [session-id] [--level structural|deep] [--fix]
 ---
 
