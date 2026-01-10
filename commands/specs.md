@@ -169,11 +169,14 @@ topics:
   # ... (copy all topics from agenda-specs.md)
 ```
 
-### Step 1.4: Create Session Index File
+### Step 1.4: Create Session File
 
 **YOU MUST use Write tool NOW** to create `.s2s/sessions/{session-id}.yaml`:
 
 ```yaml
+# Session file - Single Source of Truth
+# All artifacts are EMBEDDED (no separate files)
+
 id: "{session-id}"
 topic: "Requirements definition for {project name}"
 workflow_type: "specs"
@@ -182,17 +185,27 @@ status: "active"
 
 timing:
   started: "{ISO timestamp}"
+  last_activity: "{ISO timestamp}"
   completed: null
-  duration_ms: null
 
+# Agent state (for resume capability)
+agent_state:
+  facilitator:
+    agent_id: null
+    last_round: 0
+  participants: {}
+
+# ARTIFACTS - embedded with full content (NOT just IDs)
+# Each artifact type is a map keyed by ID
 artifacts:
-  requirements: []
-  business_rules: []
-  nfr: []
-  conflicts: []
-  open_questions: []
-  exclusions: []
+  requirements: {}      # REQ-*: {status, title, description, acceptance, ...}
+  business_rules: {}    # BR-*: {status, title, description, conditions, ...}
+  nfr: {}               # NFR-*: {status, title, category, target, ...}
+  exclusions: {}        # EX-*: {status, title, description, rationale, ...}
+  open_questions: {}    # OQ-*: {status, title, description, raised_by, ...}
+  conflicts: {}         # CONF-*: {status, title, positions, resolution, ...}
 
+# Agenda topics with status
 agenda:
   - topic_id: "user-workflows"
     status: "open"
@@ -213,12 +226,29 @@ agenda:
     status: "open"
     coverage: []
 
+# Rounds with summary for audit (no verbose needed for basic review)
 rounds: []
 
+# Metrics
 metrics:
-  rounds: 0
-  tasks: 0
-  tokens: 0
+  rounds_completed: 0
+  artifacts:
+    total: 0
+    by_type: {}
+    by_status: {}
+  topics:
+    total: 6
+    closed: 0
+  consensus_rate: 0.0
+  tokens:
+    estimated_total: 0
+    by_round: []
+
+# Validation state
+validation:
+  last_check: null
+  status: null
+  warnings: []
 ```
 
 ### Step 1.5: Update State File
@@ -641,31 +671,40 @@ tokens:
 
 # VERIFICATION CHECKLIST - for automated checking
 verification:
-  # Artifact files that MUST exist after Step 2.5
-  expected_artifact_files:
-    - "{ID}.yaml"  # for each proposed_artifact
-  # Session file updates that MUST be present after Step 2.6
-  session_file_updates:
-    artifacts_registry:
-      # Check each artifact type that was proposed this round
-      - field: "artifacts.requirements"
-        expected_ids: ["{REQ-*}", ...]
-      - field: "artifacts.business_rules"
-        expected_ids: ["{BR-*}", ...]
-      - field: "artifacts.nfr"
-        expected_ids: ["{NFR-*}", ...]
-      - field: "artifacts.exclusions"
-        expected_ids: ["{EX-*}", ...]
-      - field: "artifacts.open_questions"
-        expected_ids: ["{OQ-*}", ...]
-      - field: "artifacts.conflicts"
-        expected_ids: ["{CONF-*}", ...]
-    rounds_array:
-      expected_round: {N}
-      expected_fields: ["topic", "timestamp", "artifacts_created", "next_action"]
-    agenda_status:
-      topic_id: "{agenda_update.topic_id}"
-      expected_status: "{agenda_update.new_status}"
+  # Embedded artifacts that MUST exist in session file after Step 2.5
+  expected_artifacts:
+    # For each proposed_artifact, verify key exists in artifacts.{type}
+    - map: "artifacts.requirements"
+      expected_keys: ["{REQ-*}", ...]
+    - map: "artifacts.business_rules"
+      expected_keys: ["{BR-*}", ...]
+    - map: "artifacts.nfr"
+      expected_keys: ["{NFR-*}", ...]
+    - map: "artifacts.exclusions"
+      expected_keys: ["{EX-*}", ...]
+    - map: "artifacts.open_questions"
+      expected_keys: ["{OQ-*}", ...]
+    - map: "artifacts.conflicts"
+      expected_keys: ["{CONF-*}", ...]
+  # Round summary that MUST be present after Step 2.6
+  round_summary:
+    expected_round: {N}
+    required_fields:
+      - "timestamp"
+      - "topic_id"
+      - "facilitator_question"
+      - "synthesis_summary"
+      - "participant_positions"
+      - "artifacts_created"
+      - "next_action"
+  # Agenda status update
+  agenda_status:
+    topic_id: "{agenda_update.topic_id}"
+    expected_status: "{agenda_update.new_status}"
+  # Metrics consistency
+  metrics_consistency:
+    rounds_completed: {N}
+    artifacts_total: {sum of all artifact maps}
   # Context propagation check for next round
   context_propagation:
     participant_context_keys:
@@ -678,173 +717,177 @@ verification:
 
 #### Step 2.5: Process Artifacts
 
-**YOU MUST use Write tool NOW** to create individual artifact files.
+**YOU MUST use Edit tool NOW** to add artifacts to the session file.
 
 For each `proposed_artifact` from facilitator:
 
-1. **Count existing**: Read session file registry for artifact type
+1. **Count existing**: Count keys in `artifacts.{type}` in session file
 2. **Assign ID**: Next available (REQ-001, REQ-002, BR-001, NFR-001, OQ-001, EX-001)
-3. **Write artifact file**: `{session_folder}/{ID}.yaml`
+3. **Add to session file**: Edit `artifacts.{type}` to add new artifact with full content
 
-**Artifact file template** (requirements):
+**IMPORTANT**: Artifacts are EMBEDDED in session file, NOT separate files.
+
+**Artifact schema** (requirements - add to `artifacts.requirements`):
 ```yaml
-# {session_folder}/REQ-001.yaml
-id: "REQ-001"
-type: "requirement"
-title: "{title from proposed_artifact}"
-status: "{consensus|draft|conflict}"
-created_round: {N}
-topic_id: "{topic from proposed_artifact}"
-
-description: |
-  {description from proposed_artifact}
-
-acceptance:
-  - "{criterion 1}"
-  - "{criterion 2}"
-
-priority: "{must|should|could|wont}"
-
-# Traceability
-proposed_by: "facilitator"
-supported_by:
-  - "{participant who agreed}"
+artifacts:
+  requirements:
+    REQ-001:
+      status: "active"    # active|amended|superseded|withdrawn
+      created_round: {N}
+      topic_id: "{topic}"
+      title: "{title}"
+      priority: "{must|should|could|wont}"
+      description: |
+        {description}
+      acceptance:
+        - "{criterion 1}"
+        - "{criterion 2}"
+      proposed_by: "facilitator"
+      supported_by:
+        - "{participant}"
+      amendments: []      # For future modifications
 ```
 
-**Artifact file template** (business rules):
+**Artifact schema** (business rules - add to `artifacts.business_rules`):
 ```yaml
-# {session_folder}/BR-001.yaml
-id: "BR-001"
-type: "business_rule"
-title: "{title}"
-status: "{consensus|draft}"
-created_round: {N}
-topic_id: "{topic}"
-
-description: |
-  {description}
-
-conditions: |
-  {when this rule applies}
-
-actions: |
-  {what happens}
+artifacts:
+  business_rules:
+    BR-001:
+      status: "active"
+      created_round: {N}
+      topic_id: "{topic}"
+      title: "{title}"
+      description: |
+        {description}
+      conditions: |
+        {when this rule applies}
+      actions: |
+        {what happens}
+      amendments: []
 ```
 
-**Artifact file template** (non-functional requirements):
+**Artifact schema** (NFR - add to `artifacts.nfr`):
 ```yaml
-# {session_folder}/NFR-001.yaml
-id: "NFR-001"
-type: "nfr"
-title: "{title}"
-status: "{consensus|draft}"
-created_round: {N}
-topic_id: "nfr-measurable"
-
-category: "{performance|security|usability|reliability|scalability}"
-
-description: |
-  {description}
-
-target: "{measurable target}"
-minimum: "{minimum acceptable}"
-measurement: "{how to measure}"
+artifacts:
+  nfr:
+    NFR-001:
+      status: "active"
+      created_round: {N}
+      topic_id: "nfr-measurable"
+      title: "{title}"
+      category: "{performance|security|usability|reliability|scalability}"
+      description: |
+        {description}
+      target: "{measurable target}"
+      minimum: "{minimum acceptable}"
+      measurement: "{how to measure}"
+      amendments: []
 ```
 
-**Artifact file template** (exclusions - out of scope):
+**Artifact schema** (exclusions - add to `artifacts.exclusions`):
 ```yaml
-# {session_folder}/EX-001.yaml
-id: "EX-001"
-type: "exclusion"
-title: "{title}"
-status: "consensus"
-created_round: {N}
-topic_id: "out-of-scope"
-
-description: |
-  {what is explicitly excluded}
-
-rationale: |
-  {why it's out of scope}
-
-future_consideration: {true|false}
+artifacts:
+  exclusions:
+    EX-001:
+      status: "active"
+      created_round: {N}
+      topic_id: "out-of-scope"
+      title: "{title}"
+      description: |
+        {what is excluded}
+      rationale: |
+        {why out of scope}
+      future_consideration: {true|false}
+      amendments: []
 ```
 
-**Artifact file template** (open questions):
+**Artifact schema** (open questions - add to `artifacts.open_questions`):
 ```yaml
-# {session_folder}/OQ-001.yaml
-id: "OQ-001"
-type: "open_question"
-title: "{title}"
-status: "open"
-created_round: {N}
-topic_id: "{topic}"
-
-description: |
-  {question or uncertainty}
-
-raised_by: "{participant}"
-blocking: {true|false}
+artifacts:
+  open_questions:
+    OQ-001:
+      status: "open"      # open|resolved
+      created_round: {N}
+      topic_id: "{topic}"
+      title: "{title}"
+      description: |
+        {question or uncertainty}
+      raised_by: "{participant}"
+      blocking: {true|false}
+      resolution: null    # Filled when resolved
+      resolved_round: null
 ```
 
-**Artifact file template** (conflicts):
+**Artifact schema** (conflicts - add to `artifacts.conflicts`):
 ```yaml
-# {session_folder}/CONF-001.yaml
-id: "CONF-001"
-type: "conflict"
-title: "{title}"
-status: "open"
-created_round: {N}
-topic_id: "{topic}"
-
-positions:
-  - participant: "{participant-id}"
-    stance: "{position summary}"
-    rationale: "{reason}"
-  - participant: "{participant-id}"
-    stance: "{position summary}"
-    rationale: "{reason}"
-
-resolution: null
-resolved_round: null
+artifacts:
+  conflicts:
+    CONF-001:
+      status: "open"      # open|resolved
+      created_round: {N}
+      topic_id: "{topic}"
+      title: "{title}"
+      positions:
+        - participant: "{participant-id}"
+          stance: "{position summary}"
+          rationale: "{reason}"
+      resolution: null
+      resolved_round: null
 ```
 
-For each `resolved_conflict`:
-1. **Read conflict file**: `{session_folder}/{conflict_id}.yaml`
-2. **Update with resolution**: Add resolved_round, resolution fields
-3. **Write updated file** with Edit tool
+**For resolved conflicts**:
+Edit the existing conflict in session file to add:
+```yaml
+artifacts:
+  conflicts:
+    CONF-001:
+      status: "resolved"
+      resolution: "{resolution summary}"
+      resolved_round: {N}
+```
 
 #### Step 2.6: Update Session File
 
 **YOU MUST use Edit tool NOW** to update session file with:
 
-1. **Update artifacts registry** - add new IDs to appropriate arrays:
-```yaml
-artifacts:
-  requirements:
-    - "REQ-001"  # existing
-    - "REQ-002"  # NEW - added this round
-  business_rules:
-    - "BR-001"   # NEW if created
-  nfr:
-    - "NFR-001"  # NEW if created (non-functional requirements)
-  conflicts:
-    - "CONF-001" # NEW if created
-  open_questions:
-    - "OQ-001"   # NEW if created
-  exclusions:
-    - "EX-001"   # NEW if created
-```
-
-2. **Append round** to `rounds:` array:
+1. **Append round summary** to `rounds:` array (for audit without verbose):
 ```yaml
 rounds:
   - round: {N}
-    topic: "{focus topic_id}"
     timestamp: "{ISO timestamp}"
+    topic_id: "{focus topic_id}"
+
+    # Facilitator question (for audit)
+    facilitator_question: |
+      {the question asked}
+
+    # Synthesis summary (for audit)
+    synthesis_summary: |
+      {2-4 sentence synthesis from facilitator}
+
+    # Participant positions (condensed for audit)
+    participant_positions:
+      product-manager: |
+        {1-2 sentence position summary}
+      business-analyst: |
+        {1-2 sentence position summary}
+      qa-lead: |
+        {1-2 sentence position summary}
+
+    # Key outcomes
+    key_decisions:
+      - "{decision 1}"
+      - "{decision 2}"
     artifacts_created: ["{ID}", ...]
+    artifacts_amended: []    # IDs of modified artifacts
     consensus_reached: {true|false}
     next_action: "{continue|conclude|escalate}"
+```
+
+2. **Update timing**:
+```yaml
+timing:
+  last_activity: "{ISO timestamp}"
 ```
 
 3. **Update agenda status** from facilitator's `agenda_update`:
@@ -857,39 +900,67 @@ agenda:
       - "{agenda_update.coverage_added}"  # append new items
 ```
 
-4. **Update metrics**:
+4. **Update metrics** (comprehensive):
 ```yaml
 metrics:
-  rounds: {increment}
-  tasks: {increment by participant count + 2}
+  rounds_completed: {N}
+  artifacts:
+    total: {count all artifacts}
+    by_type:
+      requirements: {count}
+      business_rules: {count}
+      nfr: {count}
+      exclusions: {count}
+      open_questions: {count}
+      conflicts: {count}
+    by_status:
+      active: {count}
+      amended: {count}
+      resolved: {count}
+  topics:
+    total: 6
+    closed: {count closed topics}
+  consensus_rate: {artifacts with consensus / total}
+  tokens:
+    estimated_total: {sum of all rounds}
+    by_round:
+      - round: {N}
+        tokens: {estimated for this round}
 ```
 
 #### Step 2.6b: Validate Round Output
 
 **Non-blocking validation** - display warnings but continue execution.
 
-1. **Verify session file updated**:
-   - Check `rounds[]` contains current round N
-   - Check `artifacts.{type}[]` contains new IDs from this round
+1. **Verify session file structure** (Read session file):
+   - Check `rounds[]` contains entry for round N
+   - Check `rounds[N]` has required fields: `timestamp`, `topic_id`, `synthesis_summary`, `artifacts_created`
+   - Check all IDs in `artifacts_created` exist in `artifacts.{type}` maps
    - Check `agenda[topic_id].status` matches expected from `agenda_update`
 
-2. **Verify artifact files exist**:
-   - For each ID in `proposed_artifacts`: check `{session_folder}/{ID}.yaml` exists
-   - Use Glob tool: `{session_folder}/*.yaml`
+2. **Verify embedded artifacts**:
+   - For each ID in `proposed_artifacts`: verify key exists in `artifacts.{type}`
+   - Verify artifact has required fields: `status`, `title`, `description`, `created_round`
+   - Verify `created_round` matches current round N
 
-3. **Verify verbose dumps** (if --verbose):
+3. **Verify metrics consistency**:
+   - `metrics.rounds_completed` equals length of `rounds[]`
+   - `metrics.artifacts.total` equals sum of all artifact maps
+   - `metrics.topics.closed` equals count of agenda items with `status: "closed"`
+
+4. **Verify verbose dumps** (if --verbose):
    - Check `rounds/{NNN}-*.yaml` files exist for this round
-   - Expected files: `{NNN}-01-facilitator-question.yaml`, `{NNN}-02-{participant}.yaml` (×3), `{NNN}-03-facilitator-synthesis.yaml`
+   - Expected: `{NNN}-01-facilitator-question.yaml`, `{NNN}-02-{participant}.yaml` (×3), `{NNN}-03-facilitator-synthesis.yaml`
 
-4. **If validation fails**:
+5. **If validation fails**:
    ```
-   ⚠️ Round {N} Validation Warning:
-   Missing:
-   - {list of missing items}
+   Warning: ROUND {N} VALIDATION WARNING
+   Issues found:
+   - {list of issues}
 
    Continuing execution...
    ```
-   - Log to session file: `validation_warnings: [{round, items}]`
+   - Update session file `validation.warnings[]` with issue details
    - Continue to next step (non-blocking)
 
 #### Step 2.7: Display Round Recap
@@ -928,10 +999,14 @@ timing:
 
 **YOU MUST use Read tool** to read the completed session file.
 
-Extract from session file (Single Source of Truth):
-- All artifact IDs from registry
-- Read each artifact file for content
-- Aggregate by status (consensus, conflict, draft)
+Extract from session file (Single Source of Truth - ALL artifacts are embedded):
+- `artifacts.requirements` - map of REQ-* with full content
+- `artifacts.business_rules` - map of BR-* with full content
+- `artifacts.nfr` - map of NFR-* with full content
+- `artifacts.exclusions` - map of EX-* with full content
+- `artifacts.open_questions` - map of OQ-* with full content
+- `artifacts.conflicts` - map of CONF-* with full content
+- Aggregate counts from `metrics.artifacts.by_type` and `metrics.artifacts.by_status`
 
 ### Step 3.4: User Review
 
@@ -961,61 +1036,82 @@ Ask using AskUserQuestion:
 
 ### Step 3.5: Generate Requirements Document
 
-Create `docs/specifications/requirements.md` reading from artifact files:
+Create `docs/specifications/requirements.md` reading from **embedded artifacts in session file**:
 
 **For SRS format (default):**
 
 ```markdown
+<!-- WARNING: IMMUTABLE - Generated by /s2s:specs. Manual edits will be lost. -->
+
 # Software Requirements Specification
 
-**Project**: {from context-snapshot.yaml}
+**Project**: {from context-snapshot.yaml: project_name}
 **Version**: 1.0
 **Date**: {date}
+**Session**: {session-id}
 
 ## 1. Introduction
 
 ### 1.1 Purpose
-{from context-snapshot.yaml}
+{from context-snapshot.yaml: description}
 
 ### 1.2 Scope
-{from context-snapshot.yaml}
+{from context-snapshot.yaml: scope}
+
+### 1.3 Constraints
+{from context-snapshot.yaml: constraints}
 
 ## 2. Functional Requirements
 
-{for each REQ-* artifact file}
-### {ID}: {title}
-- **Description**: {description}
-- **Priority**: {priority}
+{for each ID, artifact in session.artifacts.requirements where artifact.status == "active"}
+### {ID}: {artifact.title}
+- **Priority**: {artifact.priority}
+- **Description**: {artifact.description}
 - **Acceptance Criteria**:
-  {for each criterion}
+  {for each criterion in artifact.acceptance}
   - [ ] {criterion}
   {/for}
 {/for}
 
 ## 3. Business Rules
 
-{for each BR-* artifact file}
-### {ID}: {title}
-{description}
+{for each ID, artifact in session.artifacts.business_rules where artifact.status == "active"}
+### {ID}: {artifact.title}
+{artifact.description}
+
+**Conditions**: {artifact.conditions}
+**Actions**: {artifact.actions}
 {/for}
 
 ## 4. Non-Functional Requirements
 
-{for each NFR-* artifact file}
-### {ID}: {title}
-- **Target**: {target}
-- **Minimum**: {minimum}
+{for each ID, artifact in session.artifacts.nfr where artifact.status == "active"}
+### {ID}: {artifact.title}
+- **Category**: {artifact.category}
+- **Target**: {artifact.target}
+- **Minimum**: {artifact.minimum}
+- **Measurement**: {artifact.measurement}
 {/for}
 
 ## 5. Out of Scope
 
-{for each EX-* artifact file}
-- **{ID}**: {title} - {rationale}
+{for each ID, artifact in session.artifacts.exclusions where artifact.status == "active"}
+- **{ID}**: {artifact.title} - {artifact.rationale}
+{/for}
+
+## 6. Open Questions
+
+{for each ID, artifact in session.artifacts.open_questions where artifact.status == "open"}
+- **{ID}**: {artifact.title}
+  - {artifact.description}
+  - Raised by: {artifact.raised_by}
+  - Blocking: {artifact.blocking}
 {/for}
 
 ---
 *Generated by Spec2Ship /s2s:specs*
 *Session: {session-id}*
+*Artifacts: {metrics.artifacts.total} ({metrics.artifacts.by_status.active} active)*
 ```
 
 ### Step 3.6: Update CONTEXT.md
