@@ -301,6 +301,9 @@ participant_context:
 ```
 
 **IF verbose_flag == true**: Write dump to `rounds/{NNN}-01-facilitator-question.yaml`:
+
+**IMPORTANT**: Save FULL content, not just keys or placeholders.
+
 ```yaml
 # Round {N} - Facilitator Question ({phase} phase)
 round: {N}
@@ -317,7 +320,31 @@ response:
   question: "{question}"
   exploration: "{exploration}"
   participant_context:
-    shared: {... project_summary, relevant_artifacts, etc ...}
+    shared:
+      # SAVE FULL CONTENT of each field
+      project_summary: |
+        {FULL project summary from facilitator response}
+      relevant_artifacts:
+        # For EACH artifact: save COMPLETE content
+        - id: "IDEA-001"
+          title: "{full title}"
+          status: "{status}"
+          description: |
+            {full description}
+        # ... all artifacts with full content
+      open_conflicts:
+        - id: "CONF-001"
+          title: "{full title}"
+          positions: [...]
+      open_questions:
+        - id: "OQ-001"
+          title: "{full title}"
+          description: "{full description}"
+      recent_rounds:
+        - round: 1
+          focus: "{phase}"
+          synthesis: |
+            {FULL synthesis text}
     overrides: {... or null ...}
 
 result:
@@ -578,18 +605,247 @@ result:
 tokens:
   input_estimate: {N}
   output_estimate: {N}
+
+# VERIFICATION CHECKLIST - for automated checking
+verification:
+  # Artifact files that MUST exist after Step 2.5
+  expected_artifact_files:
+    - "{ID}.yaml"  # for each proposed_artifact
+  # Session file updates that MUST be present after Step 2.6
+  session_file_updates:
+    artifacts_registry:
+      # Check each artifact type that was proposed this round
+      - field: "artifacts.ideas"
+        expected_ids: ["{IDEA-*}", ...]
+      - field: "artifacts.risks"
+        expected_ids: ["{RISK-*}", ...]
+      - field: "artifacts.mitigations"
+        expected_ids: ["{MIT-*}", ...]
+      - field: "artifacts.open_questions"
+        expected_ids: ["{OQ-*}", ...]
+      - field: "artifacts.conflicts"
+        expected_ids: ["{CONF-*}", ...]
+    rounds_array:
+      expected_round: {N}
+      expected_fields: ["disney_phase", "timestamp", "artifacts_created", "next_action"]
+    phases_status:
+      current_phase: "{dreamer|realist|critic}"
+      expected_status: "{active|completed}"
+  # Context propagation check for next round
+  context_propagation:
+    participant_context_keys:
+      - "project_summary"
+      - "relevant_artifacts"
+      - "open_conflicts"
+      - "open_questions"
+      - "recent_rounds"
 ```
 
 #### Step 2.5: Process Artifacts
 
-For each `proposed_artifact`:
-- Ideas: `IDEA-{NNN}.yaml`
-- Risks: `RISK-{NNN}.yaml`
-- Mitigations: `MIT-{NNN}.yaml`
-- Conflicts: `CONF-{NNN}.yaml`
-- Open questions: `OQ-{NNN}.yaml`
+**YOU MUST use Write tool NOW** to create individual artifact files.
 
-#### Step 2.6: Phase Transition
+For each `proposed_artifact` from facilitator:
+
+1. **Count existing**: Read session file registry for artifact type
+2. **Assign ID**: Next available (IDEA-001, RISK-001, MIT-001, CONF-001, OQ-001)
+3. **Write artifact file**: `{session_folder}/{ID}.yaml`
+
+**Artifact file template** (ideas - dreamer phase):
+```yaml
+# {session_folder}/IDEA-001.yaml
+id: "IDEA-001"
+type: "idea"
+title: "{title from proposed_artifact}"
+status: "{draft|refined|feasible|aspirational}"
+created_round: {N}
+disney_phase: "dreamer"
+
+description: |
+  {description from proposed_artifact}
+
+potential_value: |
+  {why this idea is valuable}
+
+# Added during realist phase
+feasibility: null
+implementation_notes: null
+
+# Traceability
+proposed_by: "{participant}"
+supported_by:
+  - "{participant who agreed}"
+```
+
+**Artifact file template** (risks - critic phase):
+```yaml
+# {session_folder}/RISK-001.yaml
+id: "RISK-001"
+type: "risk"
+title: "{title}"
+status: "identified"
+created_round: {N}
+disney_phase: "critic"
+
+description: |
+  {what could go wrong}
+
+severity: "{high|medium|low}"
+likelihood: "{high|medium|low}"
+
+affected_ideas:
+  - "{IDEA-NNN}"
+
+mitigation_id: null  # linked when MIT-* created
+
+raised_by: "{participant}"
+```
+
+**Artifact file template** (mitigations - critic phase):
+```yaml
+# {session_folder}/MIT-001.yaml
+id: "MIT-001"
+type: "mitigation"
+title: "{title}"
+status: "proposed"
+created_round: {N}
+disney_phase: "critic"
+
+risk_id: "{RISK-NNN to mitigate}"
+
+description: |
+  {how to mitigate the risk}
+
+effort: "{high|medium|low}"
+effectiveness: "{high|medium|low}"
+
+proposed_by: "{participant}"
+```
+
+**Artifact file template** (open questions):
+```yaml
+# {session_folder}/OQ-001.yaml
+id: "OQ-001"
+type: "open_question"
+title: "{title}"
+status: "open"
+created_round: {N}
+disney_phase: "{dreamer|realist|critic}"
+
+description: |
+  {question or uncertainty}
+
+raised_by: "{participant}"
+blocking: {true|false}
+```
+
+**Artifact file template** (conflicts):
+```yaml
+# {session_folder}/CONF-001.yaml
+id: "CONF-001"
+type: "conflict"
+title: "{title}"
+status: "open"
+created_round: {N}
+disney_phase: "{dreamer|realist|critic}"
+
+positions:
+  - participant: "{participant-id}"
+    stance: "{position summary}"
+    rationale: "{reason}"
+  - participant: "{participant-id}"
+    stance: "{position summary}"
+    rationale: "{reason}"
+
+resolution: null
+resolved_round: null
+```
+
+For each `resolved_conflict`:
+1. **Read conflict file**: `{session_folder}/{conflict_id}.yaml`
+2. **Update with resolution**: Add resolved_round, resolution fields
+3. **Write updated file** with Edit tool
+
+#### Step 2.6: Update Session File
+
+**YOU MUST use Edit tool NOW** to update session file with:
+
+1. **Update artifacts registry** - add new IDs to appropriate arrays:
+```yaml
+artifacts:
+  ideas:
+    - "IDEA-001"  # existing
+    - "IDEA-002"  # NEW - added this round
+  risks:
+    - "RISK-001"  # NEW if created (critic phase)
+  mitigations:
+    - "MIT-001"   # NEW if created (critic phase)
+  conflicts:
+    - "CONF-001"  # NEW if created
+  open_questions:
+    - "OQ-001"    # NEW if created
+```
+
+2. **Append round** to `rounds:` array:
+```yaml
+rounds:
+  - round: {N}
+    disney_phase: "{dreamer|realist|critic}"
+    timestamp: "{ISO timestamp}"
+    artifacts_created: ["{ID}", ...]
+    next_action: "{continue|phase|conclude}"
+```
+
+3. **Update phase status** in `phases:` array:
+```yaml
+phases:
+  - name: "dreamer"
+    status: "{active|completed}"
+    rounds: [{round numbers in this phase}]
+  - name: "realist"
+    status: "{pending|active|completed}"
+    rounds: [{round numbers}]
+  - name: "critic"
+    status: "{pending|active|completed}"
+    rounds: [{round numbers}]
+```
+
+4. **Update metrics**:
+```yaml
+metrics:
+  rounds: {increment}
+  tasks: {increment by participant count + 2}
+```
+
+#### Step 2.6b: Validate Round Output
+
+**Non-blocking validation** - display warnings but continue execution.
+
+1. **Verify session file updated**:
+   - Check `rounds[]` contains current round N
+   - Check `artifacts.{type}[]` contains new IDs from this round
+   - Check `phases[current_phase].status` is correct
+
+2. **Verify artifact files exist**:
+   - For each ID in `proposed_artifacts`: check `{session_folder}/{ID}.yaml` exists
+   - Use Glob tool: `{session_folder}/*.yaml`
+
+3. **Verify verbose dumps** (if --verbose):
+   - Check `rounds/{NNN}-*.yaml` files exist for this round
+   - Expected files: `{NNN}-01-facilitator-question.yaml`, `{NNN}-02-{participant}.yaml` (×4), `{NNN}-03-facilitator-synthesis.yaml`
+
+4. **If validation fails**:
+   ```
+   ⚠️ Round {N} Validation Warning:
+   Missing:
+   - {list of missing items}
+
+   Continuing execution...
+   ```
+   - Log to session file: `validation_warnings: [{round, items}]`
+   - Continue to next step (non-blocking)
+
+#### Step 2.6c: Phase Transition
 
 Disney strategy phase progression:
 - **dreamer**: 1+ rounds until facilitator recommends phase transition
@@ -598,7 +854,8 @@ Disney strategy phase progression:
 
 When facilitator returns `next: "phase"`:
 - Advance `current_phase` (dreamer → realist → critic)
-- Update phase status in session file
+- Mark previous phase as "completed" in session file
+- Mark new phase as "active"
 
 When in `critic` phase and facilitator returns `next: "conclude"`:
 - Exit loop, proceed to completion

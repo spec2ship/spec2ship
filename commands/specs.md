@@ -188,6 +188,7 @@ timing:
 artifacts:
   requirements: []
   business_rules: []
+  nfr: []
   conflicts: []
   open_questions: []
   exclusions: []
@@ -328,6 +329,9 @@ participant_context:
 ```
 
 **IF verbose_flag == true**: Write dump to `rounds/{NNN}-01-facilitator-question.yaml`:
+
+**IMPORTANT**: Save FULL content, not just keys or placeholders.
+
 ```yaml
 # Round {N} - Facilitator Question
 round: {N}
@@ -347,7 +351,36 @@ response:
   question: "{the question}"
   exploration: "{exploration prompt}"
   participant_context:
-    shared: {... project_summary, relevant_artifacts, etc ...}
+    shared:
+      # SAVE FULL CONTENT of each field
+      project_summary: |
+        {FULL project summary from facilitator response}
+      relevant_artifacts:
+        # For EACH artifact: save COMPLETE content
+        - id: "REQ-001"
+          title: "{full title}"
+          status: "{status}"
+          description: |
+            {full description}
+          acceptance:
+            - "{criterion 1}"
+            - "{criterion 2}"
+          priority: "{priority}"
+        # ... all artifacts with full content
+      open_conflicts:
+        - id: "CONF-001"
+          title: "{full title}"
+          positions: [...]
+          # full conflict content
+      open_questions:
+        - id: "OQ-001"
+          title: "{full title}"
+          description: "{full description}"
+      recent_rounds:
+        - round: 1
+          focus: "{topic_id}"
+          synthesis: |
+            {FULL synthesis text}
     overrides: {... or null ...}
   participants: "{all or list}"
 
@@ -605,27 +638,205 @@ result:
 tokens:
   input_estimate: {estimated input tokens}
   output_estimate: {estimated output tokens}
+
+# VERIFICATION CHECKLIST - for automated checking
+verification:
+  # Artifact files that MUST exist after Step 2.5
+  expected_artifact_files:
+    - "{ID}.yaml"  # for each proposed_artifact
+  # Session file updates that MUST be present after Step 2.6
+  session_file_updates:
+    artifacts_registry:
+      # Check each artifact type that was proposed this round
+      - field: "artifacts.requirements"
+        expected_ids: ["{REQ-*}", ...]
+      - field: "artifacts.business_rules"
+        expected_ids: ["{BR-*}", ...]
+      - field: "artifacts.nfr"
+        expected_ids: ["{NFR-*}", ...]
+      - field: "artifacts.exclusions"
+        expected_ids: ["{EX-*}", ...]
+      - field: "artifacts.open_questions"
+        expected_ids: ["{OQ-*}", ...]
+      - field: "artifacts.conflicts"
+        expected_ids: ["{CONF-*}", ...]
+    rounds_array:
+      expected_round: {N}
+      expected_fields: ["topic", "timestamp", "artifacts_created", "next_action"]
+    agenda_status:
+      topic_id: "{agenda_update.topic_id}"
+      expected_status: "{agenda_update.new_status}"
+  # Context propagation check for next round
+  context_propagation:
+    participant_context_keys:
+      - "project_summary"
+      - "relevant_artifacts"
+      - "open_conflicts"
+      - "open_questions"
+      - "recent_rounds"
 ```
 
 #### Step 2.5: Process Artifacts
 
+**YOU MUST use Write tool NOW** to create individual artifact files.
+
 For each `proposed_artifact` from facilitator:
 
-1. **Count existing**: Read session file registry
-2. **Assign ID**: Next available (REQ-001, REQ-002, etc.)
+1. **Count existing**: Read session file registry for artifact type
+2. **Assign ID**: Next available (REQ-001, REQ-002, BR-001, NFR-001, OQ-001, EX-001)
 3. **Write artifact file**: `{session_folder}/{ID}.yaml`
-4. **Update registry**: Add ID to appropriate list in session file
+
+**Artifact file template** (requirements):
+```yaml
+# {session_folder}/REQ-001.yaml
+id: "REQ-001"
+type: "requirement"
+title: "{title from proposed_artifact}"
+status: "{consensus|draft|conflict}"
+created_round: {N}
+topic_id: "{topic from proposed_artifact}"
+
+description: |
+  {description from proposed_artifact}
+
+acceptance:
+  - "{criterion 1}"
+  - "{criterion 2}"
+
+priority: "{must|should|could|wont}"
+
+# Traceability
+proposed_by: "facilitator"
+supported_by:
+  - "{participant who agreed}"
+```
+
+**Artifact file template** (business rules):
+```yaml
+# {session_folder}/BR-001.yaml
+id: "BR-001"
+type: "business_rule"
+title: "{title}"
+status: "{consensus|draft}"
+created_round: {N}
+topic_id: "{topic}"
+
+description: |
+  {description}
+
+conditions: |
+  {when this rule applies}
+
+actions: |
+  {what happens}
+```
+
+**Artifact file template** (non-functional requirements):
+```yaml
+# {session_folder}/NFR-001.yaml
+id: "NFR-001"
+type: "nfr"
+title: "{title}"
+status: "{consensus|draft}"
+created_round: {N}
+topic_id: "nfr-measurable"
+
+category: "{performance|security|usability|reliability|scalability}"
+
+description: |
+  {description}
+
+target: "{measurable target}"
+minimum: "{minimum acceptable}"
+measurement: "{how to measure}"
+```
+
+**Artifact file template** (exclusions - out of scope):
+```yaml
+# {session_folder}/EX-001.yaml
+id: "EX-001"
+type: "exclusion"
+title: "{title}"
+status: "consensus"
+created_round: {N}
+topic_id: "out-of-scope"
+
+description: |
+  {what is explicitly excluded}
+
+rationale: |
+  {why it's out of scope}
+
+future_consideration: {true|false}
+```
+
+**Artifact file template** (open questions):
+```yaml
+# {session_folder}/OQ-001.yaml
+id: "OQ-001"
+type: "open_question"
+title: "{title}"
+status: "open"
+created_round: {N}
+topic_id: "{topic}"
+
+description: |
+  {question or uncertainty}
+
+raised_by: "{participant}"
+blocking: {true|false}
+```
+
+**Artifact file template** (conflicts):
+```yaml
+# {session_folder}/CONF-001.yaml
+id: "CONF-001"
+type: "conflict"
+title: "{title}"
+status: "open"
+created_round: {N}
+topic_id: "{topic}"
+
+positions:
+  - participant: "{participant-id}"
+    stance: "{position summary}"
+    rationale: "{reason}"
+  - participant: "{participant-id}"
+    stance: "{position summary}"
+    rationale: "{reason}"
+
+resolution: null
+resolved_round: null
+```
 
 For each `resolved_conflict`:
 1. **Read conflict file**: `{session_folder}/{conflict_id}.yaml`
 2. **Update with resolution**: Add resolved_round, resolution fields
-3. **Write updated file**
+3. **Write updated file** with Edit tool
 
 #### Step 2.6: Update Session File
 
 **YOU MUST use Edit tool NOW** to update session file with:
 
-1. **Append round** to `rounds:` array:
+1. **Update artifacts registry** - add new IDs to appropriate arrays:
+```yaml
+artifacts:
+  requirements:
+    - "REQ-001"  # existing
+    - "REQ-002"  # NEW - added this round
+  business_rules:
+    - "BR-001"   # NEW if created
+  nfr:
+    - "NFR-001"  # NEW if created (non-functional requirements)
+  conflicts:
+    - "CONF-001" # NEW if created
+  open_questions:
+    - "OQ-001"   # NEW if created
+  exclusions:
+    - "EX-001"   # NEW if created
+```
+
+2. **Append round** to `rounds:` array:
 ```yaml
 rounds:
   - round: {N}
@@ -636,22 +847,50 @@ rounds:
     next_action: "{continue|conclude|escalate}"
 ```
 
-2. **Update agenda status** from facilitator's `agenda_update`:
+3. **Update agenda status** from facilitator's `agenda_update`:
 ```yaml
 agenda:
   - topic_id: "{agenda_update.topic_id}"
-    status: "{agenda_update.new_status}"  # open → partial → complete
+    status: "{agenda_update.new_status}"  # open → partial → closed
     coverage:
       - "{existing coverage}"
       - "{agenda_update.coverage_added}"  # append new items
 ```
 
-3. **Update metrics**:
+4. **Update metrics**:
 ```yaml
 metrics:
   rounds: {increment}
   tasks: {increment by participant count + 2}
 ```
+
+#### Step 2.6b: Validate Round Output
+
+**Non-blocking validation** - display warnings but continue execution.
+
+1. **Verify session file updated**:
+   - Check `rounds[]` contains current round N
+   - Check `artifacts.{type}[]` contains new IDs from this round
+   - Check `agenda[topic_id].status` matches expected from `agenda_update`
+
+2. **Verify artifact files exist**:
+   - For each ID in `proposed_artifacts`: check `{session_folder}/{ID}.yaml` exists
+   - Use Glob tool: `{session_folder}/*.yaml`
+
+3. **Verify verbose dumps** (if --verbose):
+   - Check `rounds/{NNN}-*.yaml` files exist for this round
+   - Expected files: `{NNN}-01-facilitator-question.yaml`, `{NNN}-02-{participant}.yaml` (×3), `{NNN}-03-facilitator-synthesis.yaml`
+
+4. **If validation fails**:
+   ```
+   ⚠️ Round {N} Validation Warning:
+   Missing:
+   - {list of missing items}
+
+   Continuing execution...
+   ```
+   - Log to session file: `validation_warnings: [{round, items}]`
+   - Continue to next step (non-blocking)
 
 #### Step 2.7: Display Round Recap
 
