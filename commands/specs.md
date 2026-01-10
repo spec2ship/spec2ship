@@ -284,12 +284,16 @@ Read `agent_state.facilitator` from session file.
 
 **IF** `agent_state.facilitator.agent_id` is NOT null AND this is a continuation (not first round of new session):
 
-**Resume the roundtable-facilitator agent** with `resume: "{agent_state.facilitator.agent_id}"` and this update prompt:
+**Resume the roundtable-facilitator agent** using Task tool with `resume` parameter set to `"{agent_state.facilitator.agent_id}"`, passing this prompt:
 
 ```yaml
 action: "question"
 round: {round_number + 1}
 resume: true
+topic: "Requirements definition for {project name}"
+strategy: "{strategy from config}"
+phase: "requirements"
+workflow_type: "specs"
 
 # Delta since last round (what changed)
 updates_since_last_round:
@@ -300,22 +304,46 @@ updates_since_last_round:
       old_status: "{previous}"
       new_status: "{current}"
 
+escalation_config:
+  min_rounds: {from config-snapshot.yaml: limits.min_rounds}
+  max_rounds: {from config-snapshot.yaml: limits.max_rounds}
+  max_rounds_per_conflict: {from config-snapshot.yaml: escalation.max_rounds_per_conflict}
+  confidence_below: {from config-snapshot.yaml: escalation.confidence_below}
+
+# Project context (from context-snapshot.yaml)
+project_context:
+  name: "{project name}"
+  description: "{project description}"
+  domain: "{domain}"
+  tech_stack: ["{tech}"]
+  constraints: ["{constraint}"]
+
 # Current full state for reference
 session_state:
   artifacts:
-    requirements: [{id, title, status, ...}]
-    conflicts: [{id, title, status, ...}]
-    open_questions: [{id, title, status, ...}]
+    requirements: [{id, title, status, description, ...}]
+    conflicts: [{id, title, status, positions, ...}]
+    open_questions: [{id, title, status, description, ...}]
   rounds:
     - round: {N}
       focus: "{topic_id}"
       synthesis: "{synthesis text}"
 
 agenda:
-  # Current agenda with updated statuses
+  # Current agenda with updated statuses and done_when criteria
   - id: "{topic}"
+    title: "{title}"
     status: "{current status}"
     priority: "{priority}"
+    done_when:
+      criteria: [...]
+      min_requirements: {N}
+  # ... all topics from agenda.yaml
+
+participants:
+  - "product-manager"
+  - "business-analyst"
+  - "qa-lead"
 ```
 
 **ELSE** (fresh invocation - first round or no saved agent_id):
@@ -490,18 +518,51 @@ For each participant, read `agent_state.participants.{participant-id}` from sess
 
 **IF** participant has saved `agent_id` AND this is a continuation:
 
-**Resume the roundtable-{participant-id} agent** with `resume: "{agent_state.participants.{participant-id}.agent_id}"` and this update prompt:
+**Resume the roundtable-{participant-id} agent** using Task tool with `resume` parameter set to `"{agent_state.participants.{participant-id}.agent_id}"`, passing this prompt:
 
 ```yaml
 round: {round_number + 1}
 resume: true
+topic: "Requirements definition for {project name}"
+phase: "requirements"
+workflow_type: "specs"
+
 question: "{facilitator's NEW question for this round}"
 exploration: "{facilitator's exploration prompt}"
 
-# Brief update on what changed
+# Optional: Include if present in overrides[participant-id]
+# facilitator_directive: |
+#   {from participant_context.overrides[participant-id].facilitator_directive}
+
+# Delta since last round (what changed)
 context_update:
   new_artifacts_since_last: ["{IDs}"]
-  your_last_position_summary: "{from previous round}"
+  resolved_conflicts_since_last: ["{IDs}"]
+  your_last_position_summary: "{from previous round participant_positions}"
+
+# CRITICAL: Participants have tools: [] - they CANNOT read files
+# Full context MUST be provided inline even in resume mode
+context:
+  project_summary: |
+    {from participant_context.shared.project_summary}
+
+  relevant_artifacts:
+    - id: "REQ-001"
+      title: "..."
+      status: "consensus"
+      description: "..."
+      # {from participant_context.shared.relevant_artifacts - FULL content}
+
+  open_conflicts:
+    # {from participant_context.shared.open_conflicts - FULL content}
+
+  open_questions:
+    # {from participant_context.shared.open_questions - FULL content}
+
+  recent_rounds:
+    - round: 1
+      synthesis: "..."
+    # {from participant_context.shared.recent_rounds}
 ```
 
 **ELSE** (fresh invocation):
@@ -634,33 +695,74 @@ Read `agent_state.facilitator` from session file.
 
 **IF** `agent_state.facilitator.agent_id` is NOT null (same facilitator from question phase):
 
-**Resume the roundtable-facilitator agent** with `resume: "{agent_state.facilitator.agent_id}"` and this synthesis prompt:
+**Resume the roundtable-facilitator agent** using Task tool with `resume` parameter set to `"{agent_state.facilitator.agent_id}"`, passing this prompt:
 
 ```yaml
 action: "synthesis"
 round: {round_number + 1}
 resume: true
+topic: "Requirements definition for {project name}"
+strategy: "{strategy}"
+phase: "requirements"
 
-# Participant responses to synthesize
+escalation_config:
+  min_rounds: {from config-snapshot.yaml: limits.min_rounds}
+  max_rounds: {from config-snapshot.yaml: limits.max_rounds}
+  max_rounds_per_conflict: {from config-snapshot.yaml: escalation.max_rounds_per_conflict}
+  confidence_below: {from config-snapshot.yaml: escalation.confidence_below}
+
+question_asked: "{facilitator's question from step 2.2}"
+
+# Participant responses to synthesize (full content for decision-making)
 responses:
   product-manager:
     position: "{position}"
     rationale: [...]
+    concerns: [...]
+    suggestions: [...]
     confidence: {0.0-1.0}
   business-analyst:
     position: "{position}"
     rationale: [...]
+    concerns: [...]
+    suggestions: [...]
     confidence: {0.0-1.0}
   qa-lead:
     position: "{position}"
     rationale: [...]
+    concerns: [...]
+    suggestions: [...]
     confidence: {0.0-1.0}
 
-# Current agenda state
+# Current agenda state (ALL topics with current status)
 full_agenda:
-  - id: "{topic}"
+  - id: "user-workflows"
     status: "{open|partial|closed}"
-    priority: "{priority}"
+    priority: "critical"
+  - id: "functional-requirements"
+    status: "{open|partial|closed}"
+    priority: "critical"
+  - id: "business-rules"
+    status: "{open|partial|closed}"
+    priority: "normal"
+  - id: "nfr-measurable"
+    status: "{open|partial|closed}"
+    priority: "normal"
+  - id: "acceptance-criteria"
+    status: "{open|partial|closed}"
+    priority: "critical"
+  - id: "out-of-scope"
+    status: "{open|partial|closed}"
+    priority: "normal"
+
+focus_topic:
+  id: "{topic from step 2.2}"
+  done_when:
+    criteria: [...]
+    min_requirements: {N}
+
+open_conflicts: [{id, title, status, positions, ...}]
+artifacts_count: {current count from metrics}
 ```
 
 **ELSE** (fresh invocation):
