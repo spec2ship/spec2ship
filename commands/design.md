@@ -155,11 +155,14 @@ participants:
 
 Read `skills/roundtable-execution/references/agenda-design.md` and extract topics YAML.
 
-### Step 1.4: Create Session Index File
+### Step 1.4: Create Session File
 
 **YOU MUST use Write tool NOW** to create `.s2s/sessions/{session-id}.yaml`:
 
 ```yaml
+# Session file - Single Source of Truth
+# All artifacts are EMBEDDED (no separate files)
+
 id: "{session-id}"
 topic: "Architecture design for {project name}"
 workflow_type: "design"
@@ -168,15 +171,28 @@ status: "active"
 
 timing:
   started: "{ISO timestamp}"
+  last_activity: "{ISO timestamp}"
   completed: null
-  duration_ms: null
 
+# Agent state (for resume capability)
+# Stores agent IDs to enable resuming agents across rounds
+agent_state:
+  facilitator:
+    agent_id: null      # agentId from last facilitator call
+    last_round: 0       # round number of last call
+    last_action: null   # "question" or "synthesis"
+  participants: {}      # {participant-id}: {agent_id, last_round}
+
+# ARTIFACTS - embedded with full content (NOT just IDs)
+# Each artifact type is a map keyed by ID
 artifacts:
-  decisions: []
-  components: []
-  conflicts: []
-  open_questions: []
+  architecture_decisions: {}  # ARCH-*: {status, title, decision, options, ...}
+  components: {}              # COMP-*: {status, title, responsibility, ...}
+  interfaces: {}              # INT-*: {status, title, provides, requires, ...}
+  open_questions: {}          # OQ-*: {status, title, description, ...}
+  conflicts: {}               # CONF-*: {status, title, positions, ...}
 
+# Agenda topics with status
 agenda:
   - topic_id: "high-level-arch"
     status: "open"
@@ -194,12 +210,29 @@ agenda:
     status: "open"
     coverage: []
 
+# Rounds with summary for audit (no verbose needed for basic review)
 rounds: []
 
+# Metrics
 metrics:
-  rounds: 0
-  tasks: 0
-  tokens: 0
+  rounds_completed: 0
+  artifacts:
+    total: 0
+    by_type: {}
+    by_status: {}
+  topics:
+    total: 5
+    closed: 0
+  consensus_rate: 0.0
+  tokens:
+    estimated_total: 0
+    by_round: []
+
+# Validation state
+validation:
+  last_check: null
+  status: null
+  warnings: []
 ```
 
 ### Step 1.5: Update State File
@@ -221,7 +254,85 @@ Initialize:
 
 ### Round Loop (repeat until conclusion)
 
+#### Step 2.1: Display Round Start
+
+Display agenda status and artifact counts.
+
 #### Step 2.2: Facilitator Question
+
+**Check for resume capability:**
+
+Read `agent_state.facilitator` from session file.
+
+**IF** `agent_state.facilitator.agent_id` is NOT null AND this is a continuation (not first round of new session):
+
+**Resume the roundtable-facilitator agent** using Task tool with `resume` parameter set to `"{agent_state.facilitator.agent_id}"`, passing this prompt:
+
+```yaml
+action: "question"
+round: {round_number + 1}
+resume: true
+topic: "Architecture design for {project name}"
+strategy: "{strategy from config}"
+phase: "design"
+workflow_type: "design"
+
+# Delta since last round (what changed)
+updates_since_last_round:
+  new_artifacts: ["{IDs of artifacts created last round}"]
+  resolved_conflicts: ["{IDs of conflicts resolved}"]
+  agenda_changes:
+    - topic_id: "{topic}"
+      old_status: "{previous}"
+      new_status: "{current}"
+
+escalation_config:
+  min_rounds: {from config-snapshot.yaml: limits.min_rounds}
+  max_rounds: {from config-snapshot.yaml: limits.max_rounds}
+  max_rounds_per_conflict: {from config-snapshot.yaml: escalation.max_rounds_per_conflict}
+  confidence_below: {from config-snapshot.yaml: escalation.confidence_below}
+
+# Project context (from context-snapshot.yaml)
+project_context:
+  name: "{project name}"
+  description: "{project description}"
+  domain: "{domain}"
+  tech_stack: ["{tech}"]
+  constraints: ["{constraint}"]
+  requirements_summary:
+    core: ["{REQ-001}: {title}", ...]
+    nfr: ["{NFR-001}: {title}", ...]
+
+# Current full state for reference
+session_state:
+  artifacts:
+    architecture_decisions: [{id, title, status, description, ...}]
+    components: [{id, title, status, description, ...}]
+    conflicts: [{id, title, status, positions, ...}]
+    open_questions: [{id, title, status, description, ...}]
+  rounds:
+    - round: {N}
+      focus: "{topic_id}"
+      synthesis: "{synthesis text}"
+
+agenda:
+  # Current agenda with updated statuses and done_when criteria
+  - id: "{topic}"
+    title: "{title}"
+    status: "{current status}"
+    priority: "{priority}"
+    done_when:
+      criteria: [...]
+      min_requirements: {N}
+  # ... all topics from agenda.yaml
+
+participants:
+  - "software-architect"
+  - "technical-lead"
+  - "devops-engineer"
+```
+
+**ELSE** (fresh invocation - first round or no saved agent_id):
 
 **Use the roundtable-facilitator agent** with this input:
 
@@ -253,7 +364,7 @@ project_context:
 # Current session state (from session file)
 session_state:
   artifacts:
-    decisions: [{id, title, status, description, ...}]
+    architecture_decisions: [{id, title, status, description, ...}]
     components: [{id, title, status, description, ...}]
     conflicts: [{id, title, status, positions, ...}]
     open_questions: [{id, title, status, description, ...}]
@@ -369,11 +480,78 @@ tokens:
   output_estimate: {N}
 ```
 
+**Save facilitator agent_id for resume:**
+
+The facilitator agent returns an `agentId` in its response. **YOU MUST** update the session file:
+
+```yaml
+agent_state:
+  facilitator:
+    agent_id: "{agentId from facilitator response}"
+    last_round: {round_number + 1}
+    last_action: "question"
+```
+
 #### Step 2.3: Participant Responses
 
 **Launch ALL participant agents in SINGLE message** (parallel execution):
 
 For each of: software-architect, technical-lead, devops-engineer
+
+**Check for resume capability:**
+
+For each participant, read `agent_state.participants.{participant-id}` from session file.
+
+**IF** participant has saved `agent_id` AND this is a continuation:
+
+**Resume the roundtable-{participant-id} agent** using Task tool with `resume` parameter set to `"{agent_state.participants.{participant-id}.agent_id}"`, passing this prompt:
+
+```yaml
+round: {round_number + 1}
+resume: true
+topic: "Architecture design for {project name}"
+phase: "design"
+workflow_type: "design"
+
+question: "{facilitator's NEW question for this round}"
+exploration: "{facilitator's exploration prompt}"
+
+# Optional: Include if present in overrides[participant-id]
+# facilitator_directive: |
+#   {from participant_context.overrides[participant-id].facilitator_directive}
+
+# Delta since last round (what changed)
+context_update:
+  new_artifacts_since_last: ["{IDs}"]
+  resolved_conflicts_since_last: ["{IDs}"]
+  your_last_position_summary: "{from previous round participant_positions}"
+
+# CRITICAL: Participants have tools: [] - they CANNOT read files
+# Full context MUST be provided inline even in resume mode
+context:
+  project_summary: |
+    {from participant_context.shared.project_summary}
+
+  relevant_artifacts:
+    - id: "ARCH-001"
+      title: "..."
+      status: "consensus"
+      description: "..."
+      # {from participant_context.shared.relevant_artifacts - FULL content}
+
+  open_conflicts:
+    # {from participant_context.shared.open_conflicts - FULL content}
+
+  open_questions:
+    # {from participant_context.shared.open_questions - FULL content}
+
+  recent_rounds:
+    - round: 1
+      synthesis: "..."
+    # {from participant_context.shared.recent_rounds}
+```
+
+**ELSE** (fresh invocation):
 
 **Build participant input** by merging:
 1. `participant_context.shared` (common to all)
@@ -447,6 +625,8 @@ references:
   - "{reference}"
 ```
 
+**Store responses** for synthesis and verbose dump.
+
 **IF verbose_flag == true**: Write dump for each participant to `rounds/{NNN}-02-{participant-id}.yaml`:
 ```yaml
 # Round {N} - {Role} Response
@@ -475,7 +655,100 @@ tokens:
   output_estimate: {N}
 ```
 
+**Save participant agent_ids for resume:**
+
+Each participant agent returns an `agentId` in its response. **YOU MUST** update the session file:
+
+```yaml
+agent_state:
+  participants:
+    software-architect:
+      agent_id: "{agentId from software-architect response}"
+      last_round: {round_number + 1}
+    technical-lead:
+      agent_id: "{agentId from technical-lead response}"
+      last_round: {round_number + 1}
+    devops-engineer:
+      agent_id: "{agentId from devops-engineer response}"
+      last_round: {round_number + 1}
+```
+
 #### Step 2.4: Facilitator Synthesis
+
+**Check for resume capability:**
+
+Read `agent_state.facilitator` from session file.
+
+**IF** `agent_state.facilitator.agent_id` is NOT null (same facilitator from question phase):
+
+**Resume the roundtable-facilitator agent** using Task tool with `resume` parameter set to `"{agent_state.facilitator.agent_id}"`, passing this prompt:
+
+```yaml
+action: "synthesis"
+round: {round_number + 1}
+resume: true
+topic: "Architecture design for {project name}"
+strategy: "{strategy}"
+phase: "design"
+
+escalation_config:
+  min_rounds: {from config-snapshot.yaml: limits.min_rounds}
+  max_rounds: {from config-snapshot.yaml: limits.max_rounds}
+  max_rounds_per_conflict: {from config-snapshot.yaml: escalation.max_rounds_per_conflict}
+  confidence_below: {from config-snapshot.yaml: escalation.confidence_below}
+
+question_asked: "{facilitator's question from step 2.2}"
+
+# Participant responses to synthesize (full content for decision-making)
+responses:
+  software-architect:
+    position: "{position}"
+    rationale: [...]
+    concerns: [...]
+    suggestions: [...]
+    confidence: {0.0-1.0}
+  technical-lead:
+    position: "{position}"
+    rationale: [...]
+    concerns: [...]
+    suggestions: [...]
+    confidence: {0.0-1.0}
+  devops-engineer:
+    position: "{position}"
+    rationale: [...]
+    concerns: [...]
+    suggestions: [...]
+    confidence: {0.0-1.0}
+
+# Current agenda state (ALL topics with current status)
+full_agenda:
+  - id: "high-level-arch"
+    status: "{open|partial|closed}"
+    priority: "critical"
+  - id: "components"
+    status: "{open|partial|closed}"
+    priority: "critical"
+  - id: "data-flow"
+    status: "{open|partial|closed}"
+    priority: "normal"
+  - id: "tech-choices"
+    status: "{open|partial|closed}"
+    priority: "normal"
+  - id: "integration"
+    status: "{open|partial|closed}"
+    priority: "normal"
+
+focus_topic:
+  id: "{topic from step 2.2}"
+  done_when:
+    criteria: [...]
+    min_requirements: {N}
+
+open_conflicts: [{id, title, status, positions, ...}]
+artifacts_count: {current count from metrics}
+```
+
+**ELSE** (fresh invocation):
 
 **Use the roundtable-facilitator agent** with this input:
 
@@ -642,155 +915,188 @@ verification:
       - "recent_rounds"
 ```
 
+**Update facilitator agent_id after synthesis:**
+
+The facilitator synthesis may return a new `agentId` (or same if resumed). **YOU MUST** update the session file to ensure latest agent_id is saved:
+
+```yaml
+agent_state:
+  facilitator:
+    agent_id: "{agentId from synthesis response}"
+    last_round: {round_number + 1}
+    last_action: "synthesis"
+```
+
 #### Step 2.5: Process Artifacts
 
-**YOU MUST use Write tool NOW** to create individual artifact files.
+**YOU MUST use Edit tool NOW** to add artifacts to the session file.
 
 For each `proposed_artifact` from facilitator:
 
-1. **Count existing**: Read session file registry for artifact type
-2. **Assign ID**: Next available (ARCH-001, COMP-001, CONF-001, OQ-001)
-3. **Write artifact file**: `{session_folder}/{ID}.yaml`
+1. **Count existing**: Count keys in `artifacts.{type}` in session file
+2. **Assign ID**: Next available (ARCH-001, ARCH-002, COMP-001, INT-001, OQ-001)
+3. **Add to session file**: Edit `artifacts.{type}` to add new artifact with full content
 
-**Artifact file template** (architecture decisions):
+**IMPORTANT**: Artifacts are EMBEDDED in session file, NOT separate files.
+
+**Artifact schema** (architecture decisions - add to `artifacts.architecture_decisions`):
 ```yaml
-# {session_folder}/ARCH-001.yaml
-id: "ARCH-001"
-type: "decision"
-title: "{title from proposed_artifact}"
-status: "{consensus|draft|conflict}"
-created_round: {N}
-topic_id: "{topic from proposed_artifact}"
-
-context: |
-  {context/problem statement}
-
-decision: |
-  {the decision made}
-
-options:
-  - name: "{option 1}"
-    pros:
-      - "{pro}"
-    cons:
-      - "{con}"
-  - name: "{option 2}"
-    pros:
-      - "{pro}"
-    cons:
-      - "{con}"
-
-rationale: |
-  {why this option was chosen}
-
-consequences:
-  positive:
-    - "{positive outcome}"
-  negative:
-    - "{trade-off accepted}"
-
-# Traceability
-proposed_by: "facilitator"
-supported_by:
-  - "{participant who agreed}"
+artifacts:
+  architecture_decisions:
+    ARCH-001:
+      status: "active"    # Lifecycle: active|amended|superseded|withdrawn
+      agreement: "consensus"  # From synthesis: consensus|draft|conflict
+      created_round: {N}
+      topic_id: "{topic}"
+      title: "{title}"
+      context: |
+        {context/problem statement}
+      decision: |
+        {the decision made}
+      options:
+        - name: "{option 1}"
+          pros: ["{pro}"]
+          cons: ["{con}"]
+        - name: "{option 2}"
+          pros: ["{pro}"]
+          cons: ["{con}"]
+      rationale: |
+        {why this option was chosen}
+      consequences:
+        positive: ["{positive outcome}"]
+        negative: ["{trade-off accepted}"]
+      proposed_by: "facilitator"
+      supported_by: ["{participant}"]
+      amendments: []
 ```
 
-**Artifact file template** (components):
+**Note**: Map facilitator's `proposed_artifact.status` → `agreement` field.
+Lifecycle `status` is always `"active"` for new artifacts.
+
+**Artifact schema** (components - add to `artifacts.components`):
 ```yaml
-# {session_folder}/COMP-001.yaml
-id: "COMP-001"
-type: "component"
-title: "{title}"
-status: "{consensus|draft}"
-created_round: {N}
-topic_id: "{topic}"
-
-responsibility: |
-  {what this component does}
-
-interfaces:
-  provides:
-    - "{interface provided}"
-  requires:
-    - "{interface required}"
-
-dependencies:
-  - "{dependency}"
-
-technology: "{technology choice}"
+artifacts:
+  components:
+    COMP-001:
+      status: "active"
+      agreement: "consensus"
+      created_round: {N}
+      topic_id: "{topic}"
+      title: "{title}"
+      responsibility: |
+        {what this component does}
+      interfaces:
+        provides: ["{interface provided}"]
+        requires: ["{interface required}"]
+      dependencies: ["{dependency}"]
+      technology: "{technology choice}"
+      amendments: []
 ```
 
-**Artifact file template** (open questions):
+**Artifact schema** (interfaces - add to `artifacts.interfaces`):
 ```yaml
-# {session_folder}/OQ-001.yaml
-id: "OQ-001"
-type: "open_question"
-title: "{title}"
-status: "open"
-created_round: {N}
-topic_id: "{topic}"
-
-description: |
-  {question or uncertainty}
-
-raised_by: "{participant}"
-blocking: {true|false}
+artifacts:
+  interfaces:
+    INT-001:
+      status: "active"
+      agreement: "consensus"
+      created_round: {N}
+      topic_id: "{topic}"
+      title: "{title}"
+      type: "{REST|GraphQL|gRPC|message|file}"
+      description: |
+        {what this interface provides}
+      endpoints: [...]
+      amendments: []
 ```
 
-**Artifact file template** (conflicts):
+**Artifact schema** (open questions - add to `artifacts.open_questions`):
 ```yaml
-# {session_folder}/CONF-001.yaml
-id: "CONF-001"
-type: "conflict"
-title: "{title}"
-status: "open"
-created_round: {N}
-topic_id: "{topic}"
-
-positions:
-  - participant: "{participant-id}"
-    stance: "{position summary}"
-    rationale: "{reason}"
-  - participant: "{participant-id}"
-    stance: "{position summary}"
-    rationale: "{reason}"
-
-resolution: null
-resolved_round: null
+artifacts:
+  open_questions:
+    OQ-001:
+      status: "open"      # open|resolved
+      created_round: {N}
+      topic_id: "{topic}"
+      title: "{title}"
+      description: |
+        {question or uncertainty}
+      raised_by: "{participant}"
+      blocking: {true|false}
+      resolution: null    # Filled when resolved
+      resolved_round: null
 ```
 
-For each `resolved_conflict`:
-1. **Read conflict file**: `{session_folder}/{conflict_id}.yaml`
-2. **Update with resolution**: Add resolved_round, resolution fields
-3. **Write updated file** with Edit tool
+**Artifact schema** (conflicts - add to `artifacts.conflicts`):
+```yaml
+artifacts:
+  conflicts:
+    CONF-001:
+      status: "open"      # open|resolved
+      created_round: {N}
+      topic_id: "{topic}"
+      title: "{title}"
+      positions:
+        - participant: "{participant-id}"
+          stance: "{position summary}"
+          rationale: "{reason}"
+      resolution: null
+      resolved_round: null
+```
+
+**For resolved conflicts**:
+Edit the existing conflict in session file to add:
+```yaml
+artifacts:
+  conflicts:
+    CONF-001:
+      status: "resolved"
+      resolution: "{resolution summary}"
+      resolved_round: {N}
+```
 
 #### Step 2.6: Update Session File
 
 **YOU MUST use Edit tool NOW** to update session file with:
 
-1. **Update artifacts registry** - add new IDs to appropriate arrays:
-```yaml
-artifacts:
-  decisions:
-    - "ARCH-001"  # existing
-    - "ARCH-002"  # NEW - added this round
-  components:
-    - "COMP-001"  # NEW if created
-  conflicts:
-    - "CONF-001"  # NEW if created
-  open_questions:
-    - "OQ-001"    # NEW if created
-```
-
-2. **Append round** to `rounds:` array:
+1. **Append round summary** to `rounds:` array (for audit without verbose):
 ```yaml
 rounds:
   - round: {N}
-    topic: "{focus topic_id}"
     timestamp: "{ISO timestamp}"
+    topic_id: "{focus topic_id}"
+
+    # Facilitator question (for audit)
+    facilitator_question: |
+      {the question asked}
+
+    # Synthesis summary (for audit)
+    synthesis_summary: |
+      {2-4 sentence synthesis from facilitator}
+
+    # Participant positions (condensed for audit)
+    participant_positions:
+      software-architect: |
+        {1-2 sentence position summary}
+      technical-lead: |
+        {1-2 sentence position summary}
+      devops-engineer: |
+        {1-2 sentence position summary}
+
+    # Key outcomes
+    key_decisions:
+      - "{decision 1}"
+      - "{decision 2}"
     artifacts_created: ["{ID}", ...]
+    artifacts_amended: []    # IDs of modified artifacts
     consensus_reached: {true|false}
     next_action: "{continue|conclude|escalate}"
+```
+
+2. **Update timing**:
+```yaml
+timing:
+  last_activity: "{ISO timestamp}"
 ```
 
 3. **Update agenda status** from facilitator's `agenda_update`:
@@ -806,8 +1112,28 @@ agenda:
 4. **Update metrics**:
 ```yaml
 metrics:
-  rounds: {increment}
-  tasks: {increment by participant count + 2}
+  rounds_completed: {increment}
+  artifacts:
+    total: {count all keys in artifacts.*}
+    by_type:
+      architecture_decisions: {count keys in artifacts.architecture_decisions}
+      components: {count keys in artifacts.components}
+      interfaces: {count keys in artifacts.interfaces}
+      open_questions: {count keys in artifacts.open_questions}
+      conflicts: {count keys in artifacts.conflicts}
+    by_status:
+      active: {count where status=active}
+      open: {count where status=open}
+      resolved: {count where status=resolved}
+  topics:
+    total: 5
+    closed: {count agenda items with status=closed}
+  consensus_rate: {consensus_reached rounds / total rounds}
+  tokens:
+    estimated_total: {update}
+    by_round:
+      - round: {N}
+        tokens: {estimated for this round}
 ```
 
 #### Step 2.6b: Validate Round Output
@@ -815,13 +1141,14 @@ metrics:
 **Non-blocking validation** - display warnings but continue execution.
 
 1. **Verify session file updated**:
-   - Check `rounds[]` contains current round N
-   - Check `artifacts.{type}[]` contains new IDs from this round
+   - Check `rounds[]` contains current round N with all required fields
+   - Check `artifacts.{type}.{ID}` exists for each artifact created this round
    - Check `agenda[topic_id].status` matches expected from `agenda_update`
+   - Check `metrics.rounds_completed` equals `length(rounds[])`
 
-2. **Verify artifact files exist**:
-   - For each ID in `proposed_artifacts`: check `{session_folder}/{ID}.yaml` exists
-   - Use Glob tool: `{session_folder}/*.yaml`
+2. **Verify artifact embedding**:
+   - For each ID in `proposed_artifacts`: check `artifacts.{type}.{ID}` key exists in session file
+   - Verify each artifact has required fields: `status`, `agreement`, `created_round`, `title`
 
 3. **Verify verbose dumps** (if --verbose):
    - Check `rounds/{NNN}-*.yaml` files exist for this round
@@ -829,13 +1156,13 @@ metrics:
 
 4. **If validation fails**:
    ```
-   ⚠️ VALIDATION WARNING
-   Round {N} issues found:
+   ⚠️ Round {N} Validation Warning:
+   Missing:
    - {list of missing items}
 
    Continuing execution...
    ```
-   - Log to session file: `validation_warnings: [{round, items}]`
+   - Log to session file: `validation.warnings: [{round, check, message}]`
    - Continue to next step (non-blocking)
 
 #### Step 2.7: Display Round Recap
@@ -868,15 +1195,26 @@ Then evaluate based on `next`:
 
 ### Step 3.1: Update Session Status
 
-**YOU MUST use Edit tool NOW** to update session file.
+**YOU MUST use Edit tool NOW** to update session file:
+
+```yaml
+status: "completed"
+timing:
+  completed: "{ISO timestamp}"
+```
 
 ### Step 3.2: Clear State
 
-**YOU MUST use Edit tool NOW** to clear current_session.
+**YOU MUST use Edit tool NOW** to set `current_session: null` in `.s2s/state.yaml`.
 
 ### Step 3.3: Read Session for Summary
 
-**YOU MUST use Read tool** to read session file and artifact files.
+**YOU MUST use Read tool** to read the completed session file.
+
+Extract from session file (Single Source of Truth):
+- All artifacts from `artifacts.architecture_decisions`, `artifacts.components`, etc.
+- Aggregate by status (active, open, resolved)
+- Get round summaries for recap
 
 ### Step 3.4: User Review
 
@@ -886,31 +1224,33 @@ Present architecture decisions:
     ═══════════════════════════
 
     System Overview:
-    {high-level description}
+    {high-level description from first ARCH-* or synthesis}
 
     Components:
     ───────────
-    {for each COMP-* artifact}
-    - {ID}: {title} - {responsibility}
+    {for each ID, artifact in artifacts.components}
+    - {ID}: {artifact.title} - {artifact.responsibility}
     {/for}
 
     Key Decisions:
     ──────────────
-    {for each ARCH-* artifact}
-    {ID}: {title}
-    Decision: {decision}
-    Rationale: {rationale}
+    {for each ID, artifact in artifacts.architecture_decisions}
+    {ID}: {artifact.title}
+    Decision: {artifact.decision}
+    Rationale: {artifact.rationale}
     {/for}
 
-    Tech Stack:
+    Interfaces:
     ───────────
-    - Backend: {choice}
-    - Frontend: {choice}
-    - Database: {choice}
+    {for each ID, artifact in artifacts.interfaces}
+    - {ID}: {artifact.title} ({artifact.type})
+    {/for}
 
     Open Questions:
     ───────────────
-    {list OQ-* artifacts}
+    {for each ID, artifact in artifacts.open_questions where status=open}
+    - {ID}: {artifact.title}
+    {/for}
 
 Ask using AskUserQuestion:
 - "Review architecture. Would you like to:"
@@ -918,7 +1258,7 @@ Ask using AskUserQuestion:
 
 ### Step 3.5: Generate Architecture Documentation
 
-Create/update documents:
+Read artifacts from session file and create/update documents.
 
 **docs/architecture/README.md:**
 ```markdown
@@ -926,24 +1266,32 @@ Create/update documents:
 
 # Architecture Overview
 
-**Project**: {name}
+**Project**: {name from context-snapshot.yaml}
 **Version**: 1.0
 **Date**: {date}
 
 ## System Context
 
-{high-level description}
+{high-level description from synthesis or first ARCH-*}
 
 ## Architecture Principles
 
-{from ARCH-* artifacts where type=principle}
+{for each ID, artifact in artifacts.architecture_decisions}
+- **{artifact.title}**: {artifact.decision summary}
+{/for}
 
 ## Component Overview
 
 | Component | Responsibility | Technology |
 |-----------|---------------|------------|
-{for each COMP-* artifact}
-| {title} | {description} | {tech} |
+{for each ID, artifact in artifacts.components}
+| {artifact.title} | {artifact.responsibility} | {artifact.technology} |
+{/for}
+
+## Interfaces
+
+{for each ID, artifact in artifacts.interfaces}
+- **{artifact.title}** ({artifact.type}): {artifact.description}
 {/for}
 
 ## Key Decisions
@@ -961,45 +1309,46 @@ See individual ADRs in `/docs/decisions/`
 
 # Component Design
 
-{for each COMP-* artifact}
-## {title}
+{for each ID, artifact in artifacts.components}
+## {ID}: {artifact.title}
 
 ### Responsibility
-{description}
+{artifact.responsibility}
 
 ### Interfaces
-{interfaces}
+- Provides: {artifact.interfaces.provides}
+- Requires: {artifact.interfaces.requires}
 
 ### Dependencies
-{dependencies}
+{artifact.dependencies}
 
 ### Technology
-{technology}
+{artifact.technology}
 {/for}
 ```
 
 ### Step 3.6: Generate ADRs
 
-For each ARCH-* artifact, create `docs/decisions/ARCH-{NNN}-{slug}.md`:
+For each ARCH-* in `artifacts.architecture_decisions`, create `docs/decisions/{ID}-{slug}.md`:
 
 ```markdown
 <!-- WARNING: IMMUTABLE - Generated by /s2s:design. Manual edits will be lost. -->
 
-# {ID}: {title}
+# {ID}: {artifact.title}
 
 **Status**: accepted
 **Date**: {date}
 **Participants**: software-architect, technical-lead, devops-engineer
 
 ## Context
-{context from artifact}
+{artifact.context}
 
 ## Decision
-{decision from artifact}
+{artifact.decision}
 
 ## Options Considered
 
-{for each option in artifact}
+{for each option in artifact.options}
 ### {option.name}
 - Pros: {option.pros}
 - Cons: {option.cons}
@@ -1008,10 +1357,10 @@ For each ARCH-* artifact, create `docs/decisions/ARCH-{NNN}-{slug}.md`:
 ## Consequences
 
 ### Positive
-{positive consequences}
+{artifact.consequences.positive}
 
 ### Negative
-{negative consequences}
+{artifact.consequences.negative}
 ```
 
 ### Step 3.7: Update CONTEXT.md
