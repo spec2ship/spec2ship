@@ -47,8 +47,8 @@ If topic is missing, ask using AskUserQuestion:
 ### Validate Environment
 
 If S2S initialized is "no":
-- Display: "Warning: Not an s2s project. Results displayed but not saved to project structure."
-- Continue anyway (brainstorm can work without full s2s setup)
+
+    Error: Not an s2s project. Run /s2s:init first.
 
 ### Determine Participants
 
@@ -136,11 +136,14 @@ participants:
 
 **Note**: Brainstorm uses Disney strategy with phases, no formal agenda.
 
-### Step 1.4: Create Session Index File
+### Step 1.4: Create Session File
 
 **YOU MUST use Write tool NOW** to create `.s2s/sessions/{session-id}.yaml`:
 
 ```yaml
+# Session file - Single Source of Truth
+# All artifacts are EMBEDDED (no separate files)
+
 id: "{session-id}"
 topic: "{topic}"
 workflow_type: "brainstorm"
@@ -149,17 +152,28 @@ status: "active"
 
 timing:
   started: "{ISO timestamp}"
+  last_activity: "{ISO timestamp}"
   completed: null
-  duration_ms: null
 
+# Agent state (for resume capability)
+# Stores agent IDs to enable resuming agents across rounds
+agent_state:
+  facilitator:
+    agent_id: null      # agentId from last facilitator call
+    last_round: 0       # round number of last call
+    last_action: null   # "question" or "synthesis"
+  participants: {}      # {participant-id}: {agent_id, last_round}
+
+# ARTIFACTS - embedded with full content (NOT just IDs)
+# Each artifact type is a map keyed by ID
 artifacts:
-  ideas: []
-  risks: []
-  mitigations: []
-  conflicts: []
-  open_questions: []
+  ideas: {}             # IDEA-*: {status, title, description, ...}
+  risks: {}             # RISK-*: {status, title, severity, ...}
+  mitigations: {}       # MIT-*: {status, title, risk_id, ...}
+  open_questions: {}    # OQ-*: {status, title, description, ...}
+  conflicts: {}         # CONF-*: {status, title, positions, ...}
 
-# Disney phases (no formal agenda)
+# Disney phases (replaces formal agenda)
 current_phase: "dreamer"
 phases:
   - name: "dreamer"
@@ -172,17 +186,34 @@ phases:
     status: "pending"
     rounds: []
 
+# Rounds with summary for audit (no verbose needed for basic review)
 rounds: []
 
+# Metrics
 metrics:
-  rounds: 0
-  tasks: 0
-  tokens: 0
+  rounds_completed: 0
+  artifacts:
+    total: 0
+    by_type: {}
+    by_status: {}
+  phases:
+    dreamer: 0
+    realist: 0
+    critic: 0
+  consensus_rate: 0.0
+  tokens:
+    estimated_total: 0
+    by_round: []
+
+# Validation state
+validation:
+  last_check: null
+  status: null
+  warnings: []
 ```
 
 ### Step 1.5: Update State File
 
-If S2S initialized:
 **YOU MUST use Edit tool NOW** to update `.s2s/state.yaml`:
 ```yaml
 current_session: "{session-id}"
@@ -224,6 +255,81 @@ ARTIFACTS: {count} ideas, {count} risks, {count} mitigations
 
 #### Step 2.2: Facilitator Question
 
+**Check for resume capability:**
+
+Read `agent_state.facilitator` from session file.
+
+**IF** `agent_state.facilitator.agent_id` is NOT null AND this is a continuation (not first round of new session):
+
+**Resume the roundtable-facilitator agent** using Task tool with `resume` parameter set to `"{agent_state.facilitator.agent_id}"`, passing this prompt:
+
+```yaml
+action: "question"
+round: {round_number + 1}
+resume: true
+topic: "{brainstorm topic}"
+strategy: "disney"
+phase: "{current_phase}"  # dreamer | realist | critic
+workflow_type: "brainstorm"
+
+# Delta since last round (what changed)
+updates_since_last_round:
+  new_artifacts: ["{IDs of artifacts created last round}"]
+  resolved_conflicts: ["{IDs of conflicts resolved}"]
+  phase_changes:
+    old_phase: "{previous phase if changed}"
+    new_phase: "{current_phase}"
+
+escalation_config:
+  min_rounds: {from config-snapshot.yaml: limits.min_rounds}
+  max_rounds: {from config-snapshot.yaml: limits.max_rounds}
+  max_rounds_per_conflict: {from config-snapshot.yaml: escalation.max_rounds_per_conflict}
+  confidence_below: {from config-snapshot.yaml: escalation.confidence_below}
+
+# Project context (from context-snapshot.yaml)
+project_context:
+  name: "{from CONTEXT.md}"
+  description: "{from CONTEXT.md}"
+  brainstorm_topic: "{topic}"
+
+# Current full state for reference
+session_state:
+  artifacts:
+    ideas: [{id, title, status, description, ...}]
+    risks: [{id, title, status, description, severity, ...}]
+    mitigations: [{id, title, risk_id, description, ...}]
+    conflicts: [{id, title, status, positions, ...}]
+    open_questions: [{id, title, status, description, ...}]
+  rounds:
+    - round: {N}
+      focus: "{phase}"
+      synthesis: "{synthesis text}"
+
+disney_phase_rules:
+  dreamer: "Generate creative ideas without constraints. NO criticism. Wild, ambitious thinking."
+  realist: "Evaluate feasibility. Focus on 'how to' thinking. Practical implementation paths."
+  critic: "Identify risks. What could go wrong? Propose mitigations. Challenge assumptions."
+
+phases_status:
+  - name: "dreamer"
+    status: "{active|completed|pending}"
+    rounds_completed: {N}
+  - name: "realist"
+    status: "{active|completed|pending}"
+    rounds_completed: {N}
+  - name: "critic"
+    status: "{active|completed|pending}"
+    rounds_completed: {N}
+
+participants:
+  - "product-manager"
+  - "software-architect"
+  - "technical-lead"
+  - "devops-engineer"
+```
+
+**ELSE** (fresh invocation - first round or no saved agent_id):
+
 **Use the roundtable-facilitator agent** with this input:
 
 ```yaml
@@ -242,8 +348,8 @@ escalation_config:
 
 # Project context (from context-snapshot.yaml)
 project_context:
-  name: "{from CONTEXT.md or directory name}"
-  description: "{from CONTEXT.md or topic}"
+  name: "{from CONTEXT.md}"
+  description: "{from CONTEXT.md}"
   brainstorm_topic: "{topic}"
 
 # Current session state (from session file)
@@ -264,6 +370,17 @@ disney_phase_rules:
   dreamer: "Generate creative ideas without constraints. NO criticism. Wild, ambitious thinking."
   realist: "Evaluate feasibility. Focus on 'how to' thinking. Practical implementation paths."
   critic: "Identify risks. What could go wrong? Propose mitigations. Challenge assumptions."
+
+phases_status:
+  - name: "dreamer"
+    status: "{active|completed|pending}"
+    rounds_completed: {N}
+  - name: "realist"
+    status: "{active|completed|pending}"
+    rounds_completed: {N}
+  - name: "critic"
+    status: "{active|completed|pending}"
+    rounds_completed: {N}
 
 participants:
   - "product-manager"
@@ -355,11 +472,83 @@ tokens:
   output_estimate: {N}
 ```
 
+**Save facilitator agent_id for resume:**
+
+The facilitator agent returns an `agentId` in its response. **YOU MUST** update the session file:
+
+```yaml
+agent_state:
+  facilitator:
+    agent_id: "{agentId from facilitator response}"
+    last_round: {round_number + 1}
+    last_action: "question"
+```
+
 #### Step 2.3: Participant Responses
 
 **Launch ALL participant agents in SINGLE message** (parallel execution):
 
 For each of: product-manager, software-architect, technical-lead, devops-engineer
+
+**Check for resume capability:**
+
+For each participant, read `agent_state.participants.{participant-id}` from session file.
+
+**IF** participant has saved `agent_id` AND this is a continuation:
+
+**Resume the roundtable-{participant-id} agent** using Task tool with `resume` parameter set to `"{agent_state.participants.{participant-id}.agent_id}"`, passing this prompt:
+
+```yaml
+round: {round_number + 1}
+resume: true
+topic: "{brainstorm topic}"
+phase: "{current_phase}"  # dreamer | realist | critic
+workflow_type: "brainstorm"
+
+question: "{facilitator's NEW question for this round}"
+exploration: "{facilitator's exploration prompt}"
+
+# Optional: Include if present in overrides[participant-id]
+# facilitator_directive: |
+#   {from participant_context.overrides[participant-id].facilitator_directive}
+
+disney_phase_instructions:
+  dreamer: "Think BIG! No constraints. What would be IDEAL? NO criticism of ideas."
+  realist: "Evaluate feasibility. How would we BUILD this? Be practical but constructive."
+  critic: "Identify risks. What could go WRONG? Propose mitigations for each risk."
+
+# Delta since last round (what changed)
+context_update:
+  new_artifacts_since_last: ["{IDs}"]
+  resolved_conflicts_since_last: ["{IDs}"]
+  your_last_position_summary: "{from previous round participant_positions}"
+
+# CRITICAL: Participants have tools: [] - they CANNOT read files
+# Full context MUST be provided inline even in resume mode
+context:
+  project_summary: |
+    {from participant_context.shared.project_summary}
+
+  relevant_artifacts:
+    - id: "IDEA-001"
+      title: "..."
+      status: "draft"
+      description: "..."
+      # {from participant_context.shared.relevant_artifacts - FULL content}
+
+  open_conflicts:
+    # {from participant_context.shared.open_conflicts - FULL content}
+
+  open_questions:
+    # {from participant_context.shared.open_questions - FULL content}
+
+  recent_rounds:
+    - round: 1
+      synthesis: "..."
+    # {from participant_context.shared.recent_rounds}
+```
+
+**ELSE** (fresh invocation):
 
 **Build participant input** by merging:
 1. `participant_context.shared` (common to all)
@@ -472,7 +661,110 @@ tokens:
   output_estimate: {N}
 ```
 
+**Save participant agent_ids for resume:**
+
+Each participant agent returns an `agentId` in its response. **YOU MUST** update the session file:
+
+```yaml
+agent_state:
+  participants:
+    product-manager:
+      agent_id: "{agentId from product-manager response}"
+      last_round: {round_number + 1}
+    software-architect:
+      agent_id: "{agentId from software-architect response}"
+      last_round: {round_number + 1}
+    technical-lead:
+      agent_id: "{agentId from technical-lead response}"
+      last_round: {round_number + 1}
+    devops-engineer:
+      agent_id: "{agentId from devops-engineer response}"
+      last_round: {round_number + 1}
+```
+
 #### Step 2.4: Facilitator Synthesis
+
+**Check for resume capability:**
+
+Read `agent_state.facilitator` from session file.
+
+**IF** `agent_state.facilitator.agent_id` is NOT null (same facilitator from question phase):
+
+**Resume the roundtable-facilitator agent** using Task tool with `resume` parameter set to `"{agent_state.facilitator.agent_id}"`, passing this prompt:
+
+```yaml
+action: "synthesis"
+round: {round_number + 1}
+resume: true
+topic: "{brainstorm topic}"
+strategy: "disney"
+phase: "{current_phase}"  # dreamer | realist | critic
+
+escalation_config:
+  min_rounds: {from config-snapshot.yaml: limits.min_rounds}
+  max_rounds: {from config-snapshot.yaml: limits.max_rounds}
+  max_rounds_per_conflict: {from config-snapshot.yaml: escalation.max_rounds_per_conflict}
+  confidence_below: {from config-snapshot.yaml: escalation.confidence_below}
+
+question_asked: "{facilitator's question from step 2.2}"
+
+# Participant responses to synthesize (full content for decision-making)
+responses:
+  product-manager:
+    position: "{position}"
+    rationale: [...]
+    ideas: [...]
+    risks: [...]
+    mitigations: [...]
+    confidence: {0.0-1.0}
+  software-architect:
+    position: "{position}"
+    rationale: [...]
+    ideas: [...]
+    risks: [...]
+    mitigations: [...]
+    confidence: {0.0-1.0}
+  technical-lead:
+    position: "{position}"
+    rationale: [...]
+    ideas: [...]
+    risks: [...]
+    mitigations: [...]
+    confidence: {0.0-1.0}
+  devops-engineer:
+    position: "{position}"
+    rationale: [...]
+    ideas: [...]
+    risks: [...]
+    mitigations: [...]
+    confidence: {0.0-1.0}
+
+# Current phases state (ALL phases with status)
+phases_status:
+  - name: "dreamer"
+    status: "{active|completed|pending}"
+    rounds_completed: {N}
+  - name: "realist"
+    status: "{active|completed|pending}"
+    rounds_completed: {N}
+  - name: "critic"
+    status: "{active|completed|pending}"
+    rounds_completed: {N}
+  # NOTE: Include ALL phases with CURRENT status from session file
+  # Facilitator can only conclude when in critic phase AND all phases explored
+
+current_phase: "{dreamer|realist|critic}"
+
+artifacts_summary:
+  ideas: []  # current IDEA-* list
+  risks: []  # current RISK-* list
+  mitigations: []  # current MIT-* list
+
+open_conflicts: []
+artifacts_count: {current count}
+```
+
+**ELSE** (fresh invocation):
 
 **Use the roundtable-facilitator agent** with this input:
 
@@ -608,29 +900,38 @@ tokens:
 
 # VERIFICATION CHECKLIST - for automated checking
 verification:
-  # Artifact files that MUST exist after Step 2.5
-  expected_artifact_files:
-    - "{ID}.yaml"  # for each proposed_artifact
-  # Session file updates that MUST be present after Step 2.6
-  session_file_updates:
-    artifacts_registry:
-      # Check each artifact type that was proposed this round
-      - field: "artifacts.ideas"
-        expected_ids: ["{IDEA-*}", ...]
-      - field: "artifacts.risks"
-        expected_ids: ["{RISK-*}", ...]
-      - field: "artifacts.mitigations"
-        expected_ids: ["{MIT-*}", ...]
-      - field: "artifacts.open_questions"
-        expected_ids: ["{OQ-*}", ...]
-      - field: "artifacts.conflicts"
-        expected_ids: ["{CONF-*}", ...]
-    rounds_array:
-      expected_round: {N}
-      expected_fields: ["disney_phase", "timestamp", "artifacts_created", "next_action"]
-    phases_status:
-      current_phase: "{dreamer|realist|critic}"
-      expected_status: "{active|completed}"
+  # Embedded artifacts that MUST exist in session file after Step 2.5
+  expected_artifacts:
+    # For each proposed_artifact, verify key exists in artifacts.{type}
+    - map: "artifacts.ideas"
+      expected_keys: ["{IDEA-*}", ...]
+    - map: "artifacts.risks"
+      expected_keys: ["{RISK-*}", ...]
+    - map: "artifacts.mitigations"
+      expected_keys: ["{MIT-*}", ...]
+    - map: "artifacts.open_questions"
+      expected_keys: ["{OQ-*}", ...]
+    - map: "artifacts.conflicts"
+      expected_keys: ["{CONF-*}", ...]
+  # Round summary that MUST be present after Step 2.6
+  round_summary:
+    expected_round: {N}
+    required_fields:
+      - "timestamp"
+      - "disney_phase"
+      - "facilitator_question"
+      - "synthesis_summary"
+      - "participant_positions"
+      - "artifacts_created"
+      - "next_action"
+  # Phases status update
+  phases_status:
+    current_phase: "{dreamer|realist|critic}"
+    expected_status: "{active|completed}"
+  # Metrics consistency
+  metrics_consistency:
+    rounds_completed: {N}
+    artifacts_total: {sum of all artifact maps}
   # Context propagation check for next round
   context_propagation:
     participant_context_keys:
@@ -641,159 +942,182 @@ verification:
       - "recent_rounds"
 ```
 
+**Update facilitator agent_id after synthesis:**
+
+The facilitator synthesis may return a new `agentId` (or same if resumed). **YOU MUST** update the session file to ensure latest agent_id is saved:
+
+```yaml
+agent_state:
+  facilitator:
+    agent_id: "{agentId from synthesis response}"
+    last_round: {round_number + 1}
+    last_action: "synthesis"
+```
+
 #### Step 2.5: Process Artifacts
 
-**YOU MUST use Write tool NOW** to create individual artifact files.
+**YOU MUST use Edit tool NOW** to add artifacts to the session file.
 
 For each `proposed_artifact` from facilitator:
 
-1. **Count existing**: Read session file registry for artifact type
+1. **Count existing**: Count keys in `artifacts.{type}` in session file
 2. **Assign ID**: Next available (IDEA-001, RISK-001, MIT-001, CONF-001, OQ-001)
-3. **Write artifact file**: `{session_folder}/{ID}.yaml`
+3. **Add to session file**: Edit `artifacts.{type}` to add new artifact with full content
 
-**Artifact file template** (ideas - dreamer phase):
+**IMPORTANT**: Artifacts are EMBEDDED in session file, NOT separate files.
+
+**Artifact schema** (ideas - add to `artifacts.ideas`):
 ```yaml
-# {session_folder}/IDEA-001.yaml
-id: "IDEA-001"
-type: "idea"
-title: "{title from proposed_artifact}"
-status: "{draft|refined|feasible|aspirational}"
-created_round: {N}
-disney_phase: "dreamer"
-
-description: |
-  {description from proposed_artifact}
-
-potential_value: |
-  {why this idea is valuable}
-
-# Added during realist phase
-feasibility: null
-implementation_notes: null
-
-# Traceability
-proposed_by: "{participant}"
-supported_by:
-  - "{participant who agreed}"
+artifacts:
+  ideas:
+    IDEA-001:
+      status: "active"          # Lifecycle: active|amended|superseded|withdrawn
+      agreement: "draft"        # From synthesis: consensus|draft|conflict
+      created_round: {N}
+      disney_phase: "dreamer"
+      title: "{title}"
+      description: |
+        {description}
+      potential_value: |
+        {why this idea is valuable}
+      feasibility: null         # Added during realist phase
+      implementation_notes: null
+      proposed_by: "{participant}"
+      supported_by: ["{participant}"]
+      amendments: []
 ```
 
-**Artifact file template** (risks - critic phase):
+**Note**: Map facilitator's `proposed_artifact.status` → `agreement` field.
+Lifecycle `status` is always `"active"` for new artifacts.
+
+**Artifact schema** (risks - add to `artifacts.risks`):
 ```yaml
-# {session_folder}/RISK-001.yaml
-id: "RISK-001"
-type: "risk"
-title: "{title}"
-status: "identified"
-created_round: {N}
-disney_phase: "critic"
-
-description: |
-  {what could go wrong}
-
-severity: "{high|medium|low}"
-likelihood: "{high|medium|low}"
-
-affected_ideas:
-  - "{IDEA-NNN}"
-
-mitigation_id: null  # linked when MIT-* created
-
-raised_by: "{participant}"
+artifacts:
+  risks:
+    RISK-001:
+      status: "active"
+      agreement: "consensus"
+      created_round: {N}
+      disney_phase: "critic"
+      title: "{title}"
+      description: |
+        {what could go wrong}
+      severity: "{high|medium|low}"
+      likelihood: "{high|medium|low}"
+      affected_ideas: ["{IDEA-NNN}"]
+      mitigation_id: null       # linked when MIT-* created
+      raised_by: "{participant}"
+      amendments: []
 ```
 
-**Artifact file template** (mitigations - critic phase):
+**Artifact schema** (mitigations - add to `artifacts.mitigations`):
 ```yaml
-# {session_folder}/MIT-001.yaml
-id: "MIT-001"
-type: "mitigation"
-title: "{title}"
-status: "proposed"
-created_round: {N}
-disney_phase: "critic"
-
-risk_id: "{RISK-NNN to mitigate}"
-
-description: |
-  {how to mitigate the risk}
-
-effort: "{high|medium|low}"
-effectiveness: "{high|medium|low}"
-
-proposed_by: "{participant}"
+artifacts:
+  mitigations:
+    MIT-001:
+      status: "active"
+      agreement: "consensus"
+      created_round: {N}
+      disney_phase: "critic"
+      title: "{title}"
+      risk_id: "{RISK-NNN to mitigate}"
+      description: |
+        {how to mitigate the risk}
+      effort: "{high|medium|low}"
+      effectiveness: "{high|medium|low}"
+      proposed_by: "{participant}"
+      amendments: []
 ```
 
-**Artifact file template** (open questions):
+**Artifact schema** (open questions - add to `artifacts.open_questions`):
 ```yaml
-# {session_folder}/OQ-001.yaml
-id: "OQ-001"
-type: "open_question"
-title: "{title}"
-status: "open"
-created_round: {N}
-disney_phase: "{dreamer|realist|critic}"
-
-description: |
-  {question or uncertainty}
-
-raised_by: "{participant}"
-blocking: {true|false}
+artifacts:
+  open_questions:
+    OQ-001:
+      status: "open"            # open|resolved
+      created_round: {N}
+      disney_phase: "{dreamer|realist|critic}"
+      title: "{title}"
+      description: |
+        {question or uncertainty}
+      raised_by: "{participant}"
+      blocking: {true|false}
+      resolution: null          # Filled when resolved
+      resolved_round: null
 ```
 
-**Artifact file template** (conflicts):
+**Artifact schema** (conflicts - add to `artifacts.conflicts`):
 ```yaml
-# {session_folder}/CONF-001.yaml
-id: "CONF-001"
-type: "conflict"
-title: "{title}"
-status: "open"
-created_round: {N}
-disney_phase: "{dreamer|realist|critic}"
-
-positions:
-  - participant: "{participant-id}"
-    stance: "{position summary}"
-    rationale: "{reason}"
-  - participant: "{participant-id}"
-    stance: "{position summary}"
-    rationale: "{reason}"
-
-resolution: null
-resolved_round: null
+artifacts:
+  conflicts:
+    CONF-001:
+      status: "open"            # open|resolved
+      created_round: {N}
+      disney_phase: "{dreamer|realist|critic}"
+      title: "{title}"
+      positions:
+        - participant: "{participant-id}"
+          stance: "{position summary}"
+          rationale: "{reason}"
+      resolution: null
+      resolved_round: null
 ```
 
-For each `resolved_conflict`:
-1. **Read conflict file**: `{session_folder}/{conflict_id}.yaml`
-2. **Update with resolution**: Add resolved_round, resolution fields
-3. **Write updated file** with Edit tool
+**For resolved conflicts**:
+Edit the existing conflict in session file to add:
+```yaml
+artifacts:
+  conflicts:
+    CONF-001:
+      status: "resolved"
+      resolution: "{resolution summary}"
+      resolved_round: {N}
+```
 
 #### Step 2.6: Update Session File
 
 **YOU MUST use Edit tool NOW** to update session file with:
 
-1. **Update artifacts registry** - add new IDs to appropriate arrays:
-```yaml
-artifacts:
-  ideas:
-    - "IDEA-001"  # existing
-    - "IDEA-002"  # NEW - added this round
-  risks:
-    - "RISK-001"  # NEW if created (critic phase)
-  mitigations:
-    - "MIT-001"   # NEW if created (critic phase)
-  conflicts:
-    - "CONF-001"  # NEW if created
-  open_questions:
-    - "OQ-001"    # NEW if created
-```
-
-2. **Append round** to `rounds:` array:
+1. **Append round summary** to `rounds:` array (for audit without verbose):
 ```yaml
 rounds:
   - round: {N}
-    disney_phase: "{dreamer|realist|critic}"
     timestamp: "{ISO timestamp}"
+    disney_phase: "{dreamer|realist|critic}"
+
+    # Facilitator question (for audit)
+    facilitator_question: |
+      {the question asked}
+
+    # Synthesis summary (for audit)
+    synthesis_summary: |
+      {2-4 sentence synthesis from facilitator}
+
+    # Participant positions (condensed for audit)
+    participant_positions:
+      product-manager: |
+        {1-2 sentence position summary}
+      software-architect: |
+        {1-2 sentence position summary}
+      technical-lead: |
+        {1-2 sentence position summary}
+      devops-engineer: |
+        {1-2 sentence position summary}
+
+    # Key outcomes
+    key_decisions:
+      - "{decision 1}"
+      - "{decision 2}"
     artifacts_created: ["{ID}", ...]
+    artifacts_amended: []    # IDs of modified artifacts
+    consensus_reached: {true|false}
     next_action: "{continue|phase|conclude}"
+```
+
+2. **Update timing**:
+```yaml
+timing:
+  last_activity: "{ISO timestamp}"
 ```
 
 3. **Update phase status** in `phases:` array:
@@ -810,39 +1134,67 @@ phases:
     rounds: [{round numbers}]
 ```
 
-4. **Update metrics**:
+4. **Update metrics** (comprehensive):
 ```yaml
 metrics:
-  rounds: {increment}
-  tasks: {increment by participant count + 2}
+  rounds_completed: {N}
+  artifacts:
+    total: {count all keys in artifacts.*}
+    by_type:
+      ideas: {count keys in artifacts.ideas}
+      risks: {count keys in artifacts.risks}
+      mitigations: {count keys in artifacts.mitigations}
+      open_questions: {count keys in artifacts.open_questions}
+      conflicts: {count keys in artifacts.conflicts}
+    by_status:
+      active: {count where status=active}
+      open: {count where status=open}
+      resolved: {count where status=resolved}
+  phases:
+    dreamer: {rounds in dreamer phase}
+    realist: {rounds in realist phase}
+    critic: {rounds in critic phase}
+  consensus_rate: {consensus_reached rounds / total rounds}
+  tokens:
+    estimated_total: {update}
+    by_round:
+      - round: {N}
+        tokens: {estimated for this round}
 ```
 
 #### Step 2.6b: Validate Round Output
 
 **Non-blocking validation** - display warnings but continue execution.
 
-1. **Verify session file updated**:
-   - Check `rounds[]` contains current round N
-   - Check `artifacts.{type}[]` contains new IDs from this round
+1. **Verify session file structure** (Read session file):
+   - Check `rounds[]` contains entry for round N
+   - Check `rounds[N]` has required fields: `timestamp`, `disney_phase`, `synthesis_summary`, `artifacts_created`
+   - Check all IDs in `artifacts_created` exist in `artifacts.{type}` maps
    - Check `phases[current_phase].status` is correct
 
-2. **Verify artifact files exist**:
-   - For each ID in `proposed_artifacts`: check `{session_folder}/{ID}.yaml` exists
-   - Use Glob tool: `{session_folder}/*.yaml`
+2. **Verify embedded artifacts**:
+   - For each ID in `proposed_artifacts`: verify key exists in `artifacts.{type}`
+   - Verify artifact has required fields: `status`, `title`, `description`, `created_round`
+   - Verify `created_round` matches current round N
 
-3. **Verify verbose dumps** (if --verbose):
+3. **Verify metrics consistency**:
+   - `metrics.rounds_completed` equals length of `rounds[]`
+   - `metrics.artifacts.total` equals sum of all artifact maps
+   - Phase round counts match
+
+4. **Verify verbose dumps** (if --verbose):
    - Check `rounds/{NNN}-*.yaml` files exist for this round
-   - Expected files: `{NNN}-01-facilitator-question.yaml`, `{NNN}-02-{participant}.yaml` (×4), `{NNN}-03-facilitator-synthesis.yaml`
+   - Expected: `{NNN}-01-facilitator-question.yaml`, `{NNN}-02-{participant}.yaml` (×4), `{NNN}-03-facilitator-synthesis.yaml`
 
-4. **If validation fails**:
+5. **If validation fails**:
    ```
    ⚠️ VALIDATION WARNING
    Round {N} issues found:
-   - {list of missing items}
+   - {list of issues}
 
    Continuing execution...
    ```
-   - Log to session file: `validation_warnings: [{round, items}]`
+   - Update session file `validation.warnings[]` with issue details
    - Continue to next step (non-blocking)
 
 #### Step 2.6c: Phase Transition
@@ -891,21 +1243,34 @@ Then evaluate based on `next`:
 
 ### Step 3.1: Update Session Status
 
-**YOU MUST use Edit tool NOW** to update session file.
+**YOU MUST use Edit tool NOW** to update session file:
+```yaml
+status: "completed"
+timing:
+  completed: "{ISO timestamp}"
+  duration_ms: {calculated}
+```
 
 ### Step 3.2: Clear State
 
-If S2S initialized:
-**YOU MUST use Edit tool NOW** to clear current_session.
+**YOU MUST use Edit tool NOW** to set `current_session: null` in `.s2s/state.yaml`.
 
 ### Step 3.3: Read Session for Summary
 
-**YOU MUST use Read tool** to read session file and artifact files.
+**YOU MUST use Read tool** to read the completed session file.
 
-Extract from each Disney phase:
-- **Dreamer phase**: All IDEA-* artifacts
-- **Realist phase**: Feasibility assessments
-- **Critic phase**: All RISK-* and MIT-* artifacts
+Extract from session file (Single Source of Truth - ALL artifacts are embedded):
+- `artifacts.ideas` - map of IDEA-* with full content
+- `artifacts.risks` - map of RISK-* with full content
+- `artifacts.mitigations` - map of MIT-* with full content
+- `artifacts.open_questions` - map of OQ-* with full content
+- `artifacts.conflicts` - map of CONF-* with full content
+- Aggregate counts from `metrics.artifacts.by_type` and `metrics.artifacts.by_status`
+
+Categorize artifacts by Disney phase:
+- **Dreamer phase**: IDEA-* where `disney_phase == "dreamer"`
+- **Realist phase**: IDEA-* with feasibility assessments
+- **Critic phase**: RISK-* and MIT-* artifacts
 
 ### Step 3.4: Process Results
 
@@ -932,9 +1297,11 @@ Pair risks with mitigations.
 
 ## Dreamer Phase Ideas
 
-{for each IDEA-* artifact}
-### {ID}: {title}
-{description}
+{for each ID, artifact in artifacts.ideas}
+### {ID}: {artifact.title}
+{artifact.description}
+
+**Status**: {artifact.agreement}
 {/for}
 
 ## Realist Assessment
@@ -950,10 +1317,10 @@ Pair risks with mitigations.
 
 ## Critic Risks
 
-| Risk | Mitigation |
-|------|------------|
-{for each RISK-* artifact}
-| {title} | {matching MIT-* or "TBD"} |
+| Risk | Severity | Mitigation |
+|------|----------|------------|
+{for each ID, artifact in artifacts.risks}
+| {artifact.title} | {artifact.severity} | {lookup artifacts.mitigations where risk_id=ID or "TBD"} |
 {/for}
 
 ## Recommended Next Steps
@@ -964,8 +1331,8 @@ Pair risks with mitigations.
 
 ## Unresolved Questions
 
-{for each OQ-* artifact}
-- {question}
+{for each ID, artifact in artifacts.open_questions where artifact.status == "open"}
+- **{ID}**: {artifact.title}
 {/for}
 
 ---
