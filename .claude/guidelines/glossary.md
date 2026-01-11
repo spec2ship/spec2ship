@@ -129,13 +129,14 @@ Standard participants for each workflow.
 | Workflow | Default Participants |
 |----------|---------------------|
 | **specs** | product-manager, business-analyst, qa-lead |
-| **design** | software-architect, technical-lead, devops-engineer |
+| **design** | software-architect, security-champion, technical-lead, devops-engineer |
 | **brainstorm** | Varies by --participants flag |
 
 **Override Participants** (available for custom use):
 - documentation-specialist
 - claude-code-expert
 - oss-community-manager
+- security-champion (also default for design)
 
 ### Workflow-Specific Behavior
 
@@ -144,9 +145,10 @@ Participants adapt their contribution based on workflow type:
 | Participant | specs | design | brainstorm |
 |-------------|-------|--------|------------|
 | product-manager | Primary: user value | Advisory: UX impact | Champion ideas |
-| business-analyst | Primary: requirements | Validator: alignment | Grounding |
+| business-analyst | Primary: domain model | Validator: alignment | Grounding |
 | qa-lead | Primary: testability | Reviewer: quality | Risk spotter |
 | software-architect | Feasibility | Primary: structure | Evaluator |
+| security-champion | NFR: security reqs | Primary: threat model | Risk identifier |
 | technical-lead | Complexity | Primary: code | Practical |
 | devops-engineer | Early warning | Primary: ops | Operations lens |
 | documentation-specialist | Clarity | Planning | Capture |
