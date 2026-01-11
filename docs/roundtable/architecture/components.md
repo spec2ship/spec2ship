@@ -5,7 +5,7 @@ This document describes how Commands, Agents, and Skills work together in the Ro
 ## Component Overview
 
 > **Key Constraint**: Claude Code subagents cannot spawn other subagents.
-> Solution: Orchestration logic is **inline in start.md**, not a separate agent.
+> Solution: Orchestration logic is **inline in workflow commands**, not a separate agent.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -14,18 +14,10 @@ This document describes how Commands, Agents, and Skills work together in the Ro
 │                           ▼                                     │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │ WORKFLOW COMMANDS (specs.md, design.md, brainstorm.md)  │   │
-│  │ • Workflow-specific setup and validation                 │   │
-│  │ • Delegates via SlashCommand:/s2s:roundtable:start       │   │
-│  │ • Post-processes results                                 │   │
-│  └──────────────────────────┬──────────────────────────────┘   │
-│                             │ SlashCommand                      │
-│                             ▼                                   │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │ COMMAND: roundtable/start.md (Inline Orchestration)     │   │
 │  │                                                          │   │
 │  │ PHASE 1: Setup                                           │   │
 │  │ • Creates session file .s2s/sessions/{id}.yaml           │   │
-│  │ • Auto-detects strategy from topic keywords              │   │
+│  │ • Workflow-specific validation and defaults              │   │
 │  │                                                          │   │
 │  │ PHASE 2: Discussion Loop (INLINE)                        │   │
 │  │ ┌──────────────────────────────────────────────────────┐ │   │
@@ -33,12 +25,12 @@ This document describes how Commands, Agents, and Skills work together in the Ro
 │  │ │ 1. Task(facilitator) → question                      │ │   │
 │  │ │ 2. Task(participants) → parallel (blind voting)      │ │   │
 │  │ │ 3. Task(facilitator) → synthesis                     │ │   │
-│  │ │ 4. Batch write to session file                       │ │   │
+│  │ │ 4. Update session file                               │ │   │
 │  │ │ 5. Evaluate next_action                              │ │   │
 │  │ └──────────────────────────────────────────────────────┘ │   │
 │  │                                                          │   │
 │  │ PHASE 3: Completion                                      │   │
-│  │ • Generates output (ADR, requirements, architecture)     │   │
+│  │ • Generates output (requirements.md, architecture/)      │   │
 │  └──────────────────────────┬──────────────────────────────┘   │
 │                             │                                   │
 │           ┌─────────────────┼─────────────────┐                │
@@ -58,11 +50,14 @@ This document describes how Commands, Agents, and Skills work together in the Ro
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+> **Note**: `roundtable/start.md` is a separate command for ad-hoc roundtable discussions,
+> not used by workflow commands which have their own inline orchestration.
+
 ## Commands
 
 ### roundtable/start.md
 
-The session lifecycle manager with **inline orchestration** (v4):
+The session lifecycle manager with **inline orchestration**:
 
 | Responsibility | Description |
 |----------------|-------------|
@@ -74,8 +69,8 @@ The session lifecycle manager with **inline orchestration** (v4):
 | Handle escalation | AskUserQuestion when triggers fire |
 | Generate output | Create ADR, requirements, or architecture docs |
 
-**Why inline orchestration (v4)?**
-Claude Code subagents cannot spawn other subagents. The v3 pattern of `Task(orchestrator) → Task(facilitator)` doesn't work. Solution: keep the loop in the command, which CAN call Task() multiple times.
+**Why inline orchestration?**
+Claude Code subagents cannot spawn other subagents. A pattern like `Task(orchestrator) → Task(facilitator)` doesn't work. Solution: keep the loop in the command, which CAN call Task() multiple times.
 
 ### roundtable/resume.md
 
@@ -102,7 +97,7 @@ Location: `agents/roundtable/facilitator.md`
 
 **Called by**: start.md (twice per round: question + synthesis)
 
-**2 Action Types (v4)**:
+**2 Action Types**:
 
 | Action | Input | Output |
 |--------|-------|--------|
@@ -180,8 +175,7 @@ skills/roundtable-strategies/
 - Consensus policy
 - Validation rules
 
-## Data Flow (v4)
-
+## Data Flow 
 ### Question Generation Flow
 
 ```
@@ -212,8 +206,7 @@ skills/roundtable-strategies/
 6. Command proceeds based on next_action (continue/phase/conclude/escalate)
 ```
 
-## Separation of Concerns (v4)
-
+## Separation of Concerns 
 | Component | Decides | Executes |
 |-----------|---------|----------|
 | Command (start.md) | Session lifecycle, loop execution | File I/O, Task launching, escalation |

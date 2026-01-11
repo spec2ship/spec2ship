@@ -97,7 +97,7 @@ Different workflows default to different strategies:
 
 ## Creating Custom Strategies
 
-See [Creating New Strategies](./creating-new.md) for guidance on building custom facilitation strategies.
+See [Creating New Strategies](../../extending/new-strategy.md) for guidance on building custom facilitation strategies.
 
 ---
 *For detailed information on each strategy, see individual strategy documentation.*

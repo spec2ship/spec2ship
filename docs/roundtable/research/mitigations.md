@@ -169,5 +169,4 @@ Even with mitigations, some issues persist:
 - 78.5% bias persistence in sequential pipelines
 
 ---
-*For known limitations, see [limitations.md](./limitations.md)*
-*For literature review, see [literature.md](./literature.md)*
+*Part of Spec2Ship Roundtable documentation*

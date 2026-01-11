@@ -172,4 +172,4 @@ Use `--interactive` and skip stuck topics, or add `--participants +technical-lea
 
 ---
 
-*See also: [Design Workflow](./design-workflow.md) | [Session Management](./session-management.md)*
+*See also: [Command Reference](../reference/commands.md) | [Concepts: Sessions](../concepts/sessions.md)*
