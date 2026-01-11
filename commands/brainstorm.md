@@ -1,7 +1,7 @@
 ---
 description: Creative brainstorming session using the Disney strategy (Dreamer → Realist → Critic). Use for ideation and exploring new ideas without constraints.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Read, Write, Edit, Glob, Task, AskUserQuestion
-argument-hint: "topic" [--participants <list>] [--verbose] [--interactive]
+argument-hint: "topic" [--participants <list>] [--verbose] [--interactive] [--diagnostic]
 skills: roundtable-execution, roundtable-strategies
 ---
 
@@ -39,7 +39,9 @@ Extract from $ARGUMENTS:
 - **topic**: Required. The subject for brainstorming (first quoted argument)
 - **--participants**: Optional. Comma-separated list to override defaults
 
-**Boolean flags**: `--verbose` and `--interactive` → parse as `true` if present, `false` if absent.
+**Boolean flags**: `--verbose`, `--interactive`, and `--diagnostic` → parse as `true` if present, `false` if absent.
+
+**IF --diagnostic is true**: Force `verbose_flag = true` (diagnostic mode requires verbose dumps for analysis).
 
 If topic is missing, ask using AskUserQuestion:
 - "What would you like to brainstorm?"
@@ -119,6 +121,7 @@ source: ".s2s/config.yaml"
 
 verbose: {verbose_flag}
 interactive: {interactive_flag}
+diagnostic: {diagnostic_flag}
 strategy: "disney"
 limits:
   min_rounds: {from config: roundtable.limits.min_rounds, default: 3}
@@ -1197,7 +1200,46 @@ metrics:
    - Update session file `validation.warnings[]` with issue details
    - Continue to next step (non-blocking)
 
-#### Step 2.6c: Phase Transition
+#### Step 2.6c: Diagnostic Observation (IF --diagnostic)
+
+**IF** diagnostic_flag == true:
+
+**Use the session-observer agent** with this input:
+
+```yaml
+mode: "per-round"
+session_path: ".s2s/sessions/{session-id}"
+round: {round_number + 1}
+workflow_type: "brainstorm"
+strategy: "disney"
+```
+
+The observer will return:
+```yaml
+round: {N}
+status: "ok" | "warning" | "anomaly"
+findings: [...]
+recommendation: "Continue" | "Review findings" | "Stop for investigation"
+```
+
+**Display observer result**:
+```
+[DIAGNOSTIC] Round {N}: {status}
+{IF findings not empty}
+Findings:
+- {for each finding: type, detail, severity}
+{/IF}
+Recommendation: {recommendation}
+```
+
+**IF** recommendation == "Stop for investigation":
+- Display warning and pause for user review
+- Ask using AskUserQuestion: "Diagnostic observer recommends stopping. What would you like to do?"
+  - Options: "Investigate now" / "Continue anyway" / "Abort session"
+
+**ELSE**: Continue to next step.
+
+#### Step 2.6d: Phase Transition
 
 Disney strategy phase progression:
 - **dreamer**: 1+ rounds until facilitator recommends phase transition
@@ -1240,6 +1282,40 @@ Then evaluate based on `next`:
 ---
 
 ## Phase 3: Completion
+
+### Step 3.0: Final Diagnostic Report (IF --diagnostic)
+
+**IF** diagnostic_flag == true:
+
+**Use the session-observer agent** with this input:
+
+```yaml
+mode: "end-session"
+session_path: ".s2s/sessions/{session-id}"
+workflow_type: "brainstorm"
+strategy: "disney"
+```
+
+The observer will return a final diagnostic summary.
+
+**Display final diagnostic report**:
+```
+╔════════════════════════════════════════════════════════════╗
+║                    DIAGNOSTIC REPORT                        ║
+╠════════════════════════════════════════════════════════════╣
+║ Session: {session-id}                                       ║
+║ Workflow: brainstorm | Strategy: disney | Rounds: {N}       ║
+╠════════════════════════════════════════════════════════════╣
+{for each round's diagnostic result}
+║ Round {N}: {status} {findings count if > 0}                ║
+{/for}
+╠════════════════════════════════════════════════════════════╣
+║ Session-level findings:                                     ║
+{list session-level findings from end-session mode}
+╠════════════════════════════════════════════════════════════╣
+║ RESULT: {PASS|PASS with warnings|NEEDS REVIEW}             ║
+╚════════════════════════════════════════════════════════════╝
+```
 
 ### Step 3.1: Update Session Status
 

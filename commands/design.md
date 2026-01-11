@@ -1,7 +1,7 @@
 ---
 description: Design technical architecture through a roundtable discussion. Reads requirements.md and produces architecture documentation.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Read, Write, Edit, Glob, Task, AskUserQuestion
-argument-hint: [--skip-roundtable] [--focus components|api|deployment] [--strategy standard|debate|disney] [--verbose] [--interactive]
+argument-hint: [--skip-roundtable] [--focus components|api|deployment] [--strategy standard|debate|disney] [--verbose] [--interactive] [--diagnostic]
 skills: roundtable-execution, roundtable-strategies, arc42-templates, madr-decisions
 ---
 
@@ -67,7 +67,9 @@ Extract from $ARGUMENTS:
 - **--focus**: Focus area (components|api|deployment)
 - **--strategy**: Override strategy. Default: debate (Pro/Con evaluation)
 
-**Boolean flags**: `--verbose` and `--interactive` → parse as `true` if present, `false` if absent.
+**Boolean flags**: `--verbose`, `--interactive`, and `--diagnostic` → parse as `true` if present, `false` if absent.
+
+**IF --diagnostic is true**: Force `verbose_flag = true` (diagnostic mode requires verbose dumps for analysis).
 
 ### Display context summary
 
@@ -137,6 +139,7 @@ source: ".s2s/config.yaml"
 
 verbose: {verbose_flag}
 interactive: {interactive_flag}
+diagnostic: {diagnostic_flag}
 strategy: "{strategy or debate}"
 limits:
   min_rounds: {from config: roundtable.limits.min_rounds, default: 3}
@@ -1165,6 +1168,45 @@ metrics:
    - Log to session file: `validation.warnings: [{round, check, message}]`
    - Continue to next step (non-blocking)
 
+#### Step 2.6c: Diagnostic Observation (IF --diagnostic)
+
+**IF** diagnostic_flag == true:
+
+**Use the session-observer agent** with this input:
+
+```yaml
+mode: "per-round"
+session_path: ".s2s/sessions/{session-id}"
+round: {round_number + 1}
+workflow_type: "design"
+strategy: "{strategy}"
+```
+
+The observer will return:
+```yaml
+round: {N}
+status: "ok" | "warning" | "anomaly"
+findings: [...]
+recommendation: "Continue" | "Review findings" | "Stop for investigation"
+```
+
+**Display observer result**:
+```
+[DIAGNOSTIC] Round {N}: {status}
+{IF findings not empty}
+Findings:
+- {for each finding: type, detail, severity}
+{/IF}
+Recommendation: {recommendation}
+```
+
+**IF** recommendation == "Stop for investigation":
+- Display warning and pause for user review
+- Ask using AskUserQuestion: "Diagnostic observer recommends stopping. What would you like to do?"
+  - Options: "Investigate now" / "Continue anyway" / "Abort session"
+
+**ELSE**: Continue to next step.
+
 #### Step 2.7: Display Round Recap
 
 Show synthesis, new artifacts, resolved conflicts, agenda status.
@@ -1192,6 +1234,40 @@ Then evaluate based on `next`:
 ---
 
 ## Phase 3: Completion
+
+### Step 3.0: Final Diagnostic Report (IF --diagnostic)
+
+**IF** diagnostic_flag == true:
+
+**Use the session-observer agent** with this input:
+
+```yaml
+mode: "end-session"
+session_path: ".s2s/sessions/{session-id}"
+workflow_type: "design"
+strategy: "{strategy}"
+```
+
+The observer will return a final diagnostic summary.
+
+**Display final diagnostic report**:
+```
+╔════════════════════════════════════════════════════════════╗
+║                    DIAGNOSTIC REPORT                        ║
+╠════════════════════════════════════════════════════════════╣
+║ Session: {session-id}                                       ║
+║ Workflow: design | Strategy: {strategy} | Rounds: {N}       ║
+╠════════════════════════════════════════════════════════════╣
+{for each round's diagnostic result}
+║ Round {N}: {status} {findings count if > 0}                ║
+{/for}
+╠════════════════════════════════════════════════════════════╣
+║ Session-level findings:                                     ║
+{list session-level findings from end-session mode}
+╠════════════════════════════════════════════════════════════╣
+║ RESULT: {PASS|PASS with warnings|NEEDS REVIEW}             ║
+╚════════════════════════════════════════════════════════════╝
+```
 
 ### Step 3.1: Update Session Status
 

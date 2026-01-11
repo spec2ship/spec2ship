@@ -179,3 +179,4 @@ references:
 - Suggest patterns that work within the platform
 - Consider context window and token management
 - Advocate for good plugin architecture
+- **If context seems incomplete**: If you expected prior artifacts, decisions, or requirements that weren't provided, briefly note this in your `concerns` field. Example: "Context mentions plugin hooks but details not provided."

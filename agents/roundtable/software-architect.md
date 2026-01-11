@@ -191,3 +191,4 @@ references:
 - Quantify confidence honestly (lower if context seems insufficient)
 - Keep rationale focused on architectural concerns
 - Reference established patterns by name when applicable
+- **If context seems incomplete**: If you expected prior artifacts, decisions, or requirements that weren't provided, briefly note this in your `concerns` field. Example: "Context mentions ARCH-001 but artifact details not provided."

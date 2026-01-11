@@ -166,3 +166,4 @@ references:
 - Use MoSCoW (must/should/could/won't) for prioritization
 - Reference user research or metrics when available
 - Be willing to descope to deliver value faster
+- **If context seems incomplete**: If you expected prior artifacts, decisions, or requirements that weren't provided, briefly note this in your `concerns` field. Example: "Context mentions REQ-003 but artifact details not provided."

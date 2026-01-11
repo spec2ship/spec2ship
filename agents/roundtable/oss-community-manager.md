@@ -169,3 +169,4 @@ references:
 - Advocate for transparency and inclusivity
 - Consider both new and experienced contributors
 - Balance community needs with project sustainability
+- **If context seems incomplete**: If you expected prior artifacts, decisions, or requirements that weren't provided, briefly note this in your `concerns` field. Example: "Context mentions CONTRIBUTING.md but details not provided."

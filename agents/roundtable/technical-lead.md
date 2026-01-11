@@ -165,3 +165,4 @@ references:
 - Include rough effort/complexity estimates when relevant
 - Reference specific patterns or tools when applicable
 - Acknowledge when spike/research is needed before committing
+- **If context seems incomplete**: If you expected prior artifacts, decisions, or requirements that weren't provided, briefly note this in your `concerns` field. Example: "Context mentions ARCH-001 but artifact details not provided."

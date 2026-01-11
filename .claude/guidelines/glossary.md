@@ -175,3 +175,63 @@ The facilitator agent performs two main actions per round.
 | **done_when** | Criteria that must be met to close a topic |
 | **Escalation** | User intervention when consensus cannot be reached |
 | **Context Reconciliation** | Block sent to resumed agents about changes since last round |
+| **Diagnostic Mode** | Optional validation mode (`--diagnostic`) that analyzes roundtable execution |
+
+---
+
+## Diagnostic Mode
+
+Diagnostic mode (`--diagnostic` flag) enables post-round analysis to detect anomalies during roundtable execution.
+
+### Observer Agent
+
+The `session-observer` agent (haiku model) analyzes verbose dumps after each round.
+
+**Input**:
+```yaml
+mode: "per-round" | "end-session"
+session_path: ".s2s/sessions/{session-id}"
+round: {N}  # for per-round mode
+workflow_type: "specs" | "design" | "brainstorm"
+strategy: "{strategy}"
+```
+
+**Output**:
+```yaml
+status: "ok" | "warning" | "anomaly"
+findings:
+  - type: "missing_context" | "strategy_deviation" | "participant_signal"
+    detail: "{description}"
+    severity: "low" | "medium" | "high"
+recommendation: "Continue" | "Review findings" | "Stop for investigation"
+```
+
+### Diagnostic Report Format
+
+Final report displayed at session completion:
+
+```
+╔════════════════════════════════════════════════════════════╗
+║                    DIAGNOSTIC REPORT                        ║
+╠════════════════════════════════════════════════════════════╣
+║ Session: {session-id}                                       ║
+║ Workflow: {type} | Strategy: {strategy} | Rounds: {N}       ║
+╠════════════════════════════════════════════════════════════╣
+║ Round 1: ok                                                 ║
+║ Round 2: warning (2 findings)                               ║
+║ Round 3: ok                                                 ║
+╠════════════════════════════════════════════════════════════╣
+║ Session-level findings:                                     ║
+║ - [medium] strategy_deviation: ...                          ║
+╠════════════════════════════════════════════════════════════╣
+║ RESULT: PASS | PASS with warnings | NEEDS REVIEW            ║
+╚════════════════════════════════════════════════════════════╝
+```
+
+### Severity Guidelines
+
+| Severity | Meaning | Action |
+|----------|---------|--------|
+| **low** | Minor, likely false positive | Continue |
+| **medium** | Worth reviewing | Review findings |
+| **high** | Significant issue | Stop for investigation |

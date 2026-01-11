@@ -1,10 +1,19 @@
 ---
 description: Validate session consistency with structural and optional semantic checks.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Read, Edit, Glob, Grep
-argument-hint: [session-id] [--level structural|deep] [--fix]
+argument-hint: [session-id] [--level structural|deep|strategy]
 ---
 
 # Validate Session
+
+## Purpose
+
+This command **detects and documents** issues in session files. It does NOT fix data.
+
+**CRITICAL**: Validation exists to identify problems in the **process and instructions** (commands, agents, skills), not to silently correct data. When issues are found:
+1. Document the issue in the validation output
+2. Analyze WHY it occurred (which step in which command?)
+3. Suggest fixes to the **code/instructions**, not the data
 
 ## Context
 
@@ -34,8 +43,10 @@ If S2S initialized is "NOT_S2S":
 
 Extract from $ARGUMENTS:
 - **session-id**: Session to validate (default: current_session)
-- **--level**: Validation level (structural|deep). Default: structural
-- **--fix**: Attempt to fix minor issues automatically
+- **--level**: Validation level. Default: structural
+  - `structural`: Fast deterministic checks (YAML, fields, references)
+  - `deep`: Adds semantic LLM-based analysis (coherence, quality)
+  - `strategy`: Adds strategy-specific checks (debate phases, participant usage)
 
 ### Determine session ID
 
@@ -174,11 +185,33 @@ Verify:
     - by_type.requirements: expected {X}, found {Y}
     - topics.closed: expected {X}, found {Y}
 
-    **IF --fix**: Recalculate and update metrics
+    Root cause: Check metrics calculation in {workflow_type}.md Step 2.6
+    Suggested fix: Verify count logic in session file update
 
 **ELSE**:
 
     ✅ Metrics match counts
+
+### Check 1.8: Participant Usage
+
+Read session folder's `config-snapshot.yaml` to get configured participants.
+
+For each round, verify:
+- All configured participants appear in `participant_positions`
+- OR change is documented (e.g., facilitator explicitly reduced for debate Pro/Con)
+
+**IF** missing participants:
+
+    ⚠️ Participant usage issues:
+    - Round {N}: configured participants {list}, actual {list}
+    - Missing: {list}
+
+    Root cause: Check facilitator.md question action or command's participant handling
+    Impact: {Low if documented|High if unexplained}
+
+**ELSE**:
+
+    ✅ Participant usage consistent
 
 ### Structural Summary
 
@@ -275,6 +308,218 @@ For artifacts marked with `agreement: "consensus"`:
     SEMANTIC CHECKS (LLM-based)
     ═══════════════════════════════════════
     {list all check results}
+
+    Result: {PASS|PASS with warnings|FAIL}
+
+---
+
+## Phase 3: Strategy-Specific Checks (--level strategy)
+
+**These verify strategy execution followed documented rules.**
+
+**IF** level != "strategy": Skip this phase.
+
+Read the session's `strategy` field and apply the appropriate checks.
+
+### Strategy: debate
+
+Reference: `skills/roundtable-strategies/references/debate.md`
+
+#### Check 3.D1: Debate Phases Followed
+
+Debate requires 4 phases: opening → rebuttal → closing → synthesis.
+
+Verify rounds show phase progression (may span multiple rounds per phase).
+
+**IF** phases missing or out of order:
+
+    ⚠️ Debate phases not followed:
+    - Expected: opening → rebuttal → closing → synthesis
+    - Found: {actual sequence}
+
+    Root cause: Check facilitator.md debate strategy handling
+    Reference: debate.md requires_sequential_phases
+
+**ELSE**:
+
+    ✅ Debate phases correct
+
+#### Check 3.D2: Pro/Con Assignment
+
+Debate requires explicit Pro/Con role assignment.
+
+Verify:
+- At least 2 participants (one Pro, one Con)
+- Assignments documented in round's `participant_context.overrides`
+- Assignments consistent across debate phases
+
+**IF** assignment issues:
+
+    ⚠️ Debate role assignment issues:
+    - Round {N}: No Pro/Con overrides found
+    - Participants not assigned sides: {list}
+
+    Root cause: facilitator.md must assign overrides for debate strategy
+    Reference: debate.md side_assignment
+
+**ELSE**:
+
+    ✅ Pro/Con roles assigned
+
+#### Check 3.D3: Participant Balance
+
+For debate, verify balanced participation:
+- Each side has at least `min_participants_per_side` (default 1)
+- If >2 participants configured, verify all assigned to a side OR documented as observers
+
+**IF** imbalance:
+
+    ⚠️ Debate participant imbalance:
+    - Pro: {count} participants
+    - Con: {count} participants
+    - Unassigned: {list}
+
+    Root cause: facilitator.md should assign all participants or document exclusions
+
+**ELSE**:
+
+    ✅ Debate participant balance OK
+
+---
+
+### Strategy: consensus-driven
+
+Reference: `skills/roundtable-strategies/references/consensus-driven.md`
+
+#### Check 3.C1: Consent Phases Followed
+
+Consensus-driven uses: proposal → refinement → convergence.
+
+Verify rounds show phase progression (if workflow allows).
+
+**IF** phases unclear:
+
+    ⚠️ VALIDATION NOTE:
+    Consensus-driven phases may not be explicitly tracked in all workflows.
+    Verify manually: Did rounds follow propose → refine → converge pattern?
+
+**ELSE**:
+
+    ✅ Consensus flow appears correct
+
+#### Check 3.C2: All Participants Contributed
+
+Consensus-driven requires all participants in all phases.
+
+Verify each configured participant appears in every round's `participant_positions`.
+
+**IF** missing contributions:
+
+    ⚠️ Missing participant contributions:
+    - Round {N}: {participant} did not contribute
+
+    Root cause: All participants must be invoked in consensus-driven
+    Impact: High (consent requires everyone's position)
+
+**ELSE**:
+
+    ✅ All participants contributed
+
+#### Check 3.C3: Blocking Concerns Addressed
+
+If any participant expressed blocking concern:
+- Verify subsequent round addressed it
+- OR escalation was triggered
+
+**IF** unaddressed blocks:
+
+    ⚠️ Blocking concerns not addressed:
+    - {participant} blocked on: "{concern}"
+    - No follow-up found in subsequent rounds
+
+    Root cause: facilitator synthesis should flag blocks for next round focus
+
+**ELSE**:
+
+    ✅ Blocking concerns handled
+
+---
+
+### Strategy: disney
+
+Reference: `skills/roundtable-strategies/references/disney.md`
+
+#### Check 3.Y1: Disney Phases Followed
+
+Disney requires 3 phases: dreamer → realist → critic.
+
+Verify session's phase transitions match expected order.
+
+**IF** phases incorrect:
+
+    ⚠️ Disney phases not followed:
+    - Expected: dreamer → realist → critic
+    - Found: {actual sequence}
+
+    Root cause: Check workflow command phase transition logic
+
+**ELSE**:
+
+    ✅ Disney phases correct
+
+#### Check 3.Y2: Phase Tone Appropriate
+
+Analyze content per phase:
+- **Dreamer**: Should have creative ideas, no criticism
+- **Realist**: Should have feasibility analysis
+- **Critic**: Should have risks, concerns
+
+**IF** tone mismatch:
+
+    ⚠️ Disney phase tone issues:
+    - Dreamer phase contains criticism: "{example}"
+    - Critic phase lacks risk identification
+
+    Root cause: Participant context should set phase tone via facilitator_directive
+
+**ELSE**:
+
+    ✅ Phase tones appropriate
+
+#### Check 3.Y3: Artifact Flow
+
+Verify artifacts flow between phases:
+- Dreamer creates IDEA-*
+- Realist references IDEA-* with feasibility notes
+- Critic creates RISK-*, MIT-* referencing ideas
+
+**IF** broken flow:
+
+    ⚠️ Disney artifact flow issues:
+    - RISK-{N} does not reference any IDEA-*
+    - No feasibility assessment in realist phase
+
+    Root cause: Check facilitator context preparation for phase continuity
+
+**ELSE**:
+
+    ✅ Artifact flow correct
+
+---
+
+### Strategy: standard
+
+No specific structural requirements beyond general checks.
+
+    ✅ Standard strategy: No additional checks required
+
+---
+
+### Strategy Summary
+
+    STRATEGY CHECKS ({strategy})
+    ═══════════════════════════════════════
+    {list all strategy-specific check results}
 
     Result: {PASS|PASS with warnings|FAIL}
 

@@ -169,3 +169,4 @@ references:
 - Consider failure modes and recovery
 - Advocate for observability and operational excellence
 - Balance ideal infrastructure with practical constraints
+- **If context seems incomplete**: If you expected prior artifacts, decisions, or requirements that weren't provided, briefly note this in your `concerns` field. Example: "Context mentions NFR-001 but artifact details not provided."

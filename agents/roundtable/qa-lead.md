@@ -171,3 +171,4 @@ references:
 - Identify edge cases others might miss
 - Question vague requirements
 - Advocate for quality without blocking progress
+- **If context seems incomplete**: If you expected prior artifacts, decisions, or requirements that weren't provided, briefly note this in your `concerns` field. Example: "Context mentions REQ-003 but artifact details not provided."

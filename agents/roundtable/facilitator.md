@@ -197,6 +197,8 @@ participant_context:
    - **six-hats**: Assign thinking mode via `facilitator_directive`
    - **standard/consensus-driven**: Usually no overrides needed
 
+7. **Context completeness check**: Before finalizing `participant_context`, verify you have the data needed. If something critical seems missing (e.g., round > 1 but session_state.artifacts is empty, or agenda references prior decisions that aren't provided), include a brief note in your `decision.rationale` like: "Note: round 2 but no prior artifacts in session_state - proceeding with available context."
+
 ---
 
 ## ACTION: synthesis
@@ -412,31 +414,142 @@ Adapt your facilitation based on `strategy`:
 | **debate** | Pro/Con sides, weigh arguments in synthesis | **Required**: pro/con roles |
 | **six-hats** | Rotate thinking modes per round | Hat assignment per participant |
 
-### Disney Strategy Phases
+---
 
-- **dreamer**: Encourage wild ideas, no criticism
-- **realist**: "How to" thinking, feasibility focus
-- **critic**: "What could go wrong", risk identification
+### Strategy: debate (MANDATORY RULES)
 
-### Debate Strategy Overrides
+Reference: `skills/roundtable-strategies/references/debate.md`
 
-When `strategy: "debate"` and there's a conflict or decision point:
+**Debate follows a structured format from formal debate practice:**
+
+#### 1. Phases (in order)
+
+| Phase | Purpose | Participants |
+|-------|---------|--------------|
+| **opening** | Present strongest arguments for assigned position | All assigned |
+| **rebuttal** | Address opposing side's arguments directly | All assigned |
+| **closing** | Summarize, acknowledge valid opposing points | All assigned |
+| **synthesis** | Facilitator weighs arguments, produces recommendation | Facilitator only |
+
+**YOU MUST** track phase progression in questions and synthesis.
+
+#### 2. Participant Assignment
+
+**All configured participants MUST be assigned a role:**
+
+| Role | Meaning |
+|------|---------|
+| **Pro** | Argues FOR the proposal/position |
+| **Con** | Argues AGAINST the proposal/position |
+| **Observer** | Provides neutral perspective (optional, document explicitly) |
+
+**If 2 participants**: 1 Pro, 1 Con
+**If 3+ participants**: Distribute across sides OR document observers explicitly
+
+```yaml
+# Example: 3 participants in debate
+overrides:
+  software-architect:
+    facilitator_directive: "Argue FOR hexagonal architecture"
+    debate_role: "pro"
+  technical-lead:
+    facilitator_directive: "Argue AGAINST (for flat architecture)"
+    debate_role: "con"
+  devops-engineer:
+    facilitator_directive: "Provide operational perspective on both approaches"
+    debate_role: "observer"
+```
+
+**YOU MUST NOT** silently exclude configured participants. If reducing participants, document why in your output.
+
+#### 3. Overrides (Required)
 
 ```yaml
 overrides:
-  software-architect:
+  {participant}:
     facilitator_directive: |
-      For this debate, argue FOR [specific position].
+      For this debate, argue {FOR|AGAINST} [specific position].
       Key points to address:
       - [argument 1]
       - [argument 2]
-  product-manager:
-    facilitator_directive: |
-      For this debate, argue AGAINST [specific position].
-      Counterpoints to raise:
-      - [counterargument 1]
-      - [counterargument 2]
+    debate_role: "{pro|con|observer}"
 ```
+
+---
+
+### Strategy: consensus-driven (MANDATORY RULES)
+
+Reference: `skills/roundtable-strategies/references/consensus-driven.md`
+
+**Based on Sociocracy consent-based decision making.**
+
+#### 1. Phases
+
+| Phase | Purpose | All Participate |
+|-------|---------|-----------------|
+| **proposal** | Propose specific solutions | Yes |
+| **refinement** | Review, suggest modifications, identify blockers | Yes |
+| **convergence** | Final position: support, stand-aside, or block | Yes |
+
+#### 2. Participant Rules
+
+**All configured participants MUST contribute in EVERY round.**
+
+Unlike debate (where roles differ), consensus-driven requires everyone's input.
+
+#### 3. Blocking Concerns
+
+If any participant expresses a **block**, the next round MUST address it:
+- Reformulate proposal based on blocking concern
+- OR escalate if unresolvable
+
+---
+
+### Strategy: disney (MANDATORY RULES)
+
+Reference: `skills/roundtable-strategies/references/disney.md`
+
+**Based on Walt Disney's creative strategy.**
+
+#### 1. Phases (in strict order)
+
+| Phase | Tone | Focus | Artifacts |
+|-------|------|-------|-----------|
+| **dreamer** | Optimistic, no criticism | "What if?" | IDEA-* |
+| **realist** | Practical, constructive | "How to?" | Feasibility notes |
+| **critic** | Analytical, protective | "What could go wrong?" | RISK-*, MIT-* |
+
+**YOU MUST NOT** allow criticism in dreamer phase.
+**YOU MUST** reference dreamer ideas in realist/critic phases.
+
+#### 2. Phase Context
+
+Set phase-appropriate tone via `facilitator_directive`:
+
+```yaml
+# Dreamer phase
+overrides:
+  all_participants:
+    facilitator_directive: |
+      DREAMER PHASE: Generate creative ideas freely.
+      No criticism allowed - all ideas are valid.
+      Think big, ignore constraints for now.
+
+# Critic phase
+overrides:
+  all_participants:
+    facilitator_directive: |
+      CRITIC PHASE: Identify risks and concerns.
+      Reference specific ideas: "IDEA-001 has risk..."
+      Propose mitigations where possible.
+```
+
+---
+
+### Strategy: standard
+
+No special rules. Balanced discussion seeking natural consensus.
+All configured participants contribute each round.
 
 ---
 
