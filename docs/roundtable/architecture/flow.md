@@ -94,18 +94,18 @@ Agents (stateless, called per-round):
 A previous architecture approach used a separate orchestrator agent:
 
 ```
-❌ BROKEN: start.md → Task(orchestrator) → Task(facilitator)
-                                         → Task(participants)
+❌ BROKEN: command → Task(orchestrator) → Task(facilitator)
+                                        → Task(participants)
 ```
 
 This fails because **subagents cannot spawn other subagents** in Claude Code.
 
 ```
-✅ (WORKS): start.md contains loop → Task(facilitator)
-                                   → Task(participants)
+✅ (WORKS): command contains loop → Task(facilitator)
+                                  → Task(participants)
 ```
 
-The **main agent** (executing the command) CAN call Task() multiple times.
+The **main agent** (executing the workflow or start command) CAN call Task() multiple times.
 
 ## Participation Modes
 
@@ -275,15 +275,15 @@ Con presents case      Con addresses Pro       Con final summary
 ## Data Flow Summary
 
 ```
-User Command
+User Command (/s2s:specs, /s2s:design, /s2s:brainstorm, or /s2s:roundtable:start)
     │
     ▼
 ┌─────────────┐
-│ start.md    │──┬── Creates session file
-│ (inline     │  ├── Runs discussion loop
+│  Command    │──┬── Creates session file
+│  (inline    │  ├── Runs discussion loop
 │ orchestr.)  │  ├── Launches facilitator (2x/round)
 │             │  ├── Launches participants (parallel)
-│             │  └── Batch writes after each round
+│             │  └── Updates session after each round
 └─────────────┘
        │
        ▼
@@ -299,19 +299,19 @@ User Command
        │
        ▼
 ┌─────────────┐
-│ start.md    │──┬── Evaluates next_action
+│  Command    │──┬── Evaluates next_action
 │             │  └── Generates output document
 └─────────────┘
        │
        ▼
-Output: ADR, Requirements, Architecture, Summary
+Output: requirements.md, architecture/, or summary
 ```
 
 ## Agent Isolation
 
 | Component | Reads Session? | Receives in Prompt |
 |-----------|----------------|-------------------|
-| **start.md** | ✅ YES | N/A (is the orchestrator) |
+| **Command** | ✅ YES | N/A (is the orchestrator) |
 | **Facilitator** | ❌ NO | Curated state (phase, consensus, conflicts) |
 | **Participants** | ❌ NO | Topic + question + project context only |
 
