@@ -15,9 +15,11 @@ Spec2Ship automates software development workflows using Claude Code:
 ## Features
 
 - **Smart Initialization**: Detects existing project structure and adapts accordingly
-- **Roundtable Discussions**: Multi-agent discussions with 5 facilitation strategies
+- **Roundtable Discussions**: 12 specialized AI agents with 5 facilitation strategies
+- **Anti-Sycophancy**: Agents designed to disagree constructively
 - **Creative Brainstorming**: Disney strategy (Dreamer → Realist → Critic)
-- **Implementation Plans**: Structured plans with task tracking
+- **Implementation Plans**: Structured plans with task tracking and git integration
+- **Session Persistence**: Pause and resume discussions
 - **Standards-Based**: Templates based on arc42, ISO 25010, MADR
 
 ## Installation
@@ -87,22 +89,24 @@ Spec2Ship automates software development workflows using Claude Code:
 | `/s2s:design` | Design architecture via roundtable |
 | `/s2s:plan` | Generate implementation plans (smart) |
 
-### Init Sub-commands
-
-| Command | Description |
-|---------|-------------|
-| `/s2s:init:detect` | Analyze project (read-only) |
-| `/s2s:init:setup` | Create .s2s/ structure |
-| `/s2s:init:context` | Update CONTEXT.md only |
-
 ### Plan Sub-commands
 
 | Command | Description |
 |---------|-------------|
-| `/s2s:plan:create "topic"` | Create single plan explicitly |
+| `/s2s:plan:create "name"` | Create implementation plan |
 | `/s2s:plan:list` | List all plans |
-| `/s2s:plan:start "id"` | Start working on a plan |
+| `/s2s:plan:start` | Start working on a plan |
 | `/s2s:plan:complete` | Complete current plan |
+
+### Session Sub-commands
+
+| Command | Description |
+|---------|-------------|
+| `/s2s:session` | Show current session status |
+| `/s2s:session:list` | List all roundtable sessions |
+| `/s2s:session:status [id]` | Detailed session info |
+| `/s2s:session:validate [id]` | Check session consistency |
+| `/s2s:session:cleanup` | Remove old sessions |
 
 ### Roundtable Sub-commands
 
@@ -141,10 +145,12 @@ The `/s2s:init` command is safe to re-run:
 
 ## Documentation
 
-- [Roundtable Overview](docs/roundtable/README.md)
-- [Configuration Guide](docs/roundtable/configuration.md)
-- [Strategy Reference](docs/roundtable/strategies/overview.md)
-- [Architecture](docs/roundtable/architecture/components.md)
+- [Documentation Home](docs/README.md)
+- [Getting Started](docs/getting-started.md)
+- [Workflow Guides](docs/guides/README.md)
+- [Command Reference](docs/reference/commands.md)
+- [Roundtable System](docs/roundtable/README.md)
+- [Extending Spec2Ship](docs/extending/README.md)
 
 ## License
 
