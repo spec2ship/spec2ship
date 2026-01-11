@@ -1,0 +1,166 @@
+# Software Requirements Specification
+
+**Project**: TaskTracker
+**Generated**: 2026-01-11
+**Strategy**: consensus-driven
+
+---
+
+## 1. Introduction
+
+### 1.1 Purpose
+
+This document defines the functional and non-functional requirements for TaskTracker, a CLI-based task management application for developers.
+
+### 1.2 Scope
+
+TaskTracker provides simple, fast task tracking for developers who work primarily in the terminal. The system targets solo developers and small team leads.
+
+### 1.3 Definitions
+
+- **Task**: A unit of work with ID, title, status, and priority
+- **Archive**: Storage for completed tasks older than 30 days
+
+---
+
+## 2. User Personas
+
+### REQ-001: Primary User Persona - Solo Developer
+- **Priority**: Must
+- **Description**: Developer working in terminal who needs quick task tracking without context switching. Values speed and simplicity over features.
+- **Acceptance Criteria**:
+  - [ ] Can create a task in under 2 seconds
+  - [ ] Can view all tasks with single command
+  - [ ] No learning curve beyond basic CLI usage
+
+### REQ-002: Secondary User Persona - Team Lead
+- **Priority**: Should
+- **Description**: Coordinates small team, needs visibility into task progress while maintaining text-based workflow.
+- **Acceptance Criteria**:
+  - [ ] Can view team tasks in single command
+  - [ ] Can filter by assignee
+  - [ ] Export capability for reporting
+
+---
+
+## 3. Functional Requirements
+
+### REQ-003: Task Creation
+- **Priority**: Must
+- **Description**: User can create tasks with title, optional description, priority, and due date from CLI.
+- **Acceptance Criteria**:
+  - [ ] `tt add "Task title"` creates task with default priority
+  - [ ] `tt add "Task title" --priority high` sets priority
+  - [ ] Task ID assigned automatically and displayed
+  - [ ] Validation error if title empty
+
+### REQ-004: Task Listing
+- **Priority**: Must
+- **Description**: User can list tasks with filtering and sorting options.
+- **Acceptance Criteria**:
+  - [ ] `tt list` shows all active tasks
+  - [ ] `tt list --status todo` filters by status
+  - [ ] `tt list --priority high` filters by priority
+  - [ ] Output sorted by priority then creation date
+
+### REQ-005: Status Transitions
+- **Priority**: Must
+- **Description**: User can change task status following valid transitions.
+- **Acceptance Criteria**:
+  - [ ] `tt start 42` moves task to in-progress
+  - [ ] `tt done 42` moves task to done
+  - [ ] Invalid transitions show clear error message
+  - [ ] Status history tracked
+
+### REQ-006: Git Integration
+- **Priority**: Should
+- **Description**: Tasks can be linked to Git commits and branches.
+- **Acceptance Criteria**:
+  - [ ] `tt link 42 --branch feature/foo` links task to branch
+  - [ ] Commit messages mentioning task ID auto-link
+  - [ ] `tt show 42` displays linked commits
+
+---
+
+## 4. Non-Functional Requirements
+
+### NFR-001: Performance - Startup Time
+- **Priority**: Must
+- **Description**: Application must start in under 100ms.
+- **Acceptance Criteria**:
+  - [ ] Cold start < 100ms on reference hardware
+  - [ ] Measured with 1000 tasks in storage
+
+### NFR-002: Performance - Storage Scalability
+- **Priority**: Must
+- **Description**: Must handle 10,000+ tasks without degradation.
+- **Acceptance Criteria**:
+  - [ ] List command < 500ms with 10,000 tasks
+  - [ ] Data file < 10MB for typical usage
+
+### NFR-003: Portability
+- **Priority**: Must
+- **Description**: Single binary distribution, cross-platform.
+- **Acceptance Criteria**:
+  - [ ] Works on macOS, Linux, Windows
+  - [ ] No runtime dependencies
+  - [ ] No installation required
+
+---
+
+## 5. Business Rules
+
+### BR-001: Unique Task IDs
+- **Priority**: Must
+- **Description**: Each task has a unique, sequential ID that is never reused.
+
+### BR-002: Status Transition Validation
+- **Priority**: Must
+- **Description**: Status can only transition: todo → in-progress → done. Cannot go backwards.
+
+### BR-003: Priority Ordering
+- **Priority**: Must
+- **Description**: Tasks displayed in order: high → medium → low, then by creation date.
+
+### BR-004: Auto-Archive
+- **Priority**: Should
+- **Description**: Completed tasks archived after 30 days. Archived tasks excluded from default listings.
+
+---
+
+## 6. Exclusions
+
+### EX-001: Web Interface
+- Not in scope. CLI-only for initial release.
+
+### EX-002: Real-time Collaboration
+- Not in scope. File-based storage, no sync.
+
+### EX-003: Cloud Storage
+- Not in scope. Local files only.
+
+---
+
+## 7. Open Questions
+
+| ID | Question | Status |
+|----|----------|--------|
+| OQ-001 | What file format for storage? (JSON, YAML, SQLite) | Open |
+| OQ-002 | Should archived tasks be queryable? | Open |
+
+---
+
+## 8. Summary
+
+| Category | Count |
+|----------|-------|
+| Must-Have Requirements | 8 |
+| Should-Have Requirements | 3 |
+| Business Rules | 4 |
+| Exclusions | 3 |
+| Open Questions | 2 |
+
+---
+
+*Generated by Spec2Ship `/s2s:specs`*
+*This is an example output for demonstration purposes.*
