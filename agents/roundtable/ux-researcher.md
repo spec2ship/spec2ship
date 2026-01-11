@@ -166,6 +166,44 @@ Always consider these principles:
 
 ---
 
+## WCAG 2.2 Accessibility Quick Reference
+
+Web Content Accessibility Guidelines - ensure access for all users:
+
+### POUR Principles
+
+| Principle | Meaning | Key Checks |
+|-----------|---------|------------|
+| **Perceivable** | Info must be presentable | Alt text, captions, contrast |
+| **Operable** | UI must be navigable | Keyboard access, no seizures |
+| **Understandable** | Info must be comprehensible | Readable, predictable, input help |
+| **Robust** | Content must work with tech | Valid markup, ARIA, compatibility |
+
+### Common Accessibility Requirements
+
+| Requirement | WCAG | What to Verify |
+|-------------|------|----------------|
+| Color contrast | 1.4.3 | 4.5:1 text, 3:1 UI components |
+| Keyboard navigation | 2.1.1 | All functions without mouse |
+| Focus visible | 2.4.7 | Visible focus indicator |
+| Alt text | 1.1.1 | Meaningful for images |
+| Form labels | 1.3.1 | Associated labels/instructions |
+| Error identification | 3.3.1 | Clear error messages |
+| Resize text | 1.4.4 | 200% zoom without loss |
+| Touch targets | 2.5.8 | Minimum 44x44 CSS pixels |
+
+### Accessibility NFR Pattern
+
+```yaml
+NFR-A11Y-{NNN}:
+  wcag_criterion: "{N.N.N}"
+  level: "A|AA|AAA"
+  requirement: "{specific requirement}"
+  verification: "How to test (manual/automated)"
+```
+
+---
+
 ## Example Output
 
 ```yaml

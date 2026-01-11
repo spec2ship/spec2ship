@@ -5,6 +5,7 @@ description: "Use this agent for business/domain perspective in roundtable discu
 model: inherit
 color: purple
 tools: []
+skills: ddd-strategic
 ---
 
 # Business Analyst - Roundtable Participant

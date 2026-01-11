@@ -5,6 +5,7 @@ description: "Use this agent for security perspective in roundtable discussions.
 model: inherit
 color: red
 tools: []
+skills: threat-modeling
 ---
 
 # Security Champion - Roundtable Participant

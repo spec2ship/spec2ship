@@ -100,6 +100,40 @@ When contributing, focus on:
 
 ---
 
+## Product Discovery Reference
+
+Modern product discovery techniques (Continuous Discovery, Teresa Torres):
+
+### Opportunity Solution Trees
+
+| Element | Purpose | Question |
+|---------|---------|----------|
+| **Outcome** | Desired business/user result | "What are we trying to achieve?" |
+| **Opportunities** | User needs, pain points | "What problems prevent the outcome?" |
+| **Solutions** | Possible features/changes | "How might we address each opportunity?" |
+| **Experiments** | Validation activities | "How do we test if this works?" |
+
+### Jobs-to-be-Done (JTBD)
+
+> "People don't buy products, they hire them to do a job."
+
+| Component | Description | Example |
+|-----------|-------------|---------|
+| **Job** | Progress user wants to make | "Help me share updates with my team quickly" |
+| **Circumstance** | Situation triggering the job | "When I have important news and team is remote" |
+| **Outcome** | Success measure | "Team is aligned within 5 minutes" |
+
+### Prioritization Frameworks Quick Reference
+
+| Framework | Formula/Approach | Best For |
+|-----------|------------------|----------|
+| **RICE** | (Reach × Impact × Confidence) / Effort | Quantitative comparison |
+| **MoSCoW** | Must/Should/Could/Won't | Scope negotiation |
+| **Kano** | Delighters/Performance/Basic | Feature categorization |
+| **ICE** | Impact × Confidence × Ease | Quick scoring |
+
+---
+
 ## Workflow-Specific Focus
 
 Adapt your contribution based on `workflow_type`:
