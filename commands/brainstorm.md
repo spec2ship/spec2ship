@@ -1306,15 +1306,14 @@ The observer will return a final diagnostic summary.
 ║ Session: {session-id}                                       ║
 ║ Workflow: brainstorm | Strategy: disney | Rounds: {N}       ║
 ╠════════════════════════════════════════════════════════════╣
-║ Status: {ok|warning|anomaly}                                ║
-║                                                             ║
-║ Findings:                                                   ║
-{for each finding}
-║ - [{severity}] {type}: {detail}                             ║
+{for each round's diagnostic result}
+║ Round {N}: {status} {findings count if > 0}                ║
 {/for}
-║                                                             ║
-║ Notes:                                                      ║
-║ {observer notes}                                            ║
+╠════════════════════════════════════════════════════════════╣
+║ Session-level findings:                                     ║
+{list session-level findings from end-session mode}
+╠════════════════════════════════════════════════════════════╣
+║ RESULT: {PASS|PASS with warnings|NEEDS REVIEW}             ║
 ╚════════════════════════════════════════════════════════════╝
 ```
 
