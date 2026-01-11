@@ -23,7 +23,7 @@ Research has identified several problems with LLM multi-agent discussions:
 
 **Implementation**:
 ```markdown
-# In start.md, execute Tasks in a SINGLE message:
+# In the command, execute Tasks in a SINGLE message:
 Task(prompt="You are Software Architect..."),
 Task(prompt="You are Technical Lead..."),
 Task(prompt="You are QA Lead...")
