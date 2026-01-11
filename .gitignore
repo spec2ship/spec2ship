@@ -50,12 +50,7 @@ temp/
 .s2s/sessions/
 .s2s/plans/
 
-# S2S-generated docs (not plugin documentation)
-# Plugin docs are in: docs/extending/, docs/roundtable/
-docs/architecture/
-docs/specifications/
-docs/decisions/
-docs/guides/
+# All docs/ content is public - no exclusions
 
 # Local archive (development notes, test suites, etc.)
 .archive/
