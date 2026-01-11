@@ -200,4 +200,4 @@ When generating questions, facilitator should follow the **single-topic focus ru
 ---
 
 *Used by: roundtable-execution skill, specs.md command*
-*Participants: product-manager, business-analyst, qa-lead*
+*Participants: product-manager, ux-researcher, business-analyst, qa-lead*

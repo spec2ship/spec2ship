@@ -176,4 +176,4 @@ When a topic closes with architecture decisions:
 ---
 
 *Used by: roundtable-execution skill, design.md command*
-*Participants: software-architect, technical-lead, devops-engineer*
+*Participants: software-architect, security-champion, technical-lead, devops-engineer*

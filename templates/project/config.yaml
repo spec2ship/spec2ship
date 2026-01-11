@@ -36,10 +36,12 @@ roundtable:
     by_workflow_type:
       specs:
         - product-manager
+        - ux-researcher       # User needs, accessibility, experience
         - business-analyst    # Focus on WHAT (requirements), not HOW
         - qa-lead
       design:
         - software-architect
+        - security-champion   # Threat modeling, secure design
         - technical-lead
         - devops-engineer
       brainstorm:

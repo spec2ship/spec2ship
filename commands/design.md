@@ -150,6 +150,7 @@ escalation:
   critical_keywords: {from config: roundtable.escalation.triggers.critical_keywords, default: ["security", "must-have", "blocking", "legal"]}
 participants:
   - "software-architect"
+  - "security-champion"
   - "technical-lead"
   - "devops-engineer"
 ```
@@ -331,6 +332,7 @@ agenda:
 
 participants:
   - "software-architect"
+  - "security-champion"
   - "technical-lead"
   - "devops-engineer"
 ```
@@ -391,6 +393,7 @@ agenda:
 
 participants:
   - "software-architect"
+  - "security-champion"
   - "technical-lead"
   - "devops-engineer"
 ```
@@ -499,7 +502,7 @@ agent_state:
 
 **Launch ALL participant agents in SINGLE message** (parallel execution):
 
-For each of: software-architect, technical-lead, devops-engineer
+For each of: software-architect, security-champion, technical-lead, devops-engineer
 
 **Check for resume capability:**
 
@@ -667,6 +670,9 @@ agent_state:
   participants:
     software-architect:
       agent_id: "{agentId from software-architect response}"
+      last_round: {round_number + 1}
+    security-champion:
+      agent_id: "{agentId from security-champion response}"
       last_round: {round_number + 1}
     technical-lead:
       agent_id: "{agentId from technical-lead response}"

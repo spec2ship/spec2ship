@@ -146,6 +146,7 @@ escalation:
   critical_keywords: {from config: roundtable.escalation.triggers.critical_keywords, default: ["security", "must-have", "blocking", "legal"]}
 participants:
   - "product-manager"
+  - "ux-researcher"
   - "business-analyst"
   - "qa-lead"
 ```
@@ -345,6 +346,7 @@ agenda:
 
 participants:
   - "product-manager"
+  - "ux-researcher"
   - "business-analyst"
   - "qa-lead"
 ```
@@ -401,6 +403,7 @@ agenda:
 
 participants:
   - "product-manager"
+  - "ux-researcher"
   - "business-analyst"
   - "qa-lead"
 ```
@@ -513,7 +516,7 @@ agent_state:
 
 **Launch ALL participant agents in SINGLE message** (parallel execution):
 
-For each of: product-manager, business-analyst, qa-lead
+For each of: product-manager, ux-researcher, business-analyst, qa-lead
 
 **Check for resume capability:**
 
@@ -681,6 +684,9 @@ agent_state:
   participants:
     product-manager:
       agent_id: "{agentId from product-manager response}"
+      last_round: {round_number + 1}
+    ux-researcher:
+      agent_id: "{agentId from ux-researcher response}"
       last_round: {round_number + 1}
     business-analyst:
       agent_id: "{agentId from business-analyst response}"
