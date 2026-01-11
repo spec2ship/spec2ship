@@ -11,7 +11,7 @@ This document defines the terminology used in s2s Roundtable discussions.
 | **Phase** | An internal stage within a strategy | `dreamer`, `realist`, `critic` (in Disney strategy) |
 | **Round** | A single question-response cycle within a phase | Round 1, Round 2 within the `realist` phase |
 | **Participant** | An agent contributing to the discussion | `software-architect`, `qa-lead`, `devops-engineer` |
-| **Inline Orchestration** | Loop logic in command, not separate agent (v4) | start.md calls Task(facilitator) and Task(participants) |
+| **Inline Orchestration** | Loop logic in command, not separate agent | Workflow command calls Task(facilitator) and Task(participants) |
 | **Session** | A specific instance of a roundtable discussion | `20241230-143000-api-design` |
 | **Consensus** | Agreement reached between participants | List of agreed points |
 | **Conflict** | Unresolved disagreement between participants | Divergent positions on a topic |

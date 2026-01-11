@@ -7,10 +7,10 @@ Step-by-step guides for using Spec2Ship workflows.
 | Guide | Description |
 |-------|-------------|
 | [Specs Workflow](./specs-workflow.md) | Define requirements with `/s2s:specs` |
-| [Design Workflow](./design-workflow.md) | Design architecture with `/s2s:design` |
-| [Brainstorm Workflow](./brainstorm-workflow.md) | Creative exploration with `/s2s:brainstorm` |
-| [Plan Workflow](./plan-workflow.md) | Create and execute implementation plans |
-| [Session Management](./session-management.md) | Pause, resume, and validate sessions |
+| Design Workflow | Design architecture with `/s2s:design` *(coming soon)* |
+| Brainstorm Workflow | Creative exploration with `/s2s:brainstorm` *(coming soon)* |
+| Plan Workflow | Create and execute implementation plans *(coming soon)* |
+| Session Management | Pause, resume, and validate sessions *(coming soon)* |
 
 ## Quick Reference
 

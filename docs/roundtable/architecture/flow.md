@@ -1,4 +1,4 @@
-# Roundtable Flow (v4)
+# Roundtable Flow
 
 This document describes the complete flow of a roundtable discussion from user command to output document.
 
@@ -96,13 +96,13 @@ Agents (stateless, called per-round):
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-## Why Inline Orchestration (v4)
+## Why Inline Orchestration
 
-Previous architecture (v3) used a separate orchestrator agent:
+A previous architecture approach used a separate orchestrator agent:
 
 ```
-❌ v3 (BROKEN): start.md → Task(orchestrator) → Task(facilitator)
-                                              → Task(participants)
+❌ BROKEN: start.md → Task(orchestrator) → Task(facilitator)
+                                         → Task(participants)
 ```
 
 This fails because **subagents cannot spawn other subagents** in Claude Code.
@@ -153,7 +153,7 @@ Command launches sequentially:
 - Iterative refinement
 - Deeper exploration
 
-## Session File Structure (v4)
+## Session File Structure
 
 Single source of truth with flat `rounds[]` array:
 

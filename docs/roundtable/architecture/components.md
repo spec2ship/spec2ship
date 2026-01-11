@@ -62,7 +62,7 @@ This document describes how Commands, Agents, and Skills work together in the Ro
 
 ### roundtable/start.md
 
-The session lifecycle manager with **inline orchestration** (v4):
+The session lifecycle manager with **inline orchestration**:
 
 | Responsibility | Description |
 |----------------|-------------|
@@ -74,8 +74,8 @@ The session lifecycle manager with **inline orchestration** (v4):
 | Handle escalation | AskUserQuestion when triggers fire |
 | Generate output | Create ADR, requirements, or architecture docs |
 
-**Why inline orchestration (v4)?**
-Claude Code subagents cannot spawn other subagents. The v3 pattern of `Task(orchestrator) → Task(facilitator)` doesn't work. Solution: keep the loop in the command, which CAN call Task() multiple times.
+**Why inline orchestration?**
+Claude Code subagents cannot spawn other subagents. A pattern like `Task(orchestrator) → Task(facilitator)` doesn't work. Solution: keep the loop in the command, which CAN call Task() multiple times.
 
 ### roundtable/resume.md
 
@@ -102,7 +102,7 @@ Location: `agents/roundtable/facilitator.md`
 
 **Called by**: start.md (twice per round: question + synthesis)
 
-**2 Action Types (v4)**:
+**2 Action Types**:
 
 | Action | Input | Output |
 |--------|-------|--------|
@@ -180,8 +180,7 @@ skills/roundtable-strategies/
 - Consensus policy
 - Validation rules
 
-## Data Flow (v4)
-
+## Data Flow 
 ### Question Generation Flow
 
 ```
@@ -212,8 +211,7 @@ skills/roundtable-strategies/
 6. Command proceeds based on next_action (continue/phase/conclude/escalate)
 ```
 
-## Separation of Concerns (v4)
-
+## Separation of Concerns 
 | Component | Decides | Executes |
 |-----------|---------|----------|
 | Command (start.md) | Session lifecycle, loop execution | File I/O, Task launching, escalation |
