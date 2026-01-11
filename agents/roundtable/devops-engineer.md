@@ -5,6 +5,7 @@ description: "Use this agent for infrastructure/operations perspective in roundt
 model: inherit
 color: orange
 tools: []
+skills: arc42-templates
 ---
 
 # DevOps Engineer - Roundtable Participant

@@ -5,6 +5,7 @@ description: "Use this agent for implementation perspective in roundtable discus
 model: inherit
 color: green
 tools: []
+skills: conventional-commits
 ---
 
 # Technical Lead - Roundtable Participant
