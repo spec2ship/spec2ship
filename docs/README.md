@@ -1,3 +1,8 @@
+<p align="center">
+  <img src=".github/hero.png" alt="Spec2Ship Hero">
+</p>
+
+
 # Spec2Ship Documentation
 
 Spec2Ship is a Claude Code plugin that automates the software development lifecycle: from specifications through planning, implementation, and shipping.
