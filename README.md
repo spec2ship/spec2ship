@@ -1,3 +1,7 @@
+<p align="center">
+  <img src=".github/hero.png" alt="Spec2Ship Hero">
+</p>
+
 # Spec2Ship (s2s)
 
 AI-assisted development framework for the full software lifecycle — from specifications to shipping.
