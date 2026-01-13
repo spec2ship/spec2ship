@@ -32,45 +32,6 @@ spec2ship/
 
 ---
 
-## Architecture Decisions
-
-### SAD-001: Component Separation
-
-| Component | Purpose | When to Use |
-|-----------|---------|-------------|
-| **Commands** | Workflow orchestration | User-facing operations with phases, state |
-| **Agents** | Specialized tasks | Domain expertise, parallelizable work |
-| **Skills** | Knowledge on-demand | Standards, patterns, templates |
-
-### SAD-002: Roundtable Implementation
-
-- **Inline orchestration**: Commands execute roundtable loop directly (not via SlashCommand)
-- **Skill as library**: `roundtable-execution` skill provides shared logic
-- **Constraint**: Claude Code subagents cannot spawn other subagents
-
-### SAD-003: Agent Tiers
-
-| Tier | Model | Use Case |
-|------|-------|----------|
-| **Critical** | opus | Facilitator decisions |
-| **Default** | inherit | Most agents - inherits user's model |
-| **Fast** | haiku | Simple validation |
-
-### SAD-004: Skills Progressive Disclosure
-
-```
-skills/{name}/
-├── SKILL.md          # Always loaded (~1,500-2,000 words)
-├── references/       # Loaded on demand
-└── examples/         # Loaded on demand
-```
-
-### SAD-005: State Management
-
-Single source of truth: `.s2s/state.yaml`
-
----
-
 ## Component Guidelines
 
 | Aspect | Commands | Agents | Skills |

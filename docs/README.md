@@ -37,9 +37,9 @@ Spec2Ship is a Claude Code plugin that automates the software development lifecy
 
 | Guide | Description |
 |-------|-------------|
+| [Contributing](../CONTRIBUTING.md) | Development setup and guidelines |
+| [Architecture](./architecture/) | System architecture overview |
 | [Extending Spec2Ship](./extending/) | Add agents, skills, and strategies |
-| [Contributing](./contributing/) | Development setup and guidelines |
-| [Architecture](./contributing/architecture.md) | System architecture overview |
 
 ### Deep Dives
 

@@ -159,14 +159,15 @@ agentState:
 
 ## Architecture Decision Records
 
-Format: `SAD-{NNN}-{slug}.md`
+Format: `NNNN-{slug}.md` (MADR official format)
 
 Examples:
-- `SAD-001-component-separation.md`
-- `SAD-006-session-architecture.md`
+- `0001-component-separation.md`
+- `0006-session-embedded-artifacts.md`
 
 **Rules**:
-- SAD = Spec2Ship Architecture Decision
-- Three-digit number, sequential
+- 4-digit zero-padded number, sequential
 - Lowercase slug, hyphenated
 - Use MADR format (Markdown Any Decision Records)
+- Internal ADRs: `.s2s/decisions/`
+- Public ADRs: `docs/architecture/decisions/`
