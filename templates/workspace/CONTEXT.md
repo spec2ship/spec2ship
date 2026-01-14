@@ -39,16 +39,16 @@ Component registry from components.yaml
 
 | Command | Description |
 |---------|-------------|
-| `/s2s:plan:create "topic"` | Create cross-component plan |
-| `/s2s:plan:start "id"` | Start plan |
-| `/s2s:plan:complete` | Complete plan |
+| `/s2s:plan --new "topic"` | Create cross-component plan |
+| `/s2s:plan --session "id"` | Start plan |
+| `/s2s:plan:close` | Complete plan |
 
 ### Roundtable
 
 | Command | Description |
 |---------|-------------|
-| `/s2s:roundtable:start "topic"` | Start workspace discussion |
-| `/s2s:roundtable:start "topic" --components a,b` | Cross-component discussion |
+| `/s2s:roundtable "topic"` | Start workspace discussion |
+| `/s2s:roundtable "topic" --components a,b` | Cross-component discussion |
 
 ## Active Plans
 

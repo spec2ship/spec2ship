@@ -140,10 +140,10 @@ Edit `skills/roundtable-strategies/SKILL.md` to add your strategy to the auto-de
 
 ```bash
 # Test with explicit strategy flag
-/s2s:roundtable:start "Test topic" --strategy {your-strategy}
+/s2s:roundtable "Test topic" --strategy {your-strategy}
 
 # Test auto-detection
-/s2s:roundtable:start "Topic with your-keywords"
+/s2s:roundtable "Topic with your-keywords"
 ```
 
 ## Example: Creating a "Structured Debate" Strategy

@@ -27,10 +27,10 @@ Step-by-step guides for using Spec2Ship workflows.
 /s2s:design
 
 # 4. Create implementation plan
-/s2s:plan:create "first-feature"
+/s2s:plan --new "first-feature"
 
 # 5. Start implementation
-/s2s:plan:start
+/s2s:plan --session
 ```
 
 ### Returning to a Project
@@ -40,7 +40,7 @@ Step-by-step guides for using Spec2Ship workflows.
 /s2s:session
 
 # Resume if there's an active session
-/s2s:roundtable:resume
+/s2s:roundtable --session
 
 # Or start fresh
 /s2s:specs

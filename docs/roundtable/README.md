@@ -19,16 +19,16 @@ Roundtable enables AI agents with different perspectives to discuss topics, iden
 
 ```bash
 # Start a roundtable discussion
-/s2s:roundtable:start "API versioning strategy"
+/s2s:roundtable "API versioning strategy"
 
 # Use specific strategy
-/s2s:roundtable:start "Feature prioritization" --strategy disney
+/s2s:roundtable "Feature prioritization" --strategy disney
 
 # List all sessions
 /s2s:session:list
 
 # Resume a session
-/s2s:roundtable:resume
+/s2s:roundtable --session
 ```
 
 ## Flags
@@ -121,8 +121,8 @@ Roundtable enables AI agents with different perspectives to discuss topics, iden
 | `/s2s:specs` | Requirements gathering via roundtable |
 | `/s2s:design` | Architecture design via roundtable |
 | `/s2s:brainstorm` | Creative exploration via roundtable |
-| `/s2s:roundtable:start` | Start ad-hoc discussion |
-| `/s2s:roundtable:resume` | Continue paused session |
+| `/s2s:roundtable` | Start ad-hoc discussion |
+| `/s2s:roundtable --session` | Continue paused session |
 | `/s2s:session:list` | View all sessions |
 | `/s2s:session:validate` | Check session consistency |
 

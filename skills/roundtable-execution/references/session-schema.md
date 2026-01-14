@@ -37,12 +37,12 @@ id: "20260107-requirements-elfgiftrush"
 topic: "Requirements definition for ElfGiftRush"
 workflow_type: "specs"  # specs | design | brainstorm
 strategy: "consensus-driven"
-status: "completed"  # active | paused | completed
+status: "closed"  # active | closed
 
 timing:
-  started: "2026-01-07T13:05:00Z"
-  completed: "2026-01-07T13:25:00Z"
-  duration_ms: 1200000
+  started_at: "2026-01-07T13:05:00Z"
+  updated_at: "2026-01-07T13:25:00Z"
+  closed_at: "2026-01-07T13:25:00Z"
 
 # Artifact registry (content in files)
 artifacts:
@@ -69,15 +69,15 @@ rounds:
     focus:
       type: "agenda"  # agenda | conflict | open_question
       topic_id: "user-workflows"
-    created: ["REQ-001", "REQ-002", "CONF-001"]
-    resolved: []
+    artifacts_created: ["REQ-001", "REQ-002", "CONF-001"]
+    conflicts_resolved: []
     next: "continue"  # continue | conclude | escalate
   - number: 2
     focus:
       type: "conflict"
       topic_id: "CONF-001"
-    created: ["REQ-003"]
-    resolved: ["CONF-001"]
+    artifacts_created: ["REQ-003"]
+    conflicts_resolved: ["CONF-001"]
     next: "conclude"
 
 # Aggregated metrics
@@ -332,8 +332,8 @@ phase: 1
 actor: "facilitator"
 
 timing:
-  started: "2026-01-07T13:05:00Z"
-  completed: "2026-01-07T13:05:12Z"
+  started_at: "2026-01-07T13:05:00Z"
+  completed_at: "2026-01-07T13:05:12Z"
   duration_ms: 12345
 
 tokens:
@@ -384,8 +384,8 @@ phase: 2
 actor: "product-manager"
 
 timing:
-  started: "2026-01-07T13:05:15Z"
-  completed: "2026-01-07T13:05:28Z"
+  started_at: "2026-01-07T13:05:15Z"
+  completed_at: "2026-01-07T13:05:28Z"
   duration_ms: 13123
 
 tokens:
@@ -429,8 +429,8 @@ phase: 3
 actor: "facilitator"
 
 timing:
-  started: "2026-01-07T13:06:00Z"
-  completed: "2026-01-07T13:06:25Z"
+  started_at: "2026-01-07T13:06:00Z"
+  completed_at: "2026-01-07T13:06:25Z"
   duration_ms: 25678
 
 tokens:
@@ -492,7 +492,7 @@ result:
 
 | Entity | Valid Statuses |
 |--------|---------------|
-| Session | active, paused, completed |
+| Session | active, closed |
 | Agenda topic | open, partial, closed |
 | Requirement | draft, consensus, conflict |
 | Conflict | open, resolved, escalated |

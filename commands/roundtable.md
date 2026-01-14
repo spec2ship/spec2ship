@@ -214,8 +214,8 @@ strategy: "{strategy}"
 status: "active"
 
 timing:
-  started: "{ISO timestamp}"
-  last_activity: "{ISO timestamp}"
+  started_at: "{ISO timestamp}"
+  updated_at: "{ISO timestamp}"
   closed_at: null
 
 participants: ["{list}"]

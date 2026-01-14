@@ -148,8 +148,8 @@ strategy: "{strategy}"
 status: "active"
 
 timing:
-  started: "{ISO timestamp}"
-  last_activity: "{ISO timestamp}"
+  started_at: "{ISO timestamp}"
+  updated_at: "{ISO timestamp}"
   closed_at: null
 
 artifacts:
@@ -424,8 +424,8 @@ Append round to `rounds[]`:
   focus:
     type: "{focus_type}"
     topic_id: "{topic_id}"
-  created: ["{new artifact IDs}"]
-  resolved: ["{resolved conflict IDs}"]
+  artifacts_created: ["{new artifact IDs}"]
+  conflicts_resolved: ["{resolved conflict IDs}"]
   next: "{next action}"
 ```
 
@@ -585,8 +585,8 @@ phase: {P}
 actor: "{actor-id}"
 
 timing:
-  started: "{ISO timestamp}"
-  completed: "{ISO timestamp}"
+  started_at: "{ISO timestamp}"
+  completed_at: "{ISO timestamp}"
   duration_ms: {calculated}
 
 tokens:

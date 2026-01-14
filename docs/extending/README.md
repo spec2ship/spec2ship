@@ -21,7 +21,7 @@ This guide explains how to extend Spec2Ship with new strategies, skills, and age
    - Strategy-Specific Behavior
    - Critical Stance
 4. Use supported color (blue, cyan, green, orange, purple, red, yellow)
-5. Test with `/s2s:roundtable:start "topic" --participants your-agent`
+5. Test with `/s2s:roundtable "topic" --participants your-agent`
 
 ### Add a New Skill
 
@@ -36,7 +36,7 @@ This guide explains how to extend Spec2Ship with new strategies, skills, and age
 1. Create `skills/roundtable-strategies/references/{strategy}.md`
 2. Define: participation mode, phases, consensus policy
 3. Add auto-detection keywords to `SKILL.md`
-4. Test with `/s2s:roundtable:start "topic" --strategy {strategy}`
+4. Test with `/s2s:roundtable "topic" --strategy {strategy}`
 
 ## Architecture Context
 
@@ -144,10 +144,10 @@ commands/                     ◄── Add commands here (advanced)
 
 ```bash
 # Test a new agent
-/s2s:roundtable:start "Test topic" --participants your-agent --verbose
+/s2s:roundtable "Test topic" --participants your-agent --verbose
 
 # Test a new strategy
-/s2s:roundtable:start "Test topic" --strategy your-strategy --verbose
+/s2s:roundtable "Test topic" --strategy your-strategy --verbose
 
 # Test skills loading (agent will have access to declared skills)
 /s2s:design --verbose

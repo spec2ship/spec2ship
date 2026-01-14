@@ -10,17 +10,17 @@ Plans break features into actionable tasks with clear steps and dependencies.
 
 | Command | Description |
 |---------|-------------|
-| `/s2s:plan:create "name"` | Create a new implementation plan |
+| `/s2s:plan --new "name"` | Create a new implementation plan |
 | `/s2s:plan:list` | List all plans |
-| `/s2s:plan:start` | Start working on a plan |
-| `/s2s:plan:complete` | Mark plan as completed |
+| `/s2s:plan --session` | Start working on a plan |
+| `/s2s:plan:close` | Mark plan as completed |
 
 ## Creating a Plan
 
 ### Basic Usage
 
 ```bash
-/s2s:plan:create "user-authentication"
+/s2s:plan --new "user-authentication"
 ```
 
 This will:
@@ -32,7 +32,7 @@ This will:
 ### With Git Branch
 
 ```bash
-/s2s:plan:create "user-authentication" --branch
+/s2s:plan --new "user-authentication" --branch
 ```
 
 Also creates a feature branch: `feature/F01-user-authentication`
@@ -114,7 +114,7 @@ Completed:
 ### Start the Active Plan
 
 ```bash
-/s2s:plan:start
+/s2s:plan --session
 ```
 
 If there's an active plan, continues from where you left off.
@@ -122,7 +122,7 @@ If there's an active plan, continues from where you left off.
 ### Start a Specific Plan
 
 ```bash
-/s2s:plan:start --plan 20260111-143022-user-authentication
+/s2s:plan --session 20260111-143022-user-authentication
 ```
 
 ### What Happens
@@ -226,7 +226,7 @@ tasks:
 Always use `--branch` for features that will be reviewed:
 
 ```bash
-/s2s:plan:create "new-feature" --branch
+/s2s:plan --new "new-feature" --branch
 ```
 
 Benefits:
@@ -241,7 +241,7 @@ Benefits:
 Either start a plan or specify which one:
 
 ```bash
-/s2s:plan:start --plan <plan-id>
+/s2s:plan --session <plan-id>
 ```
 
 ### Plan seems outdated
@@ -268,13 +268,13 @@ Ask for help with the specific task. The system has context about:
     ↓
 /s2s:design                      # Design architecture
     ↓
-/s2s:plan:create "feature"       # Create implementation plan
+/s2s:plan --new "feature"        # Create implementation plan
     ↓
-/s2s:plan:start                  # Start working
+/s2s:plan --session              # Start working
     ↓
 (implement tasks)
     ↓
-/s2s:plan:complete --merge       # Complete and merge
+/s2s:plan:close --merge       # Complete and merge
 ```
 
 ### Multiple Plans
@@ -283,15 +283,15 @@ You can have multiple pending plans but only one active:
 
 ```bash
 # Create several plans
-/s2s:plan:create "auth" --branch
-/s2s:plan:create "api" --branch
-/s2s:plan:create "frontend" --branch
+/s2s:plan --new "auth" --branch
+/s2s:plan --new "api" --branch
+/s2s:plan --new "frontend" --branch
 
 # Work on one at a time
-/s2s:plan:start --plan <auth-id>
+/s2s:plan --session <auth-id>
 # ... complete auth ...
 
-/s2s:plan:start --plan <api-id>
+/s2s:plan --session <api-id>
 # ... complete api ...
 ```
 

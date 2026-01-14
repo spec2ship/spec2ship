@@ -108,8 +108,8 @@ Format: `/s2s:{category}:{operation}`
 Examples:
 - `/s2s:init`
 - `/s2s:specs`
-- `/s2s:plan:create`
-- `/s2s:roundtable:start`
+- `/s2s:plan`
+- `/s2s:roundtable`
 - `/s2s:session:validate`
 
 **Rules**:
@@ -153,6 +153,55 @@ doneWhen:
   minRequirements: 3
 agentState:
   lastRound: 2
+```
+
+### Timestamp Fields (Industry Standard)
+
+Follow Rails/Django convention: use `_at` suffix for all timestamp fields.
+
+```yaml
+# Correct - industry standard
+timing:
+  started_at: "2026-01-11T14:30:00Z"
+  updated_at: "2026-01-11T15:45:00Z"
+  closed_at: "2026-01-11T16:00:00Z"
+
+# Action timing (for dumps)
+timing:
+  started_at: "2026-01-11T14:30:00Z"
+  completed_at: "2026-01-11T14:30:12Z"
+  duration_ms: 12345
+
+# Wrong - inconsistent
+timing:
+  started: "..."        # missing _at suffix
+  last_activity: "..."  # not standard
+  closed_at: "..."      # correct but inconsistent with above
+```
+
+**Standard mappings:**
+| Field | Purpose |
+|-------|---------|
+| `started_at` | When entity was created/started |
+| `updated_at` | Last modification time |
+| `closed_at` | When entity was closed/completed |
+| `completed_at` | When action finished (for dumps) |
+| `duration_ms` | Duration in milliseconds (not a timestamp) |
+
+### Ambiguous Field Names
+
+Avoid field names that could be confused with timestamps:
+
+```yaml
+# Wrong - "created" looks like a timestamp
+rounds:
+  - created: ["REQ-001"]    # This is a list of IDs!
+    resolved: ["CONF-001"]
+
+# Correct - explicit naming
+rounds:
+  - artifacts_created: ["REQ-001"]
+    conflicts_resolved: ["CONF-001"]
 ```
 
 ---

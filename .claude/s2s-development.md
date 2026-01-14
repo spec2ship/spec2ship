@@ -207,7 +207,7 @@ Source: [GitHub Issue #1078](https://github.com/anthropics/claude-code/issues/10
 ```markdown
 # WRONG - specs.md continues without waiting
 Phase 1: Use SlashCommand to start roundtable
-  SlashCommand:/s2s:roundtable:start "topic"
+  SlashCommand:/s2s:roundtable "topic"
 
 # CORRECT - Execute inline following skill
 Phase 1: Execute roundtable following skill instructions
@@ -234,10 +234,10 @@ allowed-tools: Bash(ls:*), Bash(git:*), Bash(mkdir:*), Read, Write, Edit
 
 ```yaml
 # Without arguments
-allowed-tools: SlashCommand:/s2s:roundtable:list
+allowed-tools: SlashCommand:/s2s:session:list
 
 # With arguments (note the :* suffix)
-allowed-tools: SlashCommand:/s2s:roundtable:start:*
+allowed-tools: SlashCommand:/s2s:roundtable:*
 ```
 
 **IMPORTANT**: If target command accepts arguments, you MUST use `:*` suffix!
@@ -285,7 +285,7 @@ allowed-tools: SlashCommand:/s2s:roundtable:start:*
    - `defaults.consensus`: policy and threshold
    - `validation`: rules and constraints
 3. Add auto-detection keywords to SKILL.md
-4. Test: `/s2s:roundtable:start "topic" --strategy {strategy}`
+4. Test: `/s2s:roundtable "topic" --strategy {strategy}`
 
 ### Strategy Configuration Structure
 

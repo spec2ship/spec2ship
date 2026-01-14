@@ -67,7 +67,7 @@ Output: `docs/architecture/`
 ### 4. Create Implementation Plan
 
 ```bash
-/s2s:plan:create "feature-name"
+/s2s:plan --new
 ```
 
 Generates a step-by-step implementation plan based on specs and architecture.
@@ -75,7 +75,7 @@ Generates a step-by-step implementation plan based on specs and architecture.
 ### 5. Start Implementation
 
 ```bash
-/s2s:plan:start
+/s2s:plan --session
 ```
 
 Begin working through the plan with AI guidance.
@@ -105,9 +105,9 @@ your-project/
 | `/s2s:specs` | Define requirements |
 | `/s2s:design` | Design architecture |
 | `/s2s:brainstorm "topic"` | Creative exploration |
-| `/s2s:plan:create "name"` | Create implementation plan |
+| `/s2s:plan --new` | Create implementation plan |
 | `/s2s:plan:list` | List all plans |
-| `/s2s:plan:start` | Start working on a plan |
+| `/s2s:plan --session` | Start working on a plan |
 | `/s2s:session` | Show current roundtable session |
 | `/s2s:session:list` | List all sessions |
 

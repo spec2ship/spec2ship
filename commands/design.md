@@ -237,8 +237,8 @@ strategy: "{strategy}"
 status: "active"
 
 timing:
-  started: "{ISO timestamp}"
-  last_activity: "{ISO timestamp}"
+  started_at: "{ISO timestamp}"
+  updated_at: "{ISO timestamp}"
   closed_at: null
 
 # Agent state (for resume capability)
@@ -492,8 +492,8 @@ round: {N}
 phase: 1
 actor: "facilitator"
 action: "question"
-started: "{ISO timestamp}"
-completed: "{ISO timestamp}"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
 
 input: {... the YAML input sent to facilitator ...}
 
@@ -733,8 +733,8 @@ round: {N}
 phase: 2
 actor: "{participant-id}"
 action: "response"
-started: "{ISO timestamp}"
-completed: "{ISO timestamp}"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
 
 input: {... the YAML input sent to participant ...}
 
@@ -963,8 +963,8 @@ round: {N}
 phase: 3
 actor: "facilitator"
 action: "synthesis"
-started: "{ISO timestamp}"
-completed: "{ISO timestamp}"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
 
 input: {... the YAML input sent to facilitator ...}
 
@@ -1198,7 +1198,7 @@ rounds:
 2. **Update timing**:
 ```yaml
 timing:
-  last_activity: "{ISO timestamp}"
+  updated_at: "{ISO timestamp}"
 ```
 
 3. **Update agenda status** from facilitator's `agenda_update`:
@@ -1557,7 +1557,7 @@ Update `.s2s/CONTEXT.md`:
 
     Next steps:
       /s2s:plan              - Generate implementation plans
-      /s2s:plan:create "x"   - Create specific plan
+      /s2s:plan --new   - Create specific plan
 
 ---
 

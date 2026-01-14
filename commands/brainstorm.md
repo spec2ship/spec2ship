@@ -217,8 +217,8 @@ strategy: "disney"
 status: "active"
 
 timing:
-  started: "{ISO timestamp}"
-  last_activity: "{ISO timestamp}"
+  started_at: "{ISO timestamp}"
+  updated_at: "{ISO timestamp}"
   closed_at: null
 
 # Agent state (for resume capability)
@@ -487,8 +487,8 @@ phase: 1
 actor: "facilitator"
 action: "question"
 disney_phase: "{dreamer|realist|critic}"
-started: "{ISO timestamp}"
-completed: "{ISO timestamp}"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
 
 input: {... the YAML input sent to facilitator ...}
 
@@ -734,8 +734,8 @@ phase: 2
 actor: "{participant-id}"
 action: "response"
 disney_phase: "{dreamer|realist|critic}"
-started: "{ISO timestamp}"
-completed: "{ISO timestamp}"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
 
 input: {... the YAML input sent to participant ...}
 
@@ -972,8 +972,8 @@ phase: 3
 actor: "facilitator"
 action: "synthesis"
 disney_phase: "{dreamer|realist|critic}"
-started: "{ISO timestamp}"
-completed: "{ISO timestamp}"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
 
 input: {... the YAML input sent to facilitator ...}
 
@@ -1211,7 +1211,7 @@ rounds:
 2. **Update timing**:
 ```yaml
 timing:
-  last_activity: "{ISO timestamp}"
+  updated_at: "{ISO timestamp}"
 ```
 
 3. **Update phase status** in `phases:` array:
@@ -1541,4 +1541,4 @@ Pair risks with mitigations.
       /s2s:design
 
     To create a plan for top idea:
-      /s2s:plan:create "{top idea}"
+      /s2s:plan --new "{top idea}"

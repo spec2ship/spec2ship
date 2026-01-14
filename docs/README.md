@@ -15,10 +15,10 @@ Spec2Ship is a Claude Code plugin that automates the software development lifecy
 /s2s:design
 
 # Create implementation plan
-/s2s:plan:create "feature-name"
+/s2s:plan --new "feature-name"
 
 # Start working on a plan
-/s2s:plan:start
+/s2s:plan --session
 ```
 
 ## Documentation
@@ -63,10 +63,10 @@ Spec2Ship is a Claude Code plugin that automates the software development lifecy
 /s2s:design        Design architecture via roundtable
      │
      ▼
-/s2s:plan:create   Create implementation plan
+/s2s:plan --new    Create implementation plan
      │
      ▼
-/s2s:plan:start    Execute plan with guidance
+/s2s:plan --session  Execute plan with guidance
 ```
 
 ## Key Features

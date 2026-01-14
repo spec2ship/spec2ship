@@ -124,7 +124,7 @@ What would you like to do?
    - "Create new plan"
 
 3. Based on user choice:
-   - If existing plan selected → Display plan tasks and suggest `/s2s:plan:start "{plan-id}"`
+   - If existing plan selected → Display plan tasks and suggest `/s2s:plan --session "{plan-id}"`
    - If "Create new plan" → Continue to Planning Mode
 
 ---

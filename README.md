@@ -75,10 +75,10 @@ Spec2Ship automates software development workflows using Claude Code:
 /s2s:plan
 
 # 6. Start working on a plan
-/s2s:plan:start "plan-id"
+/s2s:plan --session "plan-id"
 
-# 7. Complete the plan
-/s2s:plan:complete
+# 7. Close the plan
+/s2s:plan:close
 ```
 
 ## Commands
@@ -97,33 +97,34 @@ Spec2Ship automates software development workflows using Claude Code:
 
 | Command | Description |
 |---------|-------------|
-| `/s2s:plan:create "name"` | Create implementation plan |
+| `/s2s:plan` | Smart plan command with auto-detect |
+| `/s2s:plan --new` | Create new implementation plan |
+| `/s2s:plan --session "id"` | Resume specific plan |
 | `/s2s:plan:list` | List all plans |
-| `/s2s:plan:start` | Start working on a plan |
-| `/s2s:plan:complete` | Complete current plan |
+| `/s2s:plan:close` | Close current plan |
 
 ### Session Sub-commands
 
 | Command | Description |
 |---------|-------------|
 | `/s2s:session` | Show current session status |
-| `/s2s:session:list` | List all roundtable sessions |
+| `/s2s:session:list` | List all sessions |
 | `/s2s:session:status [id]` | Detailed session info |
+| `/s2s:session:close [id]` | Close a session |
 | `/s2s:session:validate [id]` | Check session consistency |
 | `/s2s:session:cleanup` | Remove old sessions |
 
-### Roundtable Sub-commands
+### Roundtable Command
 
 | Command | Description |
 |---------|-------------|
-| `/s2s:roundtable:start "topic"` | Start generic roundtable |
-| `/s2s:roundtable:start "topic" --strategy disney` | With specific strategy |
-| `/s2s:roundtable:start "topic" --participants arch,qa` | With specific participants |
-| `/s2s:roundtable:list` | List sessions |
-| `/s2s:roundtable:list --status active` | Filter by status |
-| `/s2s:roundtable:resume "id"` | Resume session |
+| `/s2s:roundtable "topic"` | Start generic roundtable (auto-detects active) |
+| `/s2s:roundtable "topic" --strategy disney` | With specific strategy |
+| `/s2s:roundtable "topic" --participants arch,qa` | With specific participants |
+| `/s2s:roundtable --session "id"` | Resume specific session |
+| `/s2s:roundtable --new` | Force new session |
 
-**Available flags for `roundtable:start`**:
+**Available flags for `roundtable`**:
 - `--strategy <name>`: Facilitation strategy (standard, disney, debate, consensus-driven, six-hats)
 - `--participants <list>`: Comma-separated participant IDs
 - `--workflow-type <type>`: Workflow type (specs, design, brainstorm)

@@ -170,7 +170,7 @@ rounds:
         positions:
           architect: "Per-user"
           tech-lead: "Per-key"
-    resolved: []
+    conflicts_resolved: []
 ```
 
 **Key design decisions**:
@@ -200,7 +200,7 @@ When facilitator returns invalid YAML:
 │        synthesis: "Discussion continues on {topic}."            │
 │        consensus: []                                            │
 │        conflicts: []                                            │
-│        resolved: []                                             │
+│        conflicts_resolved: []                                             │
 │        next_action: "continue"                                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -275,7 +275,7 @@ Con presents case      Con addresses Pro       Con final summary
 ## Data Flow Summary
 
 ```
-User Command (/s2s:specs, /s2s:design, /s2s:brainstorm, or /s2s:roundtable:start)
+User Command (/s2s:specs, /s2s:design, /s2s:brainstorm, or /s2s:roundtable)
     │
     ▼
 ┌─────────────┐

@@ -72,7 +72,7 @@ Spec2Ship organizes software development into six progressive phases, each with 
 
 **Default strategy**: Debate
 
-### 5. Plan (`/s2s:plan:create "feature"`)
+### 5. Plan (`/s2s:plan --new "feature"`)
 
 **Purpose**: Create implementation roadmap
 
@@ -84,7 +84,7 @@ Spec2Ship organizes software development into six progressive phases, each with 
 
 **When to run**: When ready to implement a feature.
 
-### 6. Execute (`/s2s:plan:start`)
+### 6. Execute (`/s2s:plan --session`)
 
 **Purpose**: Implement with guidance
 

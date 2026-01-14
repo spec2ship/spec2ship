@@ -177,7 +177,7 @@ roundtable:
 
 ```bash
 # Start roundtable with your agent
-/s2s:roundtable:start "Test topic" --participants architect,tech-lead,your-agent --verbose
+/s2s:roundtable "Test topic" --participants architect,tech-lead,your-agent --verbose
 ```
 
 ## Example: Data Engineer Agent

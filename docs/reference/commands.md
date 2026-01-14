@@ -121,42 +121,42 @@ Remove old or abandoned sessions.
 
 ## Ad-hoc Roundtable
 
-### `/s2s:roundtable:start "topic"`
+### `/s2s:roundtable "topic"`
 
 Start a standalone roundtable discussion.
 
 ```bash
-/s2s:roundtable:start "topic" [--strategy <name>] [--participants <list>] [--verbose] [--interactive]
+/s2s:roundtable "topic" [--strategy <name>] [--participants <list>] [--verbose] [--interactive]
 ```
 
-### `/s2s:roundtable:list`
+### `/s2s:session:list`
 
 List all roundtable sessions.
 
 ```bash
-/s2s:roundtable:list
+/s2s:session:list
 ```
 
-### `/s2s:roundtable:resume`
+### `/s2s:roundtable --session`
 
 Resume a paused roundtable session.
 
 ```bash
-/s2s:roundtable:resume
-/s2s:roundtable:resume --session <id>
+/s2s:roundtable --session
+/s2s:roundtable --session <id>
 ```
 
 ---
 
 ## Plan Management
 
-### `/s2s:plan:create "name"`
+### `/s2s:plan --new "name"`
 
 Create a new implementation plan.
 
 ```bash
-/s2s:plan:create "feature-name"
-/s2s:plan:create "feature-name" --branch
+/s2s:plan --new "feature-name"
+/s2s:plan --new "feature-name" --branch
 ```
 
 **Flags**:
@@ -170,22 +170,22 @@ List all implementation plans.
 /s2s:plan:list
 ```
 
-### `/s2s:plan:start`
+### `/s2s:plan --session`
 
 Start working on an implementation plan.
 
 ```bash
-/s2s:plan:start
-/s2s:plan:start --plan <id>
+/s2s:plan --session
+/s2s:plan --session <id>
 ```
 
-### `/s2s:plan:complete`
+### `/s2s:plan:close`
 
 Mark a plan as completed.
 
 ```bash
-/s2s:plan:complete
-/s2s:plan:complete --merge
+/s2s:plan:close
+/s2s:plan:close --merge
 ```
 
 **Flags**:
@@ -197,11 +197,11 @@ Mark a plan as completed.
 
 | Flag | Description | Available In |
 |------|-------------|--------------|
-| `--verbose` | Include detailed output in session files | specs, design, brainstorm, roundtable:start |
-| `--interactive` | Pause after each round for user input | specs, design, brainstorm, roundtable:start |
+| `--verbose` | Include detailed output in session files | specs, design, brainstorm, roundtable |
+| `--interactive` | Pause after each round for user input | specs, design, brainstorm, roundtable |
 | `--diagnostic` | Enable debugging output | specs, design, brainstorm |
-| `--strategy <name>` | Override default strategy | specs, design, roundtable:start |
-| `--participants <list>` | Override default participants | specs, design, brainstorm, roundtable:start |
+| `--strategy <name>` | Override default strategy | specs, design, roundtable |
+| `--participants <list>` | Override default participants | specs, design, brainstorm, roundtable |
 
 ## Participant List Format
 

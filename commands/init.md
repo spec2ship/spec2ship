@@ -450,7 +450,7 @@ Write `.claude/CLAUDE.md` with project-specific content:
 
 - `/s2s:specs` - Define requirements via roundtable
 - `/s2s:design` - Design architecture via roundtable
-- `/s2s:plan:create` - Create implementation plan
+- `/s2s:plan --new` - Create implementation plan
 - `/s2s:brainstorm` - Creative ideation session
 ```
 
@@ -536,7 +536,7 @@ What's next?
 
 {If Context.scope_type is "Full implementation"}
 For in-depth project setup with stakeholder discussion:
-  /s2s:roundtable:start --workflow setup
+  /s2s:roundtable --workflow setup
   (Participants: product-manager, documentation-specialist, oss-community-manager)
 
 {/If}
@@ -550,5 +550,5 @@ For creative ideation:
   /s2s:brainstorm "your idea"
 
 For a quick task:
-  /s2s:plan:create "task name"
+  /s2s:plan --new "task name"
 ```

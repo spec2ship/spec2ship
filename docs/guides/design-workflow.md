@@ -193,7 +193,7 @@ In debate strategy, conflicts are expected and valuable:
 
 1. **Review ADRs** - Check decisions make sense
 2. **Validate the session** - `/s2s:session:validate`
-3. **Proceed to planning** - `/s2s:plan:create "feature"`
+3. **Proceed to planning** - `/s2s:plan --new "feature"`
 
 ## Alternative Strategies
 

@@ -63,7 +63,7 @@ For each session file found:
    - `workflow_type`
    - `strategy`
    - `status`
-   - `timing.started`
+   - `timing.started_at`
    - `timing.closed_at`
    - `metrics.rounds_completed`
    - `metrics.artifacts.total`
@@ -89,7 +89,7 @@ Group sessions by status:
     * {id}
       Type: {workflow_type} | Strategy: {strategy}
       Topic: {topic}
-      Started: {timing.started}
+      Started: {timing.started_at}
       Progress: {metrics.rounds_completed} rounds, {metrics.artifacts.total} artifacts
     {/for}
 

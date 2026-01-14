@@ -103,10 +103,10 @@ Command line flags override config values:
 
 ```bash
 # Override strategy
-/s2s:roundtable:start "topic" --strategy disney
+/s2s:roundtable "topic" --strategy disney
 
 # Override participants
-/s2s:roundtable:start "topic" --participants architect,devops
+/s2s:roundtable "topic" --participants architect,devops
 
 # Workflow-specific
 /s2s:specs --strategy consensus-driven

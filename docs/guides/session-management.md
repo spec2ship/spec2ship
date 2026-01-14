@@ -15,7 +15,7 @@ Every roundtable discussion (specs, design, brainstorm) creates a session that p
 | `/s2s:session:status [id]` | Detailed session info |
 | `/s2s:session:validate [id]` | Check session consistency |
 | `/s2s:session:cleanup` | Remove old sessions |
-| `/s2s:roundtable:resume` | Continue a paused session |
+| `/s2s:roundtable --session` | Continue a paused session |
 
 ## Viewing Sessions
 
@@ -107,7 +107,7 @@ The session is saved with all current state.
 ### Resuming a Session
 
 ```bash
-/s2s:roundtable:resume
+/s2s:roundtable --session
 ```
 
 If there's only one paused session, it resumes automatically.
@@ -115,7 +115,7 @@ If there's only one paused session, it resumes automatically.
 ### Resume a Specific Session
 
 ```bash
-/s2s:roundtable:resume --session 20260110-160000-design-my-project
+/s2s:roundtable --session --session 20260110-160000-design-my-project
 ```
 
 ### What's Preserved
@@ -315,7 +315,7 @@ For decisions you might need to audit later:
 If interrupted, always try to resume first:
 
 ```bash
-/s2s:roundtable:resume
+/s2s:roundtable --session
 ```
 
 Restarting loses all progress.

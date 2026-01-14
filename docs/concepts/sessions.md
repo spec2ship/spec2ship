@@ -108,7 +108,7 @@ Sessions can be paused and resumed:
 # (choose "pause" when prompted)
 
 # Resume later
-/s2s:roundtable:resume
+/s2s:roundtable --session
 ```
 
 The system maintains agent state for continuity:

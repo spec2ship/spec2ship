@@ -47,7 +47,7 @@ If round partially completes (some participants responded):
 If session file is corrupted or invalid YAML:
 - Attempt to parse last valid round from file
 - Report corruption error with line number if available
-- Suggest using `/s2s:roundtable:list` to check session state
+- Suggest using `/s2s:session:list` to check session state
 
 ---
 

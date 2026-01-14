@@ -56,10 +56,10 @@ For each session file:
 2. Extract:
    - `id`
    - `status`
-   - `timing.started`
+   - `timing.started_at`
    - `timing.closed_at` (if exists)
-   - `timing.last_activity`
-3. Calculate age from `timing.last_activity` or `timing.closed_at`
+   - `timing.updated_at`
+3. Calculate age from `timing.updated_at` or `timing.closed_at`
 4. Mark for deletion if:
    - Age > threshold AND
    - Status matches filter
@@ -86,7 +86,7 @@ For each session file:
     {status_icon} {id}
       Status: {status}
       Age: {calculated age}
-      Last activity: {timing.last_activity}
+      Last activity: {timing.updated_at}
       Artifacts: {metrics.artifacts.total}
     {/for}
 

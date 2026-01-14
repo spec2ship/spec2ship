@@ -64,7 +64,7 @@ Task(subagent_type="general-purpose", prompt="You are a facilitator...")
 
 ```
 /s2s:{category}:{operation}        # Subcommands = operations
-/s2s:roundtable:start --strategy   # Flags = configuration
+/s2s:roundtable --strategy         # Flags = configuration
 ```
 
 ---

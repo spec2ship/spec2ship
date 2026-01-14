@@ -128,8 +128,8 @@ If user cancels, stop.
 ```yaml
 status: "closed"
 timing:
-  started: "{original}"
-  last_activity: "{original}"
+  started_at: "{original}"
+  updated_at: "{original}"
   closed_at: "{ISO timestamp}"
 ```
 
