@@ -105,7 +105,49 @@ Standard artifacts are **immutable** once created. This simplifies the state mod
 2. The new artifact supersedes the old one semantically (not via status field)
 3. Both artifacts remain in the session for audit purposes
 
-**Example**: If REQ-001 needs refinement, create REQ-002 with the improved definition. REQ-001 remains `status: "active"` but is effectively replaced by REQ-002.
+**Example**: If REQ-001 needs refinement, create REQ-002 with the improved definition. REQ-001 remains `status: "active"` but is effectively replaced by REQ-002. Use `related_to: ["REQ-001"]` to track the relationship.
+
+---
+
+## Artifact Relations (`related_to`)
+
+All artifact types support an optional `related_to` field to track correlations:
+
+```yaml
+REQ-002:
+  status: "active"
+  related_to: ["REQ-001", "BR-001"]  # Array of artifact IDs
+```
+
+### Semantics
+
+- Indicates **correlation**, not hierarchy or superseding
+- Non-directional: if A relates to B, B implicitly relates to A
+- Optional field - omit if no relations exist
+
+### Usage by Facilitator
+
+When selecting `relevant_artifacts` for participant context:
+1. Include artifacts directly related to current topic/focus
+2. For each artifact, if it has `related_to`, include those artifacts too
+3. Also include artifacts that reference the in-scope artifact (bidirectional)
+4. **Depth limit: 1 level** (no recursive traversal)
+
+### Common Patterns
+
+| Scenario | Example |
+|----------|---------|
+| Refinement | REQ-002 `related_to: ["REQ-001"]` - refined version |
+| Constraint | NFR-001 `related_to: ["REQ-003"]` - performance constraint on feature |
+| Conflict context | CONF-001 `related_to: ["REQ-001", "REQ-002"]` - conflict between two |
+| Question about | OQ-001 `related_to: ["ARCH-001"]` - question about a decision |
+| Implementation | COMP-001 `related_to: ["ARCH-001"]` - component implementing decision |
+
+### Domain-Specific Relations
+
+Some artifact types have dedicated relation fields instead of `related_to`:
+- **MIT** (Mitigation): Uses `risk_id` to reference the RISK it mitigates
+- **RISK**: Uses `affected_ideas` to list impacted IDEAs
 
 ---
 

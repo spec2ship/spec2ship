@@ -1098,6 +1098,7 @@ artifacts:
       acceptance:
         - "{criterion 1}"
         - "{criterion 2}"
+      related_to: []             # Optional: ["REQ-001", "BR-002"] if related
       proposed_by: "facilitator"
       supported_by:
         - "{participant}"
@@ -1105,6 +1106,7 @@ artifacts:
 
 **Note**: Map facilitator's `proposed_artifact.status` → `agreement` field.
 Lifecycle `status` is always `"active"` for new artifacts.
+`related_to` is optional - include only if artifact relates to existing ones.
 
 **Artifact schema** (business rules - add to `artifacts.business_rules`):
 ```yaml
@@ -1122,6 +1124,7 @@ artifacts:
         {when this rule applies}
       actions: |
         {what happens}
+      related_to: []             # Optional: IDs of related artifacts
 ```
 
 **Artifact schema** (NFR - add to `artifacts.nfr`):
@@ -1140,6 +1143,7 @@ artifacts:
       target: "{measurable target}"
       minimum: "{minimum acceptable}"
       measurement: "{how to measure}"
+      related_to: []             # Optional: IDs of related artifacts
 ```
 
 **Artifact schema** (exclusions - add to `artifacts.exclusions`):
@@ -1157,6 +1161,7 @@ artifacts:
       rationale: |
         {why out of scope}
       future_consideration: {true|false}
+      related_to: []             # Optional: IDs of related artifacts
 ```
 
 **Artifact schema** (open questions - add to `artifacts.open_questions`):
@@ -1172,6 +1177,7 @@ artifacts:
         {question or uncertainty}
       raised_by: "{participant}"
       blocking: {true|false}
+      related_to: []      # Optional: IDs of artifacts this question is about
       resolution: null    # Filled when resolved
       resolved_round: null
 ```
@@ -1185,6 +1191,7 @@ artifacts:
       created_round: {N}
       topic_id: "{topic}"
       title: "{title}"
+      related_to: []      # Optional: IDs of artifacts in conflict
       positions:
         - participant: "{participant-id}"
           stance: "{position summary}"

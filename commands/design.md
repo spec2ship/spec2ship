@@ -1074,13 +1074,14 @@ artifacts:
       consequences:
         positive: ["{positive outcome}"]
         negative: ["{trade-off accepted}"]
+      related_to: []             # Optional: IDs of related artifacts (e.g., REQ-001)
       proposed_by: "facilitator"
       supported_by: ["{participant}"]
-      amendments: []
 ```
 
 **Note**: Map facilitator's `proposed_artifact.status` → `agreement` field.
 Lifecycle `status` is always `"active"` for new artifacts.
+`related_to` is optional - include only if artifact relates to existing ones.
 
 **Artifact schema** (components - add to `artifacts.components`):
 ```yaml
@@ -1099,7 +1100,7 @@ artifacts:
         requires: ["{interface required}"]
       dependencies: ["{dependency}"]
       technology: "{technology choice}"
-      amendments: []
+      related_to: []             # Optional: IDs of related artifacts (e.g., ARCH-001)
 ```
 
 **Artifact schema** (interfaces - add to `artifacts.interfaces`):
@@ -1116,7 +1117,7 @@ artifacts:
       description: |
         {what this interface provides}
       endpoints: [...]
-      amendments: []
+      related_to: []             # Optional: IDs of related artifacts (e.g., COMP-001)
 ```
 
 **Artifact schema** (open questions - add to `artifacts.open_questions`):
@@ -1132,6 +1133,7 @@ artifacts:
         {question or uncertainty}
       raised_by: "{participant}"
       blocking: {true|false}
+      related_to: []      # Optional: IDs of artifacts this question is about
       resolution: null    # Filled when resolved
       resolved_round: null
 ```
@@ -1142,6 +1144,7 @@ artifacts:
   conflicts:
     CONF-001:
       status: "open"      # open|resolved
+      related_to: []      # Optional: IDs of artifacts in conflict
       created_round: {N}
       topic_id: "{topic}"
       title: "{title}"

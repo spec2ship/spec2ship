@@ -1080,13 +1080,14 @@ artifacts:
         {why this idea is valuable}
       feasibility: null         # Added during realist phase
       implementation_notes: null
+      related_to: []            # Optional: IDs of related artifacts
       proposed_by: "{participant}"
       supported_by: ["{participant}"]
-      amendments: []
 ```
 
 **Note**: Map facilitator's `proposed_artifact.status` → `agreement` field.
 Lifecycle `status` is always `"active"` for new artifacts.
+`related_to` is optional - include only if artifact relates to existing ones.
 
 **Artifact schema** (risks - add to `artifacts.risks`):
 ```yaml
@@ -1102,10 +1103,10 @@ artifacts:
         {what could go wrong}
       severity: "{high|medium|low}"
       likelihood: "{high|medium|low}"
-      affected_ideas: ["{IDEA-NNN}"]
-      mitigation_id: null       # linked when MIT-* created
+      affected_ideas: ["{IDEA-NNN}"]  # Domain-specific relation
+      mitigation_id: null       # Linked when MIT-* created
+      related_to: []            # Optional: other related artifacts
       raised_by: "{participant}"
-      amendments: []
 ```
 
 **Artifact schema** (mitigations - add to `artifacts.mitigations`):
@@ -1118,14 +1119,15 @@ artifacts:
       created_round: {N}
       disney_phase: "critic"
       title: "{title}"
-      risk_id: "{RISK-NNN to mitigate}"
+      risk_id: "{RISK-NNN to mitigate}"  # Domain-specific relation
       description: |
         {how to mitigate the risk}
       effort: "{high|medium|low}"
       effectiveness: "{high|medium|low}"
       proposed_by: "{participant}"
-      amendments: []
 ```
+
+**Note**: Mitigations use `risk_id` for the primary relation; `related_to` not needed.
 
 **Artifact schema** (open questions - add to `artifacts.open_questions`):
 ```yaml
@@ -1140,6 +1142,7 @@ artifacts:
         {question or uncertainty}
       raised_by: "{participant}"
       blocking: {true|false}
+      related_to: []            # Optional: IDs of artifacts this question is about
       resolution: null          # Filled when resolved
       resolved_round: null
 ```
@@ -1153,6 +1156,7 @@ artifacts:
       created_round: {N}
       disney_phase: "{dreamer|realist|critic}"
       title: "{title}"
+      related_to: []            # Optional: IDs of artifacts in conflict
       positions:
         - participant: "{participant-id}"
           stance: "{position summary}"

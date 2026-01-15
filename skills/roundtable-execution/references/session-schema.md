@@ -58,6 +58,22 @@ artifacts:
       priority: "must"
       proposed_by: "facilitator"
       supported_by: ["product-manager", "business-analyst"]
+    REQ-002:
+      status: "active"
+      agreement: "consensus"
+      created_round: 2
+      topic_id: "user-workflows"
+      title: "Game Entry with Tutorial"
+      description: |
+        Zero-friction start with optional tutorial on first play.
+      acceptance:
+        - "One-tap start"
+        - "Tutorial shown only on first play"
+        - "Skip option available"
+      priority: "must"
+      related_to: ["REQ-001"]  # Refines REQ-001
+      proposed_by: "facilitator"
+      supported_by: ["product-manager", "ux-researcher"]
   business_rules:
     BR-001:
       status: "active"
@@ -68,12 +84,14 @@ artifacts:
       description: |
         Game duration is fixed at exactly 60 seconds.
       rationale: "Creates urgency without frustration"
+      related_to: ["REQ-001"]  # Rule applies to game entry flow
   conflicts:
     CONF-001:
       status: "resolved"
       created_round: 1
       topic_id: "functional-requirements"
       title: "Mobile Input Method"
+      related_to: ["REQ-001", "REQ-002"]  # Conflict about these requirements
       positions:
         - participant: "product-manager"
           stance: "Virtual joystick"
@@ -92,6 +110,7 @@ artifacts:
       description: |
         Should the game have pause functionality?
       raised_by: "qa-lead"
+      related_to: ["REQ-001"]  # Question about game entry flow
       resolution: "Out of scope for MVP"
       resolved_round: 3
 
@@ -241,22 +260,34 @@ topics:
 
 All artifacts are embedded in the session file under `artifacts.{type}`. See session file example above for complete structure.
 
+### Common Optional Field: `related_to`
+
+All artifact types support an optional `related_to` field:
+
+```yaml
+related_to: ["REQ-001", "BR-002"]  # Array of artifact IDs
+```
+
+**Semantics**: Indicates correlation with other artifacts (not hierarchy or superseding).
+
+**Used by facilitator**: When selecting `relevant_artifacts` for participant context, artifacts referenced via `related_to` are automatically included (1 level deep, bidirectional).
+
 ### Standard Artifacts (status: "active")
 
-- **Requirements** (REQ-*): status, agreement, title, description, acceptance[], priority
-- **Business Rules** (BR-*): status, agreement, title, description, rationale
-- **NFRs** (NFR-*): status, agreement, title, category, target, minimum, measurement
-- **Exclusions** (EX-*): status, agreement, title, description, rationale, future_consideration
-- **Ideas** (IDEA-*): status, agreement, title, description, disney_phase
-- **Risks** (RISK-*): status, agreement, title, description, likelihood, impact
-- **Mitigations** (MIT-*): status, agreement, title, risk_id, description
-- **Architecture Decisions** (ARCH-*): status, agreement, title, context, decision, rationale
-- **Components** (COMP-*): status, agreement, title, purpose, interfaces
+- **Requirements** (REQ-*): status, agreement, title, description, acceptance[], priority, related_to?
+- **Business Rules** (BR-*): status, agreement, title, description, rationale, related_to?
+- **NFRs** (NFR-*): status, agreement, title, category, target, minimum, measurement, related_to?
+- **Exclusions** (EX-*): status, agreement, title, description, rationale, future_consideration, related_to?
+- **Ideas** (IDEA-*): status, agreement, title, description, disney_phase, related_to?
+- **Risks** (RISK-*): status, agreement, title, description, likelihood, impact, related_to?
+- **Mitigations** (MIT-*): status, agreement, title, risk_id, description (risk_id is the relation)
+- **Architecture Decisions** (ARCH-*): status, agreement, title, context, decision, rationale, related_to?
+- **Components** (COMP-*): status, agreement, title, purpose, interfaces, related_to?
 
 ### Resolution Artifacts (status: "open"|"resolved")
 
-- **Conflicts** (CONF-*): status, positions[], resolution.summary, resolution.method
-- **Open Questions** (OQ-*): status, description, raised_by, resolution
+- **Conflicts** (CONF-*): status, positions[], resolution.summary, resolution.method, related_to?
+- **Open Questions** (OQ-*): status, description, raised_by, resolution, related_to?
 
 ---
 

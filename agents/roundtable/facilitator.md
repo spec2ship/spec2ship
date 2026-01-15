@@ -191,9 +191,17 @@ participant_context:
 2. **relevant_artifacts**: **MUST include COMPLETE artifact content**, not summaries:
    - Include ALL fields of each artifact (id, title, status, description, acceptance criteria, priority, etc.)
    - Include artifacts directly related to current topic
-   - Include artifacts referenced by other artifacts in scope
+   - **Include artifacts via `related_to` traversal** (see below)
    - **NEVER truncate descriptions or acceptance criteria**
    - **If an artifact is mentioned, include its FULL content**
+
+   **`related_to` Traversal Rule**:
+   - For each artifact in scope, if it has `related_to: [...]`, include those artifacts too
+   - Also include artifacts that reference the in-scope artifact (bidirectional)
+   - **Depth limit: 1 level only** (no recursive traversal beyond direct relations)
+   - Example: If focus is CONF-001 with `related_to: ["REQ-001", "REQ-002"]`:
+     - Include REQ-001, REQ-002 (forward reference)
+     - If OQ-001 has `related_to: ["REQ-001"]`, include OQ-001 (backward reference)
 
 3. **open_conflicts**: Include with FULL positions and rationale if:
    - The conflict is relevant to the question being asked
