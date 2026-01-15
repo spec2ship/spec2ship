@@ -119,7 +119,7 @@ Verify these top-level fields exist:
 ### Check 1.3: Artifact States Valid
 
 For each artifact in all `artifacts.*` maps, verify `status` is one of:
-- Standard artifacts (REQ/BR/NFR/EX/ARCH/COMP/IDEA/RISK/MIT): `active`
+- Standard artifacts (REQ/BR/NFR/EX/ARCH/COMP/INT/IDEA/RISK/MIT): `active`
 - Open Questions/Conflicts: `open`, `resolved`
 
 **IF** invalid state found:

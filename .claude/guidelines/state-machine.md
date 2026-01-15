@@ -29,7 +29,7 @@ Sessions have only two states:
 
 ## Artifact Lifecycle
 
-### Standard Artifacts (REQ, BR, NFR, EX, IDEA, RISK, MIT, ARCH, COMP)
+### Standard Artifacts (REQ, BR, NFR, EX, IDEA, RISK, MIT, ARCH, COMP, INT)
 
 ```
      ┌────────┐

@@ -31,7 +31,7 @@ Artifacts have two types of state tracking:
 
 ### Standard Artifacts
 
-Standard artifacts (REQ, BR, NFR, EX, IDEA, RISK, MIT, ARCH, COMP) use:
+Standard artifacts (REQ, BR, NFR, EX, IDEA, RISK, MIT, ARCH, COMP, INT) use:
 
 | Field | Values | Description |
 |-------|--------|-------------|

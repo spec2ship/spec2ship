@@ -283,6 +283,7 @@ related_to: ["REQ-001", "BR-002"]  # Array of artifact IDs
 - **Mitigations** (MIT-*): status, agreement, title, risk_id, description (risk_id is the relation)
 - **Architecture Decisions** (ARCH-*): status, agreement, title, context, decision, rationale, related_to?
 - **Components** (COMP-*): status, agreement, title, purpose, interfaces, related_to?
+- **Interfaces** (INT-*): status, agreement, title, type, description, endpoints, related_to?
 
 ### Resolution Artifacts (status: "open"|"resolved")
 
@@ -471,7 +472,7 @@ result:
 | Workflow | Artifact Types |
 |----------|---------------|
 | **specs** | REQ-*, BR-*, NFR-*, EX-*, CONF-*, OQ-* |
-| **design** | ARCH-*, COMP-*, CONF-*, OQ-* |
+| **design** | ARCH-*, COMP-*, INT-*, CONF-*, OQ-* |
 | **brainstorm** | IDEA-*, RISK-*, MIT-*, OQ-* |
 
 ---
