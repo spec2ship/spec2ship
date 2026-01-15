@@ -119,7 +119,7 @@ Verify these top-level fields exist:
 ### Check 1.3: Artifact States Valid
 
 For each artifact in all `artifacts.*` maps, verify `status` is one of:
-- Requirements/BR/NFR/EX: `active`, `amended`, `superseded`, `withdrawn`
+- Standard artifacts (REQ/BR/NFR/EX/ARCH/COMP/IDEA/RISK/MIT): `active`
 - Open Questions/Conflicts: `open`, `resolved`
 
 **IF** invalid state found:
@@ -131,21 +131,21 @@ For each artifact in all `artifacts.*` maps, verify `status` is one of:
 
     ✅ Artifact states valid
 
-### Check 1.4: State Transitions Valid
+### Check 1.4: Resolution Fields Valid
 
-Verify no impossible transitions occurred:
-- `superseded` → any (terminal, should not change)
-- `withdrawn` → any (terminal, should not change)
-- `resolved` artifacts should have `resolved_round` set
+Verify resolution artifacts have proper fields:
+- `resolved` status should have `resolution` field set
+- `resolved` status should have `resolved_round` set
+- Conflicts with resolution should have `resolution.method` set
 
-**IF** invalid transition:
+**IF** missing resolution fields:
 
-    ⚠️ Invalid state transitions:
-    - {ID}: terminal state '{state}' was modified
+    ⚠️ Missing resolution fields:
+    - {ID}: resolved but missing resolution data
 
 **ELSE**:
 
-    ✅ State transitions valid
+    ✅ Resolution fields valid
 
 ### Check 1.5: References Consistent
 

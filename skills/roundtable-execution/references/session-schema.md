@@ -6,16 +6,11 @@ Complete YAML schema for roundtable session files and folder structure.
 
 ```
 .s2s/sessions/
-├── {session-id}.yaml              # Session index
+├── {session-id}.yaml              # Session file with embedded artifacts
 └── {session-id}/                  # Session folder
     ├── context-snapshot.yaml      # Immutable project context
     ├── config-snapshot.yaml       # Immutable config
     ├── agenda.yaml                # Workflow agenda with DoD
-    │
-    ├── REQ-001.yaml               # Artifacts (always created)
-    ├── REQ-002.yaml
-    ├── CONF-001.yaml
-    ├── OQ-001.yaml
     │
     └── rounds/                    # Verbose dumps (only with --verbose)
         ├── 001-01-facilitator-question.yaml
@@ -26,11 +21,13 @@ Complete YAML schema for roundtable session files and folder structure.
         └── ...
 ```
 
+**Note**: Artifacts are EMBEDDED in the session file, NOT stored as separate files.
+
 ---
 
 ## Session File: `{session-id}.yaml`
 
-Slim index file with metadata, artifact registry, and round summaries.
+Session file with metadata, embedded artifacts, and round summaries.
 
 ```yaml
 id: "20260107-requirements-elfgiftrush"
@@ -44,23 +41,69 @@ timing:
   updated_at: "2026-01-07T13:25:00Z"
   closed_at: "2026-01-07T13:25:00Z"
 
-# Artifact registry (content in files)
+# Embedded artifacts (full content, not just IDs)
 artifacts:
-  requirements: ["REQ-001", "REQ-002", "REQ-003"]
-  business_rules: ["BR-001"]
-  conflicts: ["CONF-001"]
-  open_questions: ["OQ-001"]
-  exclusions: ["EX-001"]
+  requirements:
+    REQ-001:
+      status: "active"
+      agreement: "consensus"
+      created_round: 1
+      topic_id: "user-workflows"
+      title: "Game Entry"
+      description: |
+        Zero-friction start with prominent Play button.
+      acceptance:
+        - "One-tap start"
+        - "No registration"
+      priority: "must"
+      proposed_by: "facilitator"
+      supported_by: ["product-manager", "business-analyst"]
+  business_rules:
+    BR-001:
+      status: "active"
+      agreement: "consensus"
+      created_round: 2
+      topic_id: "business-rules"
+      title: "60-Second Game Duration"
+      description: |
+        Game duration is fixed at exactly 60 seconds.
+      rationale: "Creates urgency without frustration"
+  conflicts:
+    CONF-001:
+      status: "resolved"
+      created_round: 1
+      topic_id: "functional-requirements"
+      title: "Mobile Input Method"
+      positions:
+        - participant: "product-manager"
+          stance: "Virtual joystick"
+        - participant: "qa-lead"
+          stance: "Touch-drag with offset"
+      resolution:
+        summary: "Direct touch-drag with 40-60px offset"
+        method: "consensus"
+      resolved_round: 2
+  open_questions:
+    OQ-001:
+      status: "resolved"
+      created_round: 1
+      topic_id: "user-workflows"
+      title: "Pause Functionality"
+      description: |
+        Should the game have pause functionality?
+      raised_by: "qa-lead"
+      resolution: "Out of scope for MVP"
+      resolved_round: 3
 
 # Agenda status
 agenda:
   - topic_id: "user-workflows"
     status: "closed"
-    coverage: ["REQ-001", "REQ-002"]
+    coverage: ["Core workflow phases", "Entry point"]
     closed_round: 2
   - topic_id: "functional-requirements"
     status: "closed"
-    coverage: ["REQ-003"]
+    coverage: ["Game mechanics"]
     closed_round: 3
 
 # Round summaries (details in rounds/ folder if verbose)
@@ -69,21 +112,36 @@ rounds:
     focus:
       type: "agenda"  # agenda | conflict | open_question
       topic_id: "user-workflows"
-    artifacts_created: ["REQ-001", "REQ-002", "CONF-001"]
+    artifacts_created: ["REQ-001", "CONF-001", "OQ-001"]
     conflicts_resolved: []
+    questions_resolved: []
     next: "continue"  # continue | conclude | escalate
   - number: 2
     focus:
       type: "conflict"
       topic_id: "CONF-001"
-    artifacts_created: ["REQ-003"]
+    artifacts_created: ["BR-001"]
     conflicts_resolved: ["CONF-001"]
+    questions_resolved: []
+    next: "continue"
+  - number: 3
+    focus:
+      type: "open_question"
+      topic_id: "OQ-001"
+    artifacts_created: []
+    conflicts_resolved: []
+    questions_resolved: ["OQ-001"]
     next: "conclude"
 
 # Aggregated metrics
 metrics:
   rounds: 3
-  tasks: 15
+  artifacts:
+    total: 4
+    by_status:
+      active: 2
+      open: 0
+      resolved: 2
   tokens: 45000
 ```
 
@@ -179,127 +237,26 @@ topics:
 
 ---
 
-## Artifact Files
+## Embedded Artifact Schemas
 
-### REQ-*.yaml (Requirement)
+All artifacts are embedded in the session file under `artifacts.{type}`. See session file example above for complete structure.
 
-```yaml
-id: "REQ-001"
-type: "requirement"
-title: "Game Entry"
-status: "consensus"  # draft | consensus | conflict
-topic_id: "user-workflows"
-created_round: 1
-priority: "must"  # must | should | could | wont
+### Standard Artifacts (status: "active")
 
-description: |
-  Zero-friction start with prominent Play button.
+- **Requirements** (REQ-*): status, agreement, title, description, acceptance[], priority
+- **Business Rules** (BR-*): status, agreement, title, description, rationale
+- **NFRs** (NFR-*): status, agreement, title, category, target, minimum, measurement
+- **Exclusions** (EX-*): status, agreement, title, description, rationale, future_consideration
+- **Ideas** (IDEA-*): status, agreement, title, description, disney_phase
+- **Risks** (RISK-*): status, agreement, title, description, likelihood, impact
+- **Mitigations** (MIT-*): status, agreement, title, risk_id, description
+- **Architecture Decisions** (ARCH-*): status, agreement, title, context, decision, rationale
+- **Components** (COMP-*): status, agreement, title, purpose, interfaces
 
-acceptance:
-  - "One-tap start"
-  - "No registration"
-  - "<3 seconds to gameplay"
+### Resolution Artifacts (status: "open"|"resolved")
 
-related:
-  enables: ["REQ-002"]
-  depends: []
-```
-
-### BR-*.yaml (Business Rule)
-
-```yaml
-id: "BR-001"
-type: "business_rule"
-title: "60-Second Game Duration"
-status: "consensus"
-topic_id: "business-rules"
-created_round: 1
-
-description: |
-  Game duration is fixed at exactly 60 seconds.
-
-rationale: "Creates urgency without frustration for casual players."
-```
-
-### NFR-*.yaml (Non-Functional Requirement)
-
-```yaml
-id: "NFR-001"
-type: "nfr"
-title: "Frame Rate"
-status: "consensus"
-topic_id: "nfr-measurable"
-created_round: 3
-category: "performance"  # performance | reliability | security | usability
-
-target: "60 FPS"
-minimum: "30 FPS"
-measurement: "Browser DevTools performance panel"
-```
-
-### CONF-*.yaml (Conflict)
-
-```yaml
-id: "CONF-001"
-type: "conflict"
-title: "Mobile Input Method"
-status: "resolved"  # open | resolved | escalated
-topic_id: "functional-requirements"
-created_round: 1
-resolved_round: 2
-
-description: |
-  No agreement on touch control implementation.
-
-positions:
-  product-manager:
-    position: "Virtual joystick"
-    round: 1
-  qa-lead:
-    position: "Touch-drag with offset"
-    round: 1
-
-resolution:
-  method: "consensus"  # consensus | escalation | facilitator
-  decision: "Direct touch-drag with 40-60px offset"
-```
-
-### OQ-*.yaml (Open Question)
-
-```yaml
-id: "OQ-001"
-type: "open_question"
-title: "Pause Functionality"
-status: "deferred"  # pending | addressed | deferred
-topic_id: "user-workflows"
-created_round: 1
-raised_by: "qa-lead"
-
-question: |
-  Should the game have pause functionality?
-
-resolution:
-  status: "deferred"
-  reason: "Out of scope for MVP"
-  round: 3
-```
-
-### EX-*.yaml (Exclusion)
-
-```yaml
-id: "EX-001"
-type: "exclusion"
-title: "Multiplayer Mode"
-status: "confirmed"
-topic_id: "out-of-scope"
-created_round: 3
-
-description: |
-  Multiplayer/networking is explicitly out of scope.
-
-rationale: "MVP focus on single-player experience."
-future_phase: "v2.0"
-```
+- **Conflicts** (CONF-*): status, positions[], resolution.summary, resolution.method
+- **Open Questions** (OQ-*): status, description, raised_by, resolution
 
 ---
 
@@ -490,14 +447,29 @@ result:
 
 ## Status Values
 
-| Entity | Valid Statuses |
-|--------|---------------|
-| Session | active, closed |
-| Agenda topic | open, partial, closed |
-| Requirement | draft, consensus, conflict |
-| Conflict | open, resolved, escalated |
-| Open question | pending, addressed, deferred |
-| Exclusion | proposed, confirmed |
+| Entity | Valid Statuses | Notes |
+|--------|---------------|-------|
+| Session | active, closed | Terminal state: closed |
+| Agenda topic | open, partial, closed | Progress tracking |
+| Standard artifacts | active | Use `agreement` for consensus level |
+| Conflicts | open, resolved | Resolution tracked in `resolution.method` |
+| Open questions | open, resolved | Resolution tracked in `resolution` |
+
+### Agreement Levels (for standard artifacts)
+
+| Level | Description |
+|-------|-------------|
+| consensus | All participants agreed |
+| draft | Tentative, needs further discussion |
+| conflict | Disagreement exists, separate CONF artifact created |
+
+### Resolution Methods (for conflicts)
+
+| Method | Description |
+|--------|-------------|
+| consensus | Participants reached agreement |
+| facilitator | Facilitator made judgment call |
+| user_decision | User intervened via escalation |
 
 ---
 

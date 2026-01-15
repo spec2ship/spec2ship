@@ -29,6 +29,8 @@ Sessions have only two states:
 
 ## Artifact Lifecycle
 
+### Standard Artifacts (REQ, BR, NFR, EX, IDEA, RISK, MIT, ARCH, COMP)
+
 ```
      ┌────────┐
      │ create │
@@ -36,36 +38,38 @@ Sessions have only two states:
          │
          ▼
      ┌────────┐
-     │ active │◄──────────────┐
-     └───┬────┘               │
-         │                    │
-    ┌────┴────┬───────┐       │
-    │         │       │       │
-    ▼         ▼       ▼       │
-┌───────┐┌──────────┐┌─────────┐
-│amended││superseded││withdrawn│
-└───┬───┘└──────────┘└─────────┘
-    │
-    │ (revert)
-    └─────────────────────────┘
+     │ active │ (immutable)
+     └────────┘
 ```
 
-### Transitions
+Standard artifacts are **immutable** once created:
+- **status**: Always `active`
+- **agreement**: `consensus`, `draft`, or `conflict`
 
-| From | To | Trigger | Requirements |
-|------|-----|---------|--------------|
-| - | active | Artifact created | Proposal accepted in synthesis |
-| active | amended | Modification in later round | Amendment record added |
-| active | superseded | Replaced by new artifact | Replacement artifact ID noted |
-| active | withdrawn | Removed from scope | Rationale recorded |
-| amended | active | Revert to previous version | Amendment reversed |
-| amended | superseded | Replaced by new artifact | Replacement artifact ID noted |
-| amended | withdrawn | Removed from scope | Rationale recorded |
+If refinement is needed, create a NEW artifact with updated content.
 
-**Rules**:
-- `superseded` and `withdrawn` are terminal states
-- `amended` preserves full history in amendments array
-- An artifact cannot be both superseded AND withdrawn
+### Resolution Artifacts (OQ, CONF)
+
+```
+     ┌────────┐
+     │ create │
+     └───┬────┘
+         │
+         ▼
+     ┌────────┐         ┌──────────┐
+     │  open  │────────▶│ resolved │
+     └────────┘         └──────────┘
+```
+
+| From | To | Trigger | Storage |
+|------|-----|---------|---------|
+| - | open | Artifact created | Initial state |
+| open | resolved | Issue addressed | `resolution` field populated |
+
+**Conflict Resolution Methods**:
+- `consensus`: Participants agreed through discussion
+- `facilitator`: Facilitator made judgment call
+- `user_decision`: User intervened via escalation
 
 ---
 

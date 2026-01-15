@@ -27,31 +27,35 @@ Artifacts are the discrete outputs of roundtable discussions.
 
 ## Artifact States
 
-Each artifact has a status that changes throughout its lifecycle.
+Artifacts have two types of state tracking:
 
-| State | Description | Valid Transitions |
-|-------|-------------|-------------------|
-| **active** | Current, valid artifact | amended, superseded, withdrawn |
-| **amended** | Modified by subsequent round | active (reverted), superseded, withdrawn |
-| **superseded** | Replaced by newer artifact | - (terminal) |
-| **withdrawn** | Removed from scope | - (terminal) |
+### Standard Artifacts
 
-**Notes**:
-- `active` is the initial state for newly created artifacts
-- `amended` preserves history while marking as modified
-- `superseded` requires reference to replacement artifact
-- `withdrawn` requires rationale
+Standard artifacts (REQ, BR, NFR, EX, IDEA, RISK, MIT, ARCH, COMP) use:
 
-### Special Artifact States
+| Field | Values | Description |
+|-------|--------|-------------|
+| **status** | `active` | Lifecycle status (always "active") |
+| **agreement** | `consensus`, `draft`, `conflict` | Participant consensus level |
 
-Some artifact types have specialized lifecycles:
+**Note**: Standard artifacts are immutable once created. If refinement is needed, create a NEW artifact with the updated content.
+
+### Resolution Artifacts
+
+Open Questions and Conflicts have their own lifecycle:
 
 | Type | States | Notes |
 |------|--------|-------|
-| **open_questions** | `open`, `resolved` | Questions are answered, not amended |
-| **conflicts** | `open`, `resolved` | Conflicts are resolved through discussion |
+| **open_questions** | `open` → `resolved` | Resolution stored in `resolution` field |
+| **conflicts** | `open` → `resolved` | Resolution stored in `resolution.summary` and `resolution.method` |
 
-These do not follow the standard `active→amended→superseded/withdrawn` lifecycle.
+#### Conflict Resolution Methods
+
+| Method | Description |
+|--------|-------------|
+| **consensus** | Participants reached agreement through discussion |
+| **facilitator** | Facilitator made judgment call based on positions |
+| **user_decision** | User intervened via escalation |
 
 ---
 
@@ -92,30 +96,16 @@ Sessions track the lifecycle of a roundtable discussion.
 
 ---
 
-## Amendment
+## Artifact Immutability
 
-A record of changes made to an existing artifact.
+Standard artifacts are **immutable** once created. This simplifies the state model and provides a clear audit trail.
 
-```yaml
-amendments:
-  - round: 3
-    summary: "Added edge case criterion"
-    proposed_by: qa-lead
-    supported_by: [product-manager]
-    changes:
-      acceptance:
-        added: ["Handle null input"]
-      priority:
-        changed_from: "should"
-        changed_to: "must"
-```
+**If refinement is needed**:
+1. Create a NEW artifact with updated content
+2. The new artifact supersedes the old one semantically (not via status field)
+3. Both artifacts remain in the session for audit purposes
 
-**Fields**:
-- `round`: When the amendment was made
-- `summary`: Human-readable description of the change
-- `proposed_by`: Participant who proposed the change
-- `supported_by`: Participants who agreed
-- `changes`: Structured diff by field
+**Example**: If REQ-001 needs refinement, create REQ-002 with the improved definition. REQ-001 remains `status: "active"` but is effectively replaced by REQ-002.
 
 ---
 

@@ -341,6 +341,7 @@ workflow_type: "design"
 updates_since_last_round:
   new_artifacts: ["{IDs of artifacts created last round}"]
   resolved_conflicts: ["{IDs of conflicts resolved}"]
+  resolved_questions: ["{IDs of questions resolved}"]
   agenda_changes:
     - topic_id: "{topic}"
       old_status: "{previous}"
@@ -597,6 +598,7 @@ exploration: "{facilitator's exploration prompt}"
 context_update:
   new_artifacts_since_last: ["{IDs}"]
   resolved_conflicts_since_last: ["{IDs}"]
+  resolved_questions_since_last: ["{IDs}"]
   your_last_position_summary: "{from previous round participant_positions}"
 
 # CRITICAL: Participants have tools: [] - they CANNOT read files
@@ -934,6 +936,8 @@ proposed_artifacts:
 
 resolved_conflicts: []
 
+resolved_questions: []
+
 agenda_update:
   topic_id: "{topic}"
   new_status: "{partial|closed}"
@@ -972,12 +976,15 @@ response:
   synthesis: "{summary}"
   proposed_artifacts: [...]
   resolved_conflicts: [...]
+  resolved_questions: [...]
   agenda_update: {...}
   constraints_check: {rounds_completed, min_rounds, can_conclude, reason}
   next: "{continue|conclude|escalate}"
 
 result:
   artifacts_proposed: {count}
+  conflicts_resolved: {count}
+  questions_resolved: {count}
   status: "closed"
 
 tokens:
@@ -1046,8 +1053,8 @@ For each `proposed_artifact` from facilitator:
 artifacts:
   architecture_decisions:
     ARCH-001:
-      status: "active"    # Lifecycle: active|amended|superseded|withdrawn
-      agreement: "consensus"  # From synthesis: consensus|draft|conflict
+      status: "active"           # Always "active" for standard artifacts
+      agreement: "consensus"     # From synthesis: consensus|draft|conflict
       created_round: {N}
       topic_id: "{topic}"
       title: "{title}"
@@ -1190,7 +1197,8 @@ rounds:
       - "{decision 1}"
       - "{decision 2}"
     artifacts_created: ["{ID}", ...]
-    artifacts_amended: []    # IDs of modified artifacts
+    conflicts_resolved: ["{ID}", ...]
+    questions_resolved: ["{ID}", ...]
     consensus_reached: {true|false}
     next_action: "{continue|conclude|escalate}"
 ```

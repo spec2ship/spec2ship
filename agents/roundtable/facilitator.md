@@ -293,6 +293,8 @@ proposed_artifacts:
 
 resolved_conflicts: []  # or list of {conflict_id, resolution, method}
 
+resolved_questions: []  # or list of {question_id, resolution}
+
 agenda_update:
   topic_id: "user-workflows"
   new_status: "partial"
@@ -401,7 +403,15 @@ constraints_check:
 resolved_conflicts:
   - conflict_id: "CONF-001"
     resolution: "Direct touch-drag with 40-60px offset"
-    method: "consensus"  # consensus | majority | facilitator_decision
+    method: "consensus"  # consensus | facilitator
+```
+
+### Question Resolution
+
+```yaml
+resolved_questions:
+  - question_id: "OQ-001"
+    resolution: "Tutorial shown only on first play, skip option available"
 ```
 
 ---
@@ -412,8 +422,9 @@ resolved_conflicts:
 
 - **NEVER** suggest modifying previous rounds
 - **NEVER** suggest editing existing artifacts
-- If requirement needs change: propose NEW artifact with `supersedes: "REQ-001"`
+- If requirement needs refinement: propose NEW, more complete artifact
 - If conflict resolved: add to `resolved_conflicts[]`, don't delete original
+- If question answered: add to `resolved_questions[]`, don't delete original
 
 ---
 
@@ -692,6 +703,8 @@ proposed_artifacts:
     description: "When and how to show tutorial?"
 
 resolved_conflicts: []
+
+resolved_questions: []
 
 agenda_update:
   topic_id: "user-workflows"

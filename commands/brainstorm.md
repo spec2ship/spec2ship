@@ -335,6 +335,7 @@ workflow_type: "brainstorm"
 updates_since_last_round:
   new_artifacts: ["{IDs of artifacts created last round}"]
   resolved_conflicts: ["{IDs of conflicts resolved}"]
+  resolved_questions: ["{IDs of questions resolved}"]
   phase_changes:
     old_phase: "{previous phase if changed}"
     new_phase: "{current_phase}"
@@ -591,6 +592,7 @@ disney_phase_instructions:
 context_update:
   new_artifacts_since_last: ["{IDs}"]
   resolved_conflicts_since_last: ["{IDs}"]
+  resolved_questions_since_last: ["{IDs}"]
   your_last_position_summary: "{from previous round participant_positions}"
 
 # CRITICAL: Participants have tools: [] - they CANNOT read files
@@ -941,6 +943,8 @@ proposed_artifacts:
 
 resolved_conflicts: []
 
+resolved_questions: []
+
 phase_recommendation: "{stay|advance|conclude}"
 
 constraints_check:
@@ -1065,8 +1069,8 @@ For each `proposed_artifact` from facilitator:
 artifacts:
   ideas:
     IDEA-001:
-      status: "active"          # Lifecycle: active|amended|superseded|withdrawn
-      agreement: "draft"        # From synthesis: consensus|draft|conflict
+      status: "active"           # Always "active" for standard artifacts
+      agreement: "draft"         # From synthesis: consensus|draft|conflict
       created_round: {N}
       disney_phase: "dreamer"
       title: "{title}"
@@ -1203,7 +1207,8 @@ rounds:
       - "{decision 1}"
       - "{decision 2}"
     artifacts_created: ["{ID}", ...]
-    artifacts_amended: []    # IDs of modified artifacts
+    conflicts_resolved: ["{ID}", ...]
+    questions_resolved: ["{ID}", ...]
     consensus_reached: {true|false}
     next_action: "{continue|phase|conclude}"
 ```
