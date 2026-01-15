@@ -6,16 +6,10 @@ Complete YAML schema for roundtable session files and folder structure.
 
 ```
 .s2s/sessions/
-├── {session-id}.yaml              # Session index
-└── {session-id}/                  # Session folder
+├── {session-id}.yaml              # Main session file (single source of truth)
+└── {session-id}/                  # Session folder (for snapshots and verbose)
     ├── context-snapshot.yaml      # Immutable project context
-    ├── config-snapshot.yaml       # Immutable config
-    ├── agenda.yaml                # Workflow agenda with DoD
-    │
-    ├── REQ-001.yaml               # Artifacts (always created)
-    ├── REQ-002.yaml
-    ├── CONF-001.yaml
-    ├── OQ-001.yaml
+    ├── config-snapshot.yaml       # Immutable roundtable config
     │
     └── rounds/                    # Verbose dumps (only with --verbose)
         ├── 001-01-facilitator-question.yaml
@@ -26,11 +20,13 @@ Complete YAML schema for roundtable session files and folder structure.
         └── ...
 ```
 
+**IMPORTANT**: Artifacts are EMBEDDED in the session file, NOT stored as separate files.
+
 ---
 
 ## Session File: `{session-id}.yaml`
 
-Slim index file with metadata, artifact registry, and round summaries.
+Main session file containing all metadata, embedded artifacts, and round summaries.
 
 ```yaml
 id: "20260107-requirements-elfgiftrush"
@@ -44,47 +40,90 @@ timing:
   updated_at: "2026-01-07T13:25:00Z"
   closed_at: "2026-01-07T13:25:00Z"
 
-# Artifact registry (content in files)
+# Agent state (for resume capability)
+agent_state:
+  facilitator:
+    agent_id: "abc123"
+    last_round: 3
+    last_action: "synthesis"
+  participants: {}
+
+# ARTIFACTS - embedded with full content (NOT separate files)
 artifacts:
-  requirements: ["REQ-001", "REQ-002", "REQ-003"]
-  business_rules: ["BR-001"]
-  conflicts: ["CONF-001"]
-  open_questions: ["OQ-001"]
-  exclusions: ["EX-001"]
+  requirements:
+    REQ-001:
+      status: "active"
+      agreement: "consensus"
+      created_round: 1
+      topic_id: "user-workflows"
+      title: "Gift Throwing Mechanic"
+      priority: "must"
+      description: |
+        Users can throw gifts at targets...
+      acceptance:
+        - "Gift trajectory follows physics"
+        - "Score updates on hit"
+      proposed_by: "facilitator"
+      supported_by: ["product-manager", "qa-lead"]
+      amendments: []
+  business_rules: {}
+  nfr: {}
+  exclusions: {}
+  open_questions:
+    OQ-001:
+      status: "resolved"
+      created_round: 1
+      topic_id: "user-workflows"
+      title: "Which auth provider?"
+      description: "Should we use OAuth or custom auth?"
+      raised_by: "technical-lead"
+      blocking: false
+      resolution: "Use OAuth for MVP"
+      resolved_round: 2
+  conflicts: {}
 
 # Agenda status
 agenda:
   - topic_id: "user-workflows"
     status: "closed"
     coverage: ["REQ-001", "REQ-002"]
-    closed_round: 2
   - topic_id: "functional-requirements"
     status: "closed"
     coverage: ["REQ-003"]
-    closed_round: 3
 
 # Round summaries (details in rounds/ folder if verbose)
 rounds:
-  - number: 1
-    focus:
-      type: "agenda"  # agenda | conflict | open_question
-      topic_id: "user-workflows"
-    artifacts_created: ["REQ-001", "REQ-002", "CONF-001"]
-    conflicts_resolved: []
-    next: "continue"  # continue | conclude | escalate
-  - number: 2
-    focus:
-      type: "conflict"
-      topic_id: "CONF-001"
-    artifacts_created: ["REQ-003"]
-    conflicts_resolved: ["CONF-001"]
-    next: "conclude"
+  - round: 1
+    topic_id: "user-workflows"
+    facilitator_question: "What are the primary user workflows?"
+    synthesis_summary: "Identified 2 key workflows..."
+    participant_positions:
+      product-manager: "Focus on casual gameplay..."
+      qa-lead: "Consider edge cases..."
+    artifacts_created: ["REQ-001", "REQ-002"]
+    consensus_reached: true
+    next_action: "continue"
 
 # Aggregated metrics
 metrics:
-  rounds: 3
-  tasks: 15
-  tokens: 45000
+  rounds_completed: 3
+  artifacts:
+    total: 5
+    by_type: {requirements: 3, open_questions: 1, exclusions: 1}
+    by_status: {active: 4, resolved: 1}
+  topics:
+    total: 6
+    closed: 6
+  consensus_rate: 0.85
+  tokens:
+    estimated_total: 45000
+    by_round: [12000, 15000, 18000]
+
+# Validation state
+validation:
+  last_check: "2026-01-07T13:25:00Z"
+  status: "valid"
+  warnings: []
 ```
 
 ---
@@ -179,126 +218,129 @@ topics:
 
 ---
 
-## Artifact Files
+## Embedded Artifact Schemas
 
-### REQ-*.yaml (Requirement)
+Artifacts are stored as maps inside `artifacts.{type}` in the session file.
+Each artifact has a **lifecycle status** and an **agreement level**.
+
+### Requirement (REQ-*)
 
 ```yaml
-id: "REQ-001"
-type: "requirement"
-title: "Game Entry"
-status: "consensus"  # draft | consensus | conflict
-topic_id: "user-workflows"
-created_round: 1
-priority: "must"  # must | should | could | wont
-
-description: |
-  Zero-friction start with prominent Play button.
-
-acceptance:
-  - "One-tap start"
-  - "No registration"
-  - "<3 seconds to gameplay"
-
-related:
-  enables: ["REQ-002"]
-  depends: []
+artifacts:
+  requirements:
+    REQ-001:
+      status: "active"           # Lifecycle: active|amended|superseded|withdrawn
+      agreement: "consensus"     # Agreement: consensus|draft|conflict
+      created_round: 1
+      topic_id: "user-workflows"
+      title: "Game Entry"
+      priority: "must"           # must|should|could|wont
+      description: |
+        Zero-friction start with prominent Play button.
+      acceptance:
+        - "One-tap start"
+        - "No registration"
+        - "<3 seconds to gameplay"
+      proposed_by: "facilitator"
+      supported_by: ["product-manager", "qa-lead"]
+      amendments: []
 ```
 
-### BR-*.yaml (Business Rule)
+### Business Rule (BR-*)
 
 ```yaml
-id: "BR-001"
-type: "business_rule"
-title: "60-Second Game Duration"
-status: "consensus"
-topic_id: "business-rules"
-created_round: 1
-
-description: |
-  Game duration is fixed at exactly 60 seconds.
-
-rationale: "Creates urgency without frustration for casual players."
+artifacts:
+  business_rules:
+    BR-001:
+      status: "active"
+      agreement: "consensus"
+      created_round: 1
+      topic_id: "business-rules"
+      title: "60-Second Game Duration"
+      description: |
+        Game duration is fixed at exactly 60 seconds.
+      conditions: |
+        Every game session
+      actions: |
+        Timer starts at 60s and counts down
+      amendments: []
 ```
 
-### NFR-*.yaml (Non-Functional Requirement)
+### NFR (NFR-*)
 
 ```yaml
-id: "NFR-001"
-type: "nfr"
-title: "Frame Rate"
-status: "consensus"
-topic_id: "nfr-measurable"
-created_round: 3
-category: "performance"  # performance | reliability | security | usability
-
-target: "60 FPS"
-minimum: "30 FPS"
-measurement: "Browser DevTools performance panel"
+artifacts:
+  nfr:
+    NFR-001:
+      status: "active"
+      agreement: "consensus"
+      created_round: 3
+      topic_id: "nfr-measurable"
+      title: "Frame Rate"
+      category: "performance"    # performance|reliability|security|usability|scalability
+      description: |
+        Game must maintain smooth animation.
+      target: "60 FPS"
+      minimum: "30 FPS"
+      measurement: "Browser DevTools performance panel"
+      amendments: []
 ```
 
-### CONF-*.yaml (Conflict)
+### Conflict (CONF-*)
 
 ```yaml
-id: "CONF-001"
-type: "conflict"
-title: "Mobile Input Method"
-status: "resolved"  # open | resolved | escalated
-topic_id: "functional-requirements"
-created_round: 1
-resolved_round: 2
-
-description: |
-  No agreement on touch control implementation.
-
-positions:
-  product-manager:
-    position: "Virtual joystick"
-    round: 1
-  qa-lead:
-    position: "Touch-drag with offset"
-    round: 1
-
-resolution:
-  method: "consensus"  # consensus | escalation | facilitator
-  decision: "Direct touch-drag with 40-60px offset"
+artifacts:
+  conflicts:
+    CONF-001:
+      status: "resolved"         # open|resolved
+      created_round: 1
+      resolved_round: 2
+      topic_id: "functional-requirements"
+      title: "Mobile Input Method"
+      description: |
+        No agreement on touch control implementation.
+      positions:
+        product-manager: "Virtual joystick"
+        qa-lead: "Touch-drag with offset"
+      resolution: "Direct touch-drag with 40-60px offset"
+      resolution_method: "consensus"  # consensus|escalation|facilitator
 ```
 
-### OQ-*.yaml (Open Question)
+### Open Question (OQ-*)
 
 ```yaml
-id: "OQ-001"
-type: "open_question"
-title: "Pause Functionality"
-status: "deferred"  # pending | addressed | deferred
-topic_id: "user-workflows"
-created_round: 1
-raised_by: "qa-lead"
-
-question: |
-  Should the game have pause functionality?
-
-resolution:
-  status: "deferred"
-  reason: "Out of scope for MVP"
-  round: 3
+artifacts:
+  open_questions:
+    OQ-001:
+      status: "open"             # open|resolved
+      created_round: 1
+      topic_id: "user-workflows"
+      title: "Pause Functionality"
+      description: |
+        Should the game have pause functionality?
+      raised_by: "qa-lead"
+      blocking: false
+      resolution: null           # Filled when resolved
+      resolved_round: null
 ```
 
-### EX-*.yaml (Exclusion)
+### Exclusion (EX-*)
 
 ```yaml
-id: "EX-001"
-type: "exclusion"
-title: "Multiplayer Mode"
-status: "confirmed"
-topic_id: "out-of-scope"
-created_round: 3
-
-description: |
-  Multiplayer/networking is explicitly out of scope.
-
-rationale: "MVP focus on single-player experience."
-future_phase: "v2.0"
+artifacts:
+  exclusions:
+    EX-001:
+      status: "active"
+      agreement: "consensus"
+      created_round: 3
+      topic_id: "out-of-scope"
+      title: "Multiplayer Mode"
+      description: |
+        Multiplayer/networking is explicitly out of scope.
+      rationale: |
+        MVP focus on single-player experience.
+      future_consideration: true
+      amendments: []
 ```
 
 ---

@@ -152,21 +152,45 @@ timing:
   updated_at: "{ISO timestamp}"
   closed_at: null
 
+# Agent state (for resume capability)
+agent_state:
+  facilitator:
+    agent_id: null
+    last_round: 0
+    last_action: null
+  participants: {}
+
+# ARTIFACTS - embedded with full content (NOT separate files)
 artifacts:
-  requirements: []
-  business_rules: []
-  conflicts: []
-  open_questions: []
-  exclusions: []
+  requirements: {}      # REQ-*: {status, title, description, ...}
+  business_rules: {}    # BR-*: {status, title, description, ...}
+  nfr: {}               # NFR-*: {status, category, target, ...}
+  exclusions: {}        # EX-*: {status, title, rationale, ...}
+  open_questions: {}    # OQ-*: {status, question, raised_by, ...}
+  conflicts: {}         # CONF-*: {status, positions, resolution, ...}
 
 agenda: []  # Will be populated from agenda.yaml
 
 rounds: []
 
 metrics:
-  rounds: 0
-  tasks: 0
-  tokens: 0
+  rounds_completed: 0
+  artifacts:
+    total: 0
+    by_type: {}
+    by_status: {}
+  topics:
+    total: 0
+    closed: 0
+  consensus_rate: 0.0
+  tokens:
+    estimated_total: 0
+    by_round: []
+
+validation:
+  last_check: null
+  status: null
+  warnings: []
 ```
 
 ---
