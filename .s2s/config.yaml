@@ -1,0 +1,78 @@
+# Spec2Ship Project Configuration
+# This file is created by /s2s:init
+
+name: "Spec2Ship"
+type: "standalone"
+version: "0.1.0"
+
+# Git workflow configuration
+git:
+  branch_convention: "feature/F{id}-{slug}"
+  commit_convention: "conventional"
+  default_branch: "main"
+
+# Roundtable configuration
+roundtable:
+  # === EXECUTION SETTINGS ===
+  verbose: false          # Include full participant responses in session file
+  interactive: false      # Ask user after each round (pause/continue/skip)
+
+  # === STRATEGY ===
+  # Loads facilitation method from skills/roundtable-strategies/
+  strategy: "standard"  # standard | disney | debate | consensus-driven | six-hats
+
+  # === PARTICIPANTS ===
+  participants:
+    default:
+      - software-architect
+      - technical-lead
+
+    # Per WORKFLOW TYPE (specs, design, brainstorm)
+    by_workflow_type:
+      specs:
+        - product-manager
+        - business-analyst
+        - qa-lead
+      design:
+        - software-architect
+        - technical-lead
+        - devops-engineer
+      brainstorm:
+        - product-manager
+        - software-architect
+        - technical-lead
+        - devops-engineer
+
+  # === ESCALATION (global) ===
+  escalation:
+    enabled: true
+    triggers:
+      max_rounds_per_conflict: 3
+      confidence_below: 0.5
+      critical_keywords:
+        - security
+        - must-have
+        - blocking
+        - legal
+    presentation:
+      show_all_positions: true
+      show_rationale: true
+      facilitator_recommendation: true
+
+  # === SAFETY LIMITS ===
+  limits:
+    min_rounds: 3
+    max_rounds: 20
+    max_rounds_per_phase: 10
+
+# Documentation paths
+docs:
+  architecture: "docs/architecture"
+  specifications: "docs/specifications"
+  decisions: "docs/decisions"
+  guides: "docs/guides"
+
+# File naming
+naming:
+  timestamp_format: "YYYYMMDD-HHMMSS"
+  slug_max_length: 50

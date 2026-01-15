@@ -44,8 +44,14 @@ temp/
 
 # S2S local state (not part of plugin distribution)
 # When using s2s to develop s2s itself, these are generated files
-# The entire .s2s/ folder is local development state
 .s2s/
+
+# But track development artifacts for s2s itself
+!.s2s/BACKLOG.md
+!.s2s/CONTEXT.md
+!.s2s/config.yaml
+!.s2s/decisions/
+!.s2s/decisions/**
 
 # All docs/ content is public - no exclusions
 
