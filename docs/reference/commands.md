@@ -140,14 +140,6 @@ Start a standalone roundtable discussion.
 /s2s:roundtable "topic" [--strategy <name>] [--participants <list>] [--verbose] [--interactive]
 ```
 
-### `/s2s:session:list`
-
-List all roundtable sessions.
-
-```bash
-/s2s:session:list
-```
-
 ### `/s2s:roundtable --session`
 
 Resume an active roundtable session.

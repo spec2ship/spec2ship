@@ -73,6 +73,7 @@ metrics:
 | `/s2s:session:list` | List all sessions |
 | `/s2s:session:status [id]` | Detailed session info |
 | `/s2s:session:validate [id]` | Check session consistency |
+| `/s2s:session:close [id]` | Close a session |
 | `/s2s:session:cleanup` | Remove old sessions |
 
 ## Session Validation
