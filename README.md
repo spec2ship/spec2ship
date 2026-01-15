@@ -23,7 +23,7 @@ Spec2Ship automates software development workflows using Claude Code:
 - **Anti-Sycophancy**: Agents designed to disagree constructively
 - **Creative Brainstorming**: Disney strategy (Dreamer → Realist → Critic)
 - **Implementation Plans**: Structured plans with task tracking and git integration
-- **Session Persistence**: Pause and resume discussions
+- **Session Persistence**: Resume discussions anytime
 - **Standards-Based**: Templates based on arc42, ISO 25010, MADR
 
 ## Installation

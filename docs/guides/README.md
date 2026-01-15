@@ -10,7 +10,7 @@ Step-by-step guides for using Spec2Ship workflows.
 | [Design Workflow](./design-workflow.md) | Design architecture with `/s2s:design` |
 | [Brainstorm Workflow](./brainstorm-workflow.md) | Creative exploration with `/s2s:brainstorm` |
 | [Plan Workflow](./plan-workflow.md) | Create and execute implementation plans |
-| [Session Management](./session-management.md) | Pause, resume, and validate sessions |
+| [Session Management](./session-management.md) | Resume and validate sessions |
 
 ## Quick Reference
 
@@ -56,7 +56,7 @@ Step-by-step guides for using Spec2Ship workflows.
 Options when prompted:
 - **continue**: Proceed to next round
 - **skip**: Skip current topic
-- **pause**: Save and exit (resume later)
+- **exit**: Save and resume later
 
 ---
 

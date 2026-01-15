@@ -195,7 +195,7 @@ Deferred ideas: 1
 What would you like to do?
 › continue - Move to Critic phase
   more     - Another Realist round
-  pause    - Save and exit
+  exit     - Save and exit
 ```
 
 ## Tips for Better Results

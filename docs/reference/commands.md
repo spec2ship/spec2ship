@@ -108,9 +108,20 @@ Validate session consistency.
 - `structural` (default): Fast, deterministic checks
 - `deep`: Includes LLM-based semantic analysis
 
+### `/s2s:session:close [id]`
+
+Close a session.
+
+```bash
+/s2s:session:close
+/s2s:session:close 20260111-specs-my-project
+```
+
+Closes the specified session (or current active session if no id provided).
+
 ### `/s2s:session:cleanup`
 
-Remove old or abandoned sessions.
+Remove old sessions.
 
 ```bash
 /s2s:session:cleanup

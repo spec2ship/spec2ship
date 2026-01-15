@@ -14,6 +14,7 @@ Every roundtable discussion (specs, design, brainstorm) creates a session that p
 | `/s2s:session:list` | List all sessions |
 | `/s2s:session:status [id]` | Detailed session info |
 | `/s2s:session:validate [id]` | Check session consistency |
+| `/s2s:session:close [id]` | Close a session |
 | `/s2s:session:cleanup` | Remove old sessions |
 | `/s2s:roundtable --session` | Resume an active session |
 
@@ -40,7 +41,7 @@ Artifacts:
   Requirements: 5 (REQ-001 to REQ-005)
   Open Questions: 2 (OQ-001, OQ-002)
 
-Last Activity: 10 minutes ago
+Updated: 10 minutes ago
 ```
 
 ### All Sessions
@@ -110,6 +111,25 @@ When resuming, the session maintains:
 - Agenda progress
 - Strategy and phase
 
+## Closing Sessions
+
+Close a session when you're done with it:
+
+```bash
+/s2s:session:close
+```
+
+Or close a specific session:
+
+```bash
+/s2s:session:close <session-id>
+```
+
+Closing a session:
+- Marks it as `closed`
+- Adds a `closed_at` timestamp
+- Prevents further resumption
+
 ## Session Validation
 
 Validate sessions for consistency and completeness.
@@ -159,7 +179,7 @@ Overall: VALID (1 warning)
 
 ## Session Cleanup
 
-Remove old or abandoned sessions:
+Remove old sessions:
 
 ```bash
 /s2s:session:cleanup

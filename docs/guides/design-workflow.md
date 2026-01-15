@@ -163,7 +163,7 @@ Emerging consensus: Modular monolith
 What would you like to do?
 › continue - Proceed to closing arguments
   skip     - Skip to next topic
-  pause    - Save and exit
+  exit     - Save and exit
 ```
 
 ## Handling Conflicts

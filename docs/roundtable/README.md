@@ -11,7 +11,7 @@ Roundtable enables AI agents with different perspectives to discuss topics, iden
 - **Multiple Strategies**: Standard, Disney, Debate, Consensus-Driven, Six Hats
 - **12 Participant Agents**: Domain experts with anti-sycophancy measures
 - **Blind Voting**: Parallel execution prevents agents seeing each other's responses
-- **Session Persistence**: Pause and resume discussions
+- **Session Persistence**: Resume discussions anytime
 - **Agent Resume**: Continuity across rounds with context reconciliation
 - **Diagnostic Mode**: Built-in validation and anomaly detection
 
@@ -36,7 +36,7 @@ Roundtable enables AI agents with different perspectives to discuss topics, iden
 | Flag | Description |
 |------|-------------|
 | `--verbose` | Include full participant responses in session file |
-| `--interactive` | Ask user after each round: continue/skip/pause |
+| `--interactive` | Ask user after each round: continue/skip/exit |
 | `--diagnostic` | Enable debugging and anomaly detection |
 | `--strategy` | Override strategy (standard/disney/debate/consensus-driven/six-hats) |
 | `--participants` | Override default participants |

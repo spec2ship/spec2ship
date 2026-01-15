@@ -471,7 +471,7 @@ Next: {next_focus or "Conclusion pending"}
 - Use AskUserQuestion:
   - "Continue to next round"
   - "Skip to conclusion"
-  - "Pause session"
+  - "Exit (resume later)"
 
 **IF interactive_flag == false**:
 - Proceed automatically

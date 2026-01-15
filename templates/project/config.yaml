@@ -15,7 +15,7 @@ git:
 roundtable:
   # === EXECUTION SETTINGS ===
   verbose: false          # Include full participant responses in session file
-  interactive: false      # Ask user after each round (pause/continue/skip)
+  interactive: false      # Ask user after each round (continue/skip/exit)
 
   # === STRATEGY ===
   # Loads facilitation method from skills/roundtable-strategies/

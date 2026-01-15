@@ -1367,7 +1367,7 @@ Show synthesis, new artifacts, resolved conflicts, agenda status.
 
 #### Step 2.8: Handle Interactive Mode
 
-**IF interactive_flag == true**: Ask user to continue, skip, or pause.
+**IF interactive_flag == true**: Ask user to continue, skip, or exit.
 **IF interactive_flag == false**: Proceed automatically.
 
 #### Step 2.9: Evaluate Next Action

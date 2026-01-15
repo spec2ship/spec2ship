@@ -66,8 +66,8 @@ If S2S initialized is "NOT_S2S":
     Timing
     ─────────────────────────────────────
     Started:      {timing.started_at}
-    Last Activity: {timing.updated_at}
-    Completed:    {timing.closed_at or "In progress"}
+    Updated:      {timing.updated_at}
+    Closed:       {timing.closed_at or "In progress"}
     Duration:     {calculated}
 
     Agent State
@@ -117,7 +117,7 @@ If S2S initialized is "NOT_S2S":
     Commands
     ─────────────────────────────────────
       /s2s:session:validate {id}  - Check consistency
-      /s2s:session:close      - Continue discussion
+      /s2s:session:close      - Close this session
 
 ---
 

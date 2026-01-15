@@ -124,7 +124,7 @@ Consensus: 85%
 What would you like to do?
 › continue - Proceed to next round
   skip     - Skip to next topic
-  pause    - Save and exit
+  exit     - Save and exit
 ```
 
 ## Handling Conflicts
@@ -148,7 +148,7 @@ When participants disagree:
 
 1. **Use interactive mode** for important projects
 2. **Skip topics** you've already covered elsewhere
-3. **Pause if needed** - sessions can be resumed
+3. **Stop when needed** - sessions can be resumed
 
 ### After Completion
 

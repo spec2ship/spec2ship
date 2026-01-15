@@ -216,7 +216,7 @@ Structure conditional instructions clearly.
   Override to "continue" (minimum rounds not met)
 
 **IF** interactive_flag == true:
-  Ask user to continue, skip, or pause
+  Ask user to continue, skip, or exit
 **ELSE**:
   Proceed automatically
 ```

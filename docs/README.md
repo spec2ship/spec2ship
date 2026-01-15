@@ -73,7 +73,7 @@ Spec2Ship is a Claude Code plugin that automates the software development lifecy
 
 - **AI Roundtables**: Multiple AI agents discuss and debate to produce better outcomes
 - **Anti-Sycophancy**: Agents are designed to disagree constructively
-- **Session Persistence**: Pause and resume discussions
+- **Session Persistence**: Resume discussions anytime
 - **Multiple Strategies**: Disney (creative), Debate, Consensus-Driven, Six Hats
 - **Extensible**: Add custom agents, skills, and strategies
 

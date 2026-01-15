@@ -1351,7 +1351,7 @@ Show synthesis, new artifacts, phase progress.
 
 #### Step 2.8: Handle Interactive Mode
 
-**IF interactive_flag == true**: Ask user to continue, skip phase, or pause.
+**IF interactive_flag == true**: Ask user to continue, skip phase, or exit.
 **IF interactive_flag == false**: Proceed automatically.
 
 #### Step 2.9: Evaluate Next Action (CRITICAL)
