@@ -260,16 +260,14 @@ Store all answers as **Context**.
 ```bash
 mkdir -p .s2s/plans
 mkdir -p .s2s/sessions
+mkdir -p .s2s/decisions
 mkdir -p .claude
-mkdir -p docs/architecture
-mkdir -p docs/specifications
-mkdir -p docs/decisions
-mkdir -p docs/guides
 ```
 
 **Component:**
 ```bash
 mkdir -p .s2s/plans
+mkdir -p .s2s/decisions
 mkdir -p .claude
 ```
 
@@ -346,13 +344,6 @@ roundtable:
     min_rounds: 3
     max_rounds: 20
     max_rounds_per_phase: 10
-
-# Documentation paths
-docs:
-  architecture: "docs/architecture"
-  specifications: "docs/specifications"
-  decisions: "docs/decisions"
-  guides: "docs/guides"
 
 # File naming
 naming:
@@ -457,33 +448,57 @@ Write `.claude/CLAUDE.md` with project-specific content:
 
 **Note**: The `@../.s2s/CONTEXT.md` directive automatically includes CONTEXT.md content in Claude's memory. User can add custom directives (code style, testing requirements, etc.) after the generated content.
 
-### 5.6 Generate docs/ Starter Files (standalone/workspace only)
+### 5.6 Generate BACKLOG.md
 
-**docs/architecture/README.md:**
+Write `.s2s/BACKLOG.md`:
+
 ```markdown
-# Architecture
+# {project-name} Backlog
 
-This folder contains architecture documentation.
+**Updated**: {ISO date}
+**Format**: Single markdown file for tracking work items
 
-Run `/s2s:design` to generate architecture documentation.
-```
+---
 
-**docs/specifications/requirements.md:**
-```markdown
-# Requirements
+## ID Conventions
 
-This file will contain project requirements.
+| Prefix | Category | Example |
+|--------|----------|---------|
+| FEAT | Features | FEAT-001 |
+| BUG | Bug fixes | BUG-001 |
+| TECH | Technical tasks | TECH-001 |
+| DEBT | Technical debt | DEBT-001 |
 
-Run `/s2s:specs` to generate requirements documentation.
-```
+**Status values**: `draft` | `planned` | `in_progress` | `blocked` | `completed`
 
-**docs/decisions/README.md:**
-```markdown
-# Architecture Decision Records
+---
 
-This folder contains ADRs (Architecture Decision Records).
+## Planned
 
-Decisions will be added during `/s2s:design` sessions.
+<!-- Add items here using the format below -->
+<!--
+### FEAT-001: Feature Title
+
+**Status**: planned | **Created**: {date}
+
+**Context**: Description of the feature or task.
+
+**Acceptance Criteria**:
+- [ ] Criterion 1
+- [ ] Criterion 2
+-->
+
+---
+
+## In Progress
+
+<!-- Move items here when work begins -->
+
+---
+
+## Completed
+
+<!-- Move items here when done -->
 ```
 
 ---
@@ -529,9 +544,11 @@ Scope: {Context.scope_type}
 Created:
 - .s2s/config.yaml
 - .s2s/CONTEXT.md
+- .s2s/BACKLOG.md
 - .s2s/sessions/
+- .s2s/plans/
+- .s2s/decisions/
 - .claude/CLAUDE.md (with @../.s2s/CONTEXT.md reference)
-- docs/ structure
 
 What's next?
 
