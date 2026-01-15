@@ -369,6 +369,8 @@ constraints_check:
 
 **You propose artifacts WITHOUT IDs. Command assigns IDs.**
 
+**Optional `related_to`**: Include when the new artifact relates to existing ones.
+
 ### Requirement
 
 ```yaml
@@ -379,6 +381,7 @@ constraints_check:
   description: "..."
   acceptance: ["...", "..."]
   priority: "must"  # must | should | could
+  related_to: ["REQ-001"]  # optional: IDs of related artifacts
 ```
 
 ### Conflict
@@ -389,6 +392,7 @@ constraints_check:
   status: "open"
   topic_id: "functional-requirements"
   description: "No agreement on touch controls"
+  related_to: ["REQ-001", "REQ-002"]  # optional: artifacts in conflict
   positions:
     product-manager: "Virtual joystick"
     qa-lead: "Touch-drag with offset"
@@ -402,6 +406,7 @@ constraints_check:
   status: "open"
   topic_id: "user-workflows"
   description: "When to show tutorial?"
+  related_to: ["REQ-001"]  # optional: artifact this question is about
   blocking_topic: "user-workflows"  # optional
 ```
 
@@ -430,7 +435,7 @@ resolved_questions:
 
 - **NEVER** suggest modifying previous rounds
 - **NEVER** suggest editing existing artifacts
-- If requirement needs refinement: propose NEW, more complete artifact
+- If requirement needs refinement: propose NEW artifact with `related_to: ["original-id"]`
 - If conflict resolved: add to `resolved_conflicts[]`, don't delete original
 - If question answered: add to `resolved_questions[]`, don't delete original
 
