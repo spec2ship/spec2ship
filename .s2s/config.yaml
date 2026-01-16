@@ -17,14 +17,14 @@ roundtable:
   interactive: false       # Pause after each round for user input
 
   # === STRATEGY ===
-  # Global default (used by /s2s:roundtable)
-  strategy: "standard"
+  # Facilitation method from skills/roundtable-strategies/
+  strategy:
+    default: "standard"            # Used by /s2s:roundtable when no workflow
 
-  # Per-workflow strategy (overrides global default)
-  strategy_by_workflow:
-    specs: "consensus-driven"      # Best for requirements agreement
-    design: "debate"               # Best for evaluating architectural options
-    brainstorm: "disney"           # Best for creative ideation
+    by_workflow_type:
+      specs: "consensus-driven"    # Best for requirements agreement
+      design: "debate"             # Best for evaluating architectural options
+      brainstorm: "disney"         # Best for creative ideation
 
   # === PARTICIPANTS ===
   participants:

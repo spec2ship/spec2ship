@@ -123,7 +123,8 @@ If no topic provided and not resuming, ask using AskUserQuestion.
 ## Load configuration
 
 Read `.s2s/config.yaml` and extract:
-- Default strategy: `roundtable.strategy`
+- Default strategy: `roundtable.strategy.default`
+- Workflow strategy: `roundtable.strategy.by_workflow_type[workflow_type]` (if workflow_type specified)
 - Default participants: `roundtable.participants.by_workflow_type[workflow_type]`
 - Escalation settings: `roundtable.escalation`
 - Max rounds per conflict: `roundtable.escalation.triggers.max_rounds_per_conflict` (default: 3)

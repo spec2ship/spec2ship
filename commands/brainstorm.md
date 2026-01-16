@@ -1,7 +1,7 @@
 ---
 description: Creative brainstorming session using the Disney strategy (Dreamer → Realist → Critic). Use for ideation and exploring new ideas without constraints. Auto-detects active sessions.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Bash(grep:*), Read, Write, Edit, Glob, Task, AskUserQuestion
-argument-hint: "topic" [--participants <list>] [--verbose] [--interactive] [--diagnostic] [--new] [--session <id>]
+argument-hint: "topic" [--strategy disney|six-hats|standard] [--participants <list>] [--verbose] [--interactive] [--diagnostic] [--new] [--session <id>]
 skills: roundtable-execution, roundtable-strategies
 ---
 
@@ -100,6 +100,7 @@ Which would you like to continue?
 
 Extract from $ARGUMENTS:
 - **topic**: Required (unless resuming). The subject for brainstorming (first quoted argument)
+- **--strategy**: Override strategy (optional)
 - **--participants**: Optional. Comma-separated list to override defaults
 
 **Boolean flags**: `--verbose`, `--interactive`, and `--diagnostic` → parse as `true` if present, `false` if absent.
@@ -108,6 +109,18 @@ Extract from $ARGUMENTS:
 
 If topic is missing, ask using AskUserQuestion:
 - "What would you like to brainstorm?"
+
+### Determine strategy
+
+Read `.s2s/config.yaml` and determine the strategy to use:
+
+1. **IF --strategy argument provided**: Use that value
+2. **ELSE**: Read `roundtable.strategy.by_workflow_type.brainstorm` from config
+3. **FALLBACK**: If not found, read `roundtable.strategy.default` from config
+
+Store as **strategy_to_use** and use this value throughout the command.
+
+**Note**: Brainstorm is optimized for Disney strategy (Dreamer → Realist → Critic phases). Other strategies will work but without phase-based structure.
 
 ### Validate Environment
 
@@ -185,7 +198,7 @@ source: ".s2s/config.yaml"
 verbose: {verbose_flag}
 interactive: {interactive_flag}
 diagnostic: {diagnostic_flag}
-strategy: "disney"
+strategy: "{strategy_to_use}"
 limits:
   min_rounds: {from config: roundtable.limits.min_rounds, default: 3}
   max_rounds: {from config: roundtable.limits.max_rounds, default: 20}
@@ -213,7 +226,7 @@ participants:
 id: "{session-id}"
 topic: "{topic}"
 workflow_type: "brainstorm"
-strategy: "disney"
+strategy: "{strategy_to_use}"
 status: "active"
 
 timing:
@@ -296,7 +309,7 @@ Initialize:
 ```
 ═══════════════════════════════════════════════════════════════
 BRAINSTORM: {topic}
-Strategy: Disney | Phase: {current_phase} | Round: {round_number + 1}
+Strategy: {strategy_to_use} | Phase: {current_phase} | Round: {round_number + 1}
 ═══════════════════════════════════════════════════════════════
 
 {if current_phase == "dreamer"}
@@ -327,7 +340,7 @@ action: "question"
 round: {round_number + 1}
 resume: true
 topic: "{brainstorm topic}"
-strategy: "disney"
+strategy: "{strategy_to_use}"
 phase: "{current_phase}"  # dreamer | realist | critic
 workflow_type: "brainstorm"
 
@@ -395,7 +408,7 @@ participants:
 action: "question"
 round: {round_number + 1}
 topic: "{brainstorm topic}"
-strategy: "disney"
+strategy: "{strategy_to_use}"
 phase: "{current_phase}"  # dreamer | realist | critic
 workflow_type: "brainstorm"
 
@@ -791,7 +804,7 @@ action: "synthesis"
 round: {round_number + 1}
 resume: true
 topic: "{brainstorm topic}"
-strategy: "disney"
+strategy: "{strategy_to_use}"
 phase: "{current_phase}"  # dreamer | realist | critic
 
 escalation_config:
@@ -866,7 +879,7 @@ artifacts_count: {current count}
 action: "synthesis"
 round: {round_number + 1}
 topic: "{brainstorm topic}"
-strategy: "disney"
+strategy: "{strategy_to_use}"
 phase: "{current_phase}"  # dreamer | realist | critic
 
 escalation_config:
@@ -1302,7 +1315,7 @@ mode: "per-round"
 session_path: ".s2s/sessions/{session-id}"
 round: {round_number + 1}
 workflow_type: "brainstorm"
-strategy: "disney"
+strategy: "{strategy_to_use}"
 ```
 
 The observer will return:
@@ -1384,7 +1397,7 @@ Then evaluate based on `next`:
 mode: "end-session"
 session_path: ".s2s/sessions/{session-id}"
 workflow_type: "brainstorm"
-strategy: "disney"
+strategy: "{strategy_to_use}"
 ```
 
 The observer will return a final diagnostic summary.
@@ -1395,7 +1408,7 @@ The observer will return a final diagnostic summary.
 ║                    DIAGNOSTIC REPORT                        ║
 ╠════════════════════════════════════════════════════════════╣
 ║ Session: {session-id}                                       ║
-║ Workflow: brainstorm | Strategy: disney | Rounds: {N}       ║
+║ Workflow: brainstorm | Strategy: {strategy_to_use} | Rounds: {N} ║
 ╠════════════════════════════════════════════════════════════╣
 {for each round's diagnostic result}
 ║ Round {N}: {status} {findings count if > 0}                ║

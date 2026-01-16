@@ -1,7 +1,7 @@
 ---
 description: Define functional requirements through a roundtable discussion. Reads CONTEXT.md and produces structured requirements.md. Auto-detects active sessions.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Bash(grep:*), Read, Write, Edit, Glob, Task, AskUserQuestion
-argument-hint: [--skip-roundtable] [--format srs|volere|simple] [--strategy standard|disney|consensus-driven] [--verbose] [--interactive] [--diagnostic] [--new] [--session <id>]
+argument-hint: [--skip-roundtable] [--format srs|volere|simple] [--strategy consensus-driven|standard|six-hats] [--verbose] [--interactive] [--diagnostic] [--new] [--session <id>]
 skills: roundtable-execution, roundtable-strategies, iso25010-requirements
 ---
 
@@ -121,11 +121,21 @@ If `.s2s/requirements.md` exists and has content:
 Extract from $ARGUMENTS:
 - **--skip-roundtable**: Skip discussion, generate from CONTEXT.md directly
 - **--format**: Document format (srs|volere|simple). Default: srs
-- **--strategy**: Override strategy for roundtable. Default: consensus-driven
+- **--strategy**: Override strategy (optional)
 
 **Boolean flags**: `--verbose`, `--interactive`, and `--diagnostic` → parse as `true` if present, `false` if absent.
 
 **IF --diagnostic is true**: Force `verbose_flag = true` (diagnostic mode requires verbose dumps for analysis).
+
+### Determine strategy
+
+Read `.s2s/config.yaml` and determine the strategy to use:
+
+1. **IF --strategy argument provided**: Use that value
+2. **ELSE**: Read `roundtable.strategy.by_workflow_type.specs` from config
+3. **FALLBACK**: If not found, read `roundtable.strategy.default` from config
+
+Store as **strategy_to_use** and use this value throughout the command.
 
 ### Display context summary
 
@@ -200,7 +210,7 @@ source: ".s2s/config.yaml"
 verbose: {verbose_flag}
 interactive: {interactive_flag}
 diagnostic: {diagnostic_flag}
-strategy: "{strategy or consensus-driven}"
+strategy: "{strategy_to_use}"
 limits:
   min_rounds: {from config: roundtable.limits.min_rounds, default: 3}
   max_rounds: {from config: roundtable.limits.max_rounds, default: 20}
@@ -248,7 +258,7 @@ topics:
 id: "{session-id}"
 topic: "Requirements definition for {project name}"
 workflow_type: "specs"
-strategy: "{strategy}"
+strategy: "{strategy_to_use}"
 status: "active"
 
 timing:
@@ -352,7 +362,7 @@ action: "question"
 round: {round_number + 1}
 resume: true
 topic: "Requirements definition for {project name}"
-strategy: "{strategy from config}"
+strategy: "{strategy_to_use}"
 phase: "requirements"
 workflow_type: "specs"
 
@@ -416,7 +426,7 @@ participants:
 action: "question"
 round: {round_number + 1}
 topic: "Requirements definition for {project name}"
-strategy: "{strategy from config, e.g. consensus-driven}"
+strategy: "{strategy_to_use}"
 phase: "requirements"
 workflow_type: "specs"
 
@@ -813,7 +823,7 @@ action: "synthesis"
 round: {round_number + 1}
 resume: true
 topic: "Requirements definition for {project name}"
-strategy: "{strategy}"
+strategy: "{strategy_to_use}"
 phase: "requirements"
 
 escalation_config:
@@ -890,7 +900,7 @@ artifacts_count: {current count from metrics}
 action: "synthesis"
 round: {round_number + 1}
 topic: "Requirements definition for {project name}"
-strategy: "{strategy}"
+strategy: "{strategy_to_use}"
 phase: "requirements"
 
 escalation_config:
@@ -1354,7 +1364,7 @@ mode: "per-round"
 session_path: ".s2s/sessions/{session-id}"
 round: {round_number + 1}
 workflow_type: "specs"
-strategy: "{strategy}"
+strategy: "{strategy_to_use}"
 ```
 
 The observer will return:
@@ -1410,7 +1420,7 @@ Show synthesis, new artifacts, resolved conflicts, agenda status.
 mode: "end-session"
 session_path: ".s2s/sessions/{session-id}"
 workflow_type: "specs"
-strategy: "{strategy}"
+strategy: "{strategy_to_use}"
 ```
 
 The observer will return a final diagnostic summary.
@@ -1421,7 +1431,7 @@ The observer will return a final diagnostic summary.
 ║                    DIAGNOSTIC REPORT                        ║
 ╠════════════════════════════════════════════════════════════╣
 ║ Session: {session-id}                                       ║
-║ Workflow: specs | Strategy: {strategy} | Rounds: {N}        ║
+║ Workflow: specs | Strategy: {strategy_to_use} | Rounds: {N}  ║
 ╠════════════════════════════════════════════════════════════╣
 {for each round's diagnostic result}
 ║ Round {N}: {status} {findings count if > 0}                ║
