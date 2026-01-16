@@ -31,10 +31,12 @@ roundtable:
     by_workflow_type:
       specs:
         - product-manager
+        - ux-researcher
         - business-analyst
         - qa-lead
       design:
         - software-architect
+        - security-champion
         - technical-lead
         - devops-engineer
       brainstorm:
