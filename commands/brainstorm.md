@@ -116,7 +116,7 @@ Read `.s2s/config.yaml` and determine the strategy to use:
 
 1. **IF --strategy argument provided**: Use that value
 2. **ELSE**: Read `roundtable.strategy.by_workflow_type.brainstorm` from config
-3. **FALLBACK**: If not found, read `roundtable.strategy.default` from config
+3. **FALLBACK**: If not found in config, use `"disney"`
 
 Store as **strategy_to_use** and use this value throughout the command.
 
