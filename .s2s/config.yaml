@@ -5,7 +5,7 @@ name: "spec2ship"
 type: "standalone"
 version: "0.1.0"
 
-# Git workflow configuration
+# Git workflow
 git:
   branch_convention: "feature/F{id}-{slug}"
   commit_convention: "conventional"
@@ -13,45 +13,49 @@ git:
 
 # Roundtable configuration
 roundtable:
-  # === EXECUTION SETTINGS ===
-  verbose: false          # Include full participant responses in session file
-  interactive: false      # Ask user after each round (pause/continue/skip)
+  verbose: false           # Save full responses in session file
+  interactive: false       # Pause after each round for user input
 
   # === STRATEGY ===
-  # Loads facilitation method from skills/roundtable-strategies/
-  strategy: "standard"  # standard | disney | debate | consensus-driven | six-hats
+  # Global default (used by /s2s:roundtable)
+  strategy: "standard"
+
+  # Per-workflow strategy (overrides global default)
+  strategy_by_workflow:
+    specs: "consensus-driven"      # Best for requirements agreement
+    design: "debate"               # Best for evaluating architectural options
+    brainstorm: "disney"           # Best for creative ideation
 
   # === PARTICIPANTS ===
   participants:
     default:
-      - software-architect
-      - technical-lead
+      - software-architect         # System design, patterns, scalability
+      - technical-lead             # Implementation feasibility, code quality
 
-    # Per WORKFLOW TYPE (specs, design, brainstorm)
     by_workflow_type:
       specs:
-        - product-manager
-        - ux-researcher
-        - business-analyst
-        - qa-lead
+        - product-manager          # User value, priorities, scope
+        - ux-researcher            # User needs, accessibility, experience
+        - business-analyst         # Requirements clarity, domain rules
+        - qa-lead                  # Testability, edge cases, acceptance
       design:
-        - software-architect
-        - security-champion
-        - technical-lead
-        - devops-engineer
+        - software-architect       # System structure, patterns, trade-offs
+        - security-champion        # Threat modeling, secure design, OWASP
+        - technical-lead           # Code quality, effort, maintainability
+        - devops-engineer          # Deployment, scalability, monitoring
       brainstorm:
-        - product-manager
-        - software-architect
-        - technical-lead
-        - devops-engineer
+        - product-manager          # User value, market fit
+        - software-architect       # Technical feasibility
+        - technical-lead           # Implementation complexity
+        - devops-engineer          # Infrastructure considerations
 
-  # === ESCALATION (global) ===
+  # === ESCALATION ===
   escalation:
     enabled: true
     triggers:
-      max_rounds_per_conflict: 3
-      confidence_below: 0.5
-      critical_keywords:
+      max_rounds_per_conflict: 3   # Escalate if conflict persists
+      confidence_below: 0.5        # Escalate if confidence drops
+      critical_keywords:           # Escalate if detected
         - security
         - must-have
         - blocking
@@ -61,18 +65,11 @@ roundtable:
       show_rationale: true
       facilitator_recommendation: true
 
-  # === SAFETY LIMITS ===
+  # === LIMITS ===
   limits:
-    min_rounds: 3
-    max_rounds: 20
-    max_rounds_per_phase: 10
-
-# Documentation paths
-docs:
-  architecture: "docs/architecture"
-  specifications: "docs/specifications"
-  decisions: "docs/decisions"
-  guides: "docs/guides"
+    min_rounds: 3                  # Minimum before allowing conclusion
+    max_rounds: 20                 # Force conclude after this
+    max_rounds_per_phase: 10       # Force phase advance after this
 
 # File naming
 naming:

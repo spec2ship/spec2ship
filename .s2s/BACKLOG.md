@@ -349,6 +349,15 @@ New approach: Single `/s2s:export` command that handles all artifact types.
 - [ ] Overwrite/merge prompt for existing files
 - [ ] Format conversion optional (ieee830, arc42)
 
+**Design Considerations** (2026-01-16):
+- **No `docs:` in config for now** - output paths will be determined at export time, not init time
+- **Project may have existing structure** - don't assume `docs/` exists or is the right place
+- **Possible approaches**:
+  1. First export asks for target path, stores in config for subsequent exports
+  2. Use documentation-specialist agent in 1-on-1 or roundtable to analyze project structure and propose organization
+  3. Detect existing doc structure (`docs/`, `documentation/`, `wiki/`, etc.) and adapt
+- **Config section `docs:` will be added by export command** when user confirms paths, not by init
+
 ---
 
 ### MISC-002: Rules Folder Best Practices
