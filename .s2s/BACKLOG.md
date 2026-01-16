@@ -166,21 +166,23 @@
 
 ### DEBT-001: Config Values Hardcoded in Commands
 
-**Status**: planned | **Created**: 2026-01-15
+**Status**: completed | **Created**: 2026-01-15 | **Completed**: 2026-01-16
 
-**Context**: Config values are hardcoded in commands instead of being read from config.yaml:
-- `min_rounds: 3` repeated 12+ times
-- `max_rounds: 20` hardcoded
-- `confidence_below: 0.5` hardcoded
+**Context**: Config values were hardcoded with inline defaults in commands:
+- `{from config: X, default: 3}` repeated across files
+- Potential for inconsistency if defaults changed
 
-**Solution**: Read from config.yaml and pass via config-snapshot.yaml.
+**Solution Implemented**:
+- Removed inline ", default: X" from config-snapshot.yaml generation
+- Changed `(default: 3)` to `(from config)` in enforcement sections
+- Config.yaml (from init) is now single source of truth for defaults
 
-**Files**: specs.md, design.md, brainstorm.md, roundtable.md
+**Files Modified**: specs.md, design.md, brainstorm.md, roundtable.md
 
 **Acceptance Criteria**:
-- [ ] Values read from config.yaml
-- [ ] Defaults only in config template
-- [ ] config-snapshot.yaml passes actual values
+- [x] Values read from config.yaml (no inline defaults)
+- [x] Defaults only in config template (init.md)
+- [x] config-snapshot.yaml passes actual values
 
 ---
 
@@ -507,6 +509,7 @@ _Unstructured ideas and observations for future consideration._
 
 | ID | Description | Completed | Notes |
 |----|-------------|-----------|-------|
+| DEBT-001 | Config values hardcoded in commands | 2026-01-16 | Removed inline defaults |
 | CLEAN-001 | Remove ARCH-001 residual files | 2026-01-16 | Already done, verified |
 | BACK-001 | Backlog file creation in init | 2026-01-16 | Template + CONTEXT.md updated |
 | PATH-001 | Consolidate output to .s2s with dual-path reading | 2026-01-15 | Commit 036e6e7 |

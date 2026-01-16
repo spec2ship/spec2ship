@@ -127,7 +127,7 @@ Read `.s2s/config.yaml` and extract:
 - Workflow strategy: `roundtable.strategy.by_workflow_type[workflow_type]` (if workflow_type specified)
 - Default participants: `roundtable.participants.by_workflow_type[workflow_type]`
 - Escalation settings: `roundtable.escalation`
-- Max rounds per conflict: `roundtable.escalation.triggers.max_rounds_per_conflict` (default: 3)
+- Max rounds per conflict: `roundtable.escalation.triggers.max_rounds_per_conflict`
 
 ## Auto-detect strategy (if not specified)
 

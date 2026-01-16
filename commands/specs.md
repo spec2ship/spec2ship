@@ -212,12 +212,12 @@ interactive: {interactive_flag}
 diagnostic: {diagnostic_flag}
 strategy: "{strategy_to_use}"
 limits:
-  min_rounds: {from config: roundtable.limits.min_rounds, default: 3}
-  max_rounds: {from config: roundtable.limits.max_rounds, default: 20}
+  min_rounds: {from config: roundtable.limits.min_rounds}
+  max_rounds: {from config: roundtable.limits.max_rounds}
 escalation:
-  max_rounds_per_conflict: {from config: roundtable.escalation.triggers.max_rounds_per_conflict, default: 3}
-  confidence_below: {from config: roundtable.escalation.triggers.confidence_below, default: 0.5}
-  critical_keywords: {from config: roundtable.escalation.triggers.critical_keywords, default: ["security", "must-have", "blocking", "legal"]}
+  max_rounds_per_conflict: {from config: roundtable.escalation.triggers.max_rounds_per_conflict}
+  confidence_below: {from config: roundtable.escalation.triggers.confidence_below}
+  critical_keywords: {from config: roundtable.escalation.triggers.critical_keywords}
 participants:
   - "product-manager"
   - "ux-researcher"
