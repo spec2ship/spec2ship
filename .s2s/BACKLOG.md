@@ -184,21 +184,6 @@
 
 ---
 
-### CLEAN-001: Remove ARCH-001 Residual Files
-
-**Status**: planned | **Created**: 2026-01-15
-
-**Context**: ARCH-001 refactoring left residual files that should be deleted:
-- `.s2s/state.yaml` - no longer used
-- `.s2s/specs/sessions/` - old structure, replaced by `.s2s/sessions/`
-
-**Acceptance Criteria**:
-- [ ] state.yaml deleted
-- [ ] Old session folders removed or migrated
-- [ ] No references to old paths
-
----
-
 ### EXT-001: Custom Agents in Project .claude/
 
 **Status**: draft | **Created**: 2026-01-11
@@ -522,6 +507,7 @@ _Unstructured ideas and observations for future consideration._
 
 | ID | Description | Completed | Notes |
 |----|-------------|-----------|-------|
+| CLEAN-001 | Remove ARCH-001 residual files | 2026-01-16 | Already done, verified |
 | BACK-001 | Backlog file creation in init | 2026-01-16 | Template + CONTEXT.md updated |
 | PATH-001 | Consolidate output to .s2s with dual-path reading | 2026-01-15 | Commit 036e6e7 |
 | ARCH-001 | Session management simplification | 2026-01-15 | 7 commits, ADR-0007 |
