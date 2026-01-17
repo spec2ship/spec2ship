@@ -517,11 +517,24 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/project/config.yaml`
 
 ### Template Placeholder Conventions
 
-| Placeholder | Used In | Replaced With |
-|-------------|---------|---------------|
-| `{project-name}` | config.yaml, BACKLOG.md | Detected or user-provided project name |
-| `{date}` | CONTEXT.md, BACKLOG.md | Current ISO date |
-| `{description}` | Various | User-provided or detected description |
+**Placeholder formats** (in order of preference):
+
+| Format | Use Case | Example |
+|--------|----------|---------|
+| `{placeholder-name}` | Simple values | `{project-name}`, `{date}` |
+| `{opt1 \| opt2 \| opt3}` | Finite choices | `{standalone \| workspace \| component}` |
+| `{description - hint}` | Self-documenting | `{Project description - run /s2s:init to populate}` |
+
+**Why this pattern**:
+1. All placeholders start with `{` and end with `}` - easy regex: `\{[^}]+\}`
+2. LLM can identify ALL placeholders by pattern matching
+3. `|` separator indicates valid options (LLM knows allowed values)
+4. Hint text helps LLM understand intent without reading command
+
+**Anti-patterns to avoid**:
+- Fixed values like `"standalone"` - LLM may not know to replace
+- Pseudo-code like `{Context.X}` - confuses (looks like code, not placeholder)
+- Nested braces `{{...}}` - harder to parse
 
 **Verified in**: TEMPL-001 test (2026-01-17)
 

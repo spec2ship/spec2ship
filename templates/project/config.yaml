@@ -2,7 +2,7 @@
 # This file is created by /s2s:init
 
 name: "{project-name}"
-type: "standalone"
+type: "{standalone | workspace | component}"
 version: "0.1.0"
 
 # Git workflow

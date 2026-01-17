@@ -336,7 +336,7 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/project/config.yaml`
 
 **Replace placeholders**:
 - `{project-name}` → `{Detected.project.name or Context.name}`
-- `"standalone"` (on the `type:` line) → `"{mode}"` (standalone | workspace | component)
+- `{standalone | workspace | component}` → `{mode}` (the actual mode value)
 
 **Write**: Save the modified content to `.s2s/config.yaml`
 
