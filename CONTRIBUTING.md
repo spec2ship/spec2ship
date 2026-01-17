@@ -92,11 +92,10 @@ spec2ship/
 ├── agents/                   # AI agents (roundtable, exploration, validation)
 ├── skills/                   # Knowledge bases
 ├── templates/                # File templates
-├── docs/                     # Documentation
+├── docs/                     # Documentation (for humans)
 │   ├── architecture/         # Architecture docs and ADRs
-│   ├── guides/               # User guides
-│   ├── reference/            # Command reference
-│   └── extending/            # Extension guides
+│   ├── concepts/             # Core concept explanations
+│   └── roundtable/           # Roundtable system docs
 └── examples/                 # Sample outputs
 ```
 
@@ -220,9 +219,11 @@ git commit -m "docs(roundtable): update architecture diagram"
 
 ### Feature Contributions
 
-- New agents — see [Extending: New Agent](docs/extending/new-agent.md)
-- New skills — see [Extending: New Skill](docs/extending/new-skill.md)
-- New strategies — see [Extending: New Strategy](docs/extending/new-strategy.md)
+For extension guides, ask Claude: "how to extend s2s" (loads s2s-guide skill)
+
+- New agents
+- New skills
+- New strategies
 
 ### Core Contributions
 
@@ -251,4 +252,4 @@ git commit -m "docs(roundtable): update architecture diagram"
 
 ---
 
-*See also: [Architecture](docs/architecture/README.md) | [Extending](docs/extending/)*
+*See also: [Architecture](docs/architecture/README.md)*

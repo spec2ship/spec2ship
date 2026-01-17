@@ -77,16 +77,10 @@ Roundtable enables AI agents with different perspectives to discuss topics, iden
 ### Configuration
 
 - [Configuration Guide](./configuration.md) - Config options and defaults
-- [Glossary](./glossary.md) - Terminology definitions
 
 ### Strategies
 
 - [Strategy Overview](./strategies/overview.md) - All strategies compared
-
-### Architecture Details
-
-- [Flow Diagrams](./architecture/flow.md) - Detailed flow
-- [Components](./architecture/components.md) - Command vs Agent vs Skill
 
 ### Research
 

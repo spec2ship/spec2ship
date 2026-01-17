@@ -139,4 +139,4 @@ Each strategy skill defines:
 - Validation rules
 
 ---
-*See [Glossary](./glossary.md) for terminology definitions.*
+*For terminology, ask Claude: "what is a roundtable in s2s"*

@@ -152,10 +152,10 @@ The `/s2s:init` command is safe to re-run:
 
 - [Documentation Home](docs/README.md)
 - [Getting Started](docs/getting-started.md)
-- [Workflow Guides](docs/guides/README.md)
-- [Command Reference](docs/reference/commands.md)
+- [Concepts](docs/concepts/)
 - [Roundtable System](docs/roundtable/README.md)
-- [Extending Spec2Ship](docs/extending/README.md)
+
+For detailed guidance, ask Claude: "what commands does s2s have" or "how to extend s2s"
 
 ## License
 
