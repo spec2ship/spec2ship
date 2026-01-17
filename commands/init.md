@@ -1,7 +1,7 @@
 ---
 description: Initialize or update a Spec2Ship project. Analyzes existing structure, creates .s2s/ configuration, and gathers project context.
-allowed-tools: Bash(mkdir:*), Bash(git:*), Read, Write, Edit, Task, AskUserQuestion
-argument-hint: [--workspace | --component [path]] [--detect]
+allowed-tools: Bash(mkdir:*), Bash(git:*), Bash(ls:*), Read, Write, Edit, Task, AskUserQuestion
+argument-hint: [--workspace [--components "a,b,c"]] [--detect]
 ---
 
 # Initialize Spec2Ship Project
@@ -12,7 +12,9 @@ Orchestrates project initialization by delegating detection to an agent and hand
 - **(default)**: Full initialization - detect → interact → generate
 - **--detect**: Detection only - analyze project, report findings (read-only)
 - **--workspace**: Initialize as parent workspace
-- **--component [path]**: Initialize as component of existing workspace
+- **--workspace --components "a,b,c"**: Initialize workspace with specified components
+
+**Note**: Init is ALWAYS interactive. Detection guides the flow, but user confirms decisions.
 
 ---
 
@@ -21,8 +23,8 @@ Orchestrates project initialization by delegating detection to an agent and hand
 Parse $ARGUMENTS:
 - **--detect**: If present, run only Phase 1 and display report
 - **--workspace**: Set mode to "workspace"
-- **--component [path]**: Set mode to "component", extract workspace path
-- **(no flags)**: Set mode to "standalone"
+- **--workspace --components "a,b,c"**: Set mode to "workspace", store component list
+- **(no flags)**: Set mode to "auto-detect" (determined in Phase 3)
 
 ---
 
@@ -151,74 +153,193 @@ Next steps:
 
 ---
 
-## Phase 3: Validate Environment
+## Phase 3: Determine Mode
 
-### Git Check (standalone/workspace only)
+Determine the initialization mode based on detection results and user input.
 
-If **Detected.git.initialized** is false AND mode is not "component":
+### Scenario A: New Standalone Project
 
-Ask using AskUserQuestion:
-- "Initialize git repository?"
-- Options: "Yes, initialize git" / "No, continue without git"
+**Applies when:**
+- mode is "auto-detect"
+- Detected.s2s.initialized is false
+- Detected.workspace_context.parent_has_s2s is false
+- Detected.workspace_context.sibling_count < 3 (few subfolders)
 
-If yes: run `git init`
+**Action:**
+- Set mode to "standalone"
+- Continue to Phase 4
 
-### Workspace Relationship (standalone only)
+### Scenario B: New Workspace (explicit)
 
-If mode is "standalone":
+**Applies when:**
+- mode is "workspace" (--workspace flag)
 
-**Check if workspace context was detected:**
+**Action:**
+1. Check for git:
+   ```
+   If Detected.git.initialized is false:
+     Ask: "Initialize git repository?"
+     Options: "Yes, initialize git" / "No, continue without git"
+     If yes: run git init
+   ```
 
-If **Detected.workspace_context.suggested_mode** is NOT "standalone" AND NOT null:
+2. If --components was provided:
+   - Store component list for Phase 5
 
-Display detected workspace context:
-```
-Workspace structure detected:
-─────────────────────────────
-Parent folder git: {Detected.workspace_context.parent_has_git}
-Parent folder .s2s: {Detected.workspace_context.parent_has_s2s}
-Sibling folders: {Detected.workspace_context.sibling_count}
-Siblings with .s2s: {Detected.workspace_context.sibling_s2s_folders}
+3. If --components was NOT provided:
+   - Ask using AskUserQuestion:
+     "Do you want to create component folders now?"
+     Options:
+       - "Yes, let me specify components"
+       - "No, I'll add components later"
+   - If yes: ask for component names (comma-separated)
 
-Suggested configuration: {Detected.workspace_context.suggested_mode}
-```
+4. Set mode to "workspace"
+5. Continue to Phase 4
 
-**If Detected.workspace_context.warning is NOT null**:
-Display warning prominently:
-```
-⚠️ WARNING: {Detected.workspace_context.warning}
-```
+### Scenario C: New Workspace (detected)
 
-Ask using AskUserQuestion:
-- "This appears to be part of a workspace. How would you like to configure it?"
-- Options:
-  - "Option A: Per-component .s2s (each component has own .s2s, versioned separately)"
-  - "Option B: Single .s2s in parent (monorepo style, shared documentation)"
-  - "Option C: Sibling docs folder (separate docs repo alongside components)"
-  - "Option D: Hybrid (system-level docs + component-specific .s2s)"
-  - "Standalone (ignore workspace structure)"
+**Applies when:**
+- mode is "auto-detect"
+- Detected.s2s.initialized is false
+- Detected.workspace_context.sibling_count >= 3 (multiple subfolders)
+- OR Detected.workspace_context has complex project indicators (package.json with workspaces, nx.json)
 
-Based on selection:
-- **Option A**: Set mode to "standalone" (each component independent)
-- **Option B**: Set mode to "workspace", target parent folder
-- **Option C**: Ask for sibling docs folder name, set mode to "workspace"
-- **Option D**: Set mode to "hybrid" (generate both workspace.yaml and component.yaml)
-- **Standalone**: Continue as standalone
+**Action:**
+1. Display detection:
+   ```
+   Detected potential workspace structure:
+   ───────────────────────────────────────
+   Subfolders found: {list subfolder names}
+   Potential components: {Detected.workspace_context.potential_components}
+   ```
 
-**Else** (no workspace detected or suggested_mode is "standalone"):
+2. Ask using AskUserQuestion:
+   "Initialize as workspace?"
+   Options:
+     - "Yes, create workspace with detected components" (Recommended)
+     - "Yes, but let me choose which subfolders are components"
+     - "No, initialize as standalone project"
 
-Ask using AskUserQuestion:
-- "Is this project part of a workspace?"
-- Options: "No, standalone project" / "Yes, it's a component"
+3. Based on selection:
+   - **"Yes, detected"**: Set mode to "workspace", use detected components
+   - **"Yes, let me choose"**: Ask for component selection, set mode to "workspace"
+   - **"No, standalone"**: Set mode to "standalone"
 
-If component: ask for workspace path and switch mode to "component"
+4. Continue to Phase 4
 
-### Validate Component Workspace
+### Scenario D: Adding Component to Existing Workspace
 
-If mode is "component":
-- If workspace path not in $ARGUMENTS, ask for it
-- Read workspace path + `/.s2s/workspace.yaml`
-- If not found: error and ask for correct path
+**Applies when:**
+- mode is "auto-detect"
+- Detected.s2s.initialized is false
+- Detected.workspace_context.parent_has_s2s is true
+
+**Action:**
+1. Display detection:
+   ```
+   Detected workspace at: {Detected.workspace_context.parent_path}
+   Workspace name: {read from parent workspace.yaml}
+   ```
+
+2. Ask using AskUserQuestion:
+   "Initialize this folder as a component of that workspace?"
+   Options:
+     - "Yes, add as component" (Recommended)
+     - "No, initialize as standalone"
+
+3. If "Yes, add as component":
+   - Set mode to "component"
+   - Set workspace_path to parent path
+
+4. Continue to Phase 4
+
+### Scenario E: Convert Standalone to Workspace
+
+**Applies when:**
+- mode is "workspace" (--workspace flag)
+- Detected.s2s.initialized is true
+- Detected.s2s.type is "standalone"
+
+**Action:**
+1. Display warning:
+   ```
+   ⚠️ This project is already initialized as standalone.
+   Converting to workspace will:
+   - Add workspace.yaml
+   - Change config.yaml type to "workspace"
+   - Keep existing CONTEXT.md, BACKLOG.md, etc.
+   ```
+
+2. Ask: "Proceed with conversion?"
+   Options: "Yes, convert to workspace" / "No, cancel"
+
+3. If confirmed:
+   - Set mode to "workspace"
+   - Set converting_from_standalone to true
+   - Continue to Phase 4
+
+4. If cancelled: Stop execution
+
+### Scenario F: Multi-repo (no git, siblings have git)
+
+**Applies when:**
+- mode is "workspace" (--workspace flag)
+- Detected.git.initialized is false
+- Detected.workspace_context.siblings_with_git > 0
+
+**Action:**
+1. Display situation:
+   ```
+   Multi-repo structure detected:
+   ───────────────────────────────
+   This folder has no git repository.
+   Sibling projects with git: {list sibling names with .git}
+
+   Workspace documentation should be versioned for collaboration.
+   ```
+
+2. Ask using AskUserQuestion:
+   "How would you like to handle the workspace configuration?"
+   Options:
+     - "Create 'system-docs' sibling folder with git" (Recommended)
+     - "Initialize git in current folder"
+     - "Proceed without git (documentation won't be versioned)"
+
+3. Based on selection:
+   - **"system-docs"**:
+     - Ask: "I can create the folder and initialize git, or you can do it manually. Proceed?"
+     - If yes: create ../system-docs, git init, target that folder
+   - **"Initialize here"**: run git init, continue
+   - **"Proceed without"**: warn again, then continue if confirmed
+
+4. After git decision, register sibling projects:
+   ```
+   For each sibling with potential component structure:
+     Ask: "Add {sibling-name}/ as component? [Y/n]"
+   ```
+
+5. Continue to Phase 4
+
+### Dependency Detection (for workspace and component modes)
+
+**After mode is determined**, if mode is "workspace" OR "component":
+
+1. If adding component to workspace:
+   - Scan for references to sibling components (imports, @../references)
+   - If dependencies found:
+     ```
+     Detected dependencies:
+     - {component} → {dependency1}
+     - {component} → {dependency2}
+
+     Is this correct? Would you like to add or remove any?
+     ```
+   - Store confirmed dependencies for Phase 5
+
+2. If creating workspace with components:
+   - After components are created, scan each for inter-component dependencies
+   - Ask user to confirm detected dependencies
 
 ---
 
@@ -338,21 +459,60 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/project/config.yaml`
 - `{project-name}` → `{Detected.project.name or Context.name}`
 - `{standalone | workspace | component}` → `{mode}` (the actual mode value)
 
+**For component mode**, also uncomment and populate workspace section:
+```yaml
+workspace:
+  path: "{workspace_path}"                    # e.g., ".."
+  workspace_yaml: "{workspace_path}/.s2s/workspace.yaml"
+```
+
 **Write**: Save the modified content to `.s2s/config.yaml`
 
-**For workspace mode**, also create `.s2s/workspace.yaml`:
+### 5.2b Generate workspace.yaml (workspace mode only)
+
+**IF mode is "workspace"**:
+
+**Read template from plugin**:
+
+Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/workspace/workspace.yaml`
+
+**Replace placeholders**:
+- `{workspace-name}` → `{Detected.project.name or Context.name}`
+- `{monorepo | multi-repo | hybrid}` → `{detected git structure}`
+  - If single .git at workspace root → "monorepo"
+  - If no .git here but components have .git → "multi-repo"
+  - If mixed → "hybrid"
+
+**If components were specified (--components or user input)**:
+
+Replace `components: []` with populated component array:
 ```yaml
-name: "{project-name}"
-type: "workspace"
-components: []
+components:
+  - id: "{component-name-kebab}"
+    name: "{Component Name}"
+    path: "./{component-folder}"
+    type: "application"                  # Default, can be changed
+    has_own_git: {true if component has .git, else false}
+    depends_on: []                       # Populated after dependency detection
 ```
 
-**For component mode**, use `.s2s/component.yaml` instead:
-```yaml
-name: "{project-name}"
-workspace:
-  path: "{workspace-path}"
-```
+**Write**: Save the modified content to `.s2s/workspace.yaml`
+
+### 5.2c Update parent workspace.yaml (component mode only)
+
+**IF mode is "component"**:
+
+1. Read `{workspace_path}/.s2s/workspace.yaml`
+2. Add this component to the `components:` array:
+   ```yaml
+   - id: "{current-folder-name}"
+     name: "{Context.name or Detected.project.name}"
+     path: "./{current-folder-name}"
+     type: "{application | service | library}"  # Ask user or detect
+     has_own_git: {Detected.git.initialized}
+     depends_on: {detected dependencies or []}
+   ```
+3. Write the updated workspace.yaml
 
 ### 5.3 Create sessions folder
 
@@ -360,7 +520,7 @@ Create `.s2s/sessions/` directory for session files.
 
 ### 5.4 Generate CONTEXT.md
 
-**Read template from plugin**:
+**For standalone/component mode**:
 
 Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/project/CONTEXT.md`
 
@@ -379,6 +539,18 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/project/CONTEXT.md`
 **Keep unchanged**: The "Project Tracking" section with Backlog and Decisions references.
 
 **Remove**: The `*Phase: init*` line at the end.
+
+**For workspace mode**:
+
+Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/workspace/CONTEXT.md`
+
+**Replace placeholders**:
+- `{workspace-name}` → `{Context.name or Detected.project.name}`
+- `{Workspace description...}` → `{Context.description}`
+- `{Business domain...}` → `{Context.domain}`
+- Component table rows → one row per registered component
+- Cross-cutting concerns → defaults or "TBD"
+- `{date}` → `{current ISO date}`
 
 **Write**: Save the modified content to `.s2s/CONTEXT.md`
 

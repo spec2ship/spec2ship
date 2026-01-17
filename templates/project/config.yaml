@@ -5,6 +5,12 @@ name: "{project-name}"
 type: "{standalone | workspace | component}"
 version: "0.1.0"
 
+# === WORKSPACE REFERENCE ===
+# Only present when type is "component"
+# workspace:
+#   path: ".."                         # Relative path to workspace root
+#   workspace_yaml: "../.s2s/workspace.yaml"
+
 # Git workflow
 git:
   branch_convention: "feature/F{id}-{slug}"

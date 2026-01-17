@@ -1,6 +1,6 @@
 # Spec2Ship Development Backlog
 
-**Updated**: 2026-01-17T10:30:00Z
+**Updated**: 2026-01-17T14:00:00Z
 **Format**: Single markdown file for LLM consumption
 
 ---
@@ -33,7 +33,7 @@
 
 ### WORK-001: Workspace Support - Core Structure
 
-**Status**: in_progress | **Created**: 2026-01-16 | **Updated**: 2026-01-17 | **Priority**: High
+**Status**: completed | **Created**: 2026-01-16 | **Completed**: 2026-01-17 | **Priority**: High
 
 **Context**: S2S supports both standalone projects and multi-component workspaces (monorepo or multi-repo).
 
@@ -57,7 +57,7 @@
 
 | Phase | ID | Description | Status |
 |-------|-----|-------------|--------|
-| 1 | WORK-001 | Core structure (workspace.yaml, init) | in_progress |
+| 1 | WORK-001 | Core structure (workspace.yaml, init) | completed |
 | 2 | WORK-002 | Roundtable scope (facilitator awareness) | planned |
 | 3 | WORK-003 | Decision propagation (workspace→components) | planned |
 | 4 | WORK-004 | Dependency graph (auto-detect, affected) | planned |
@@ -67,18 +67,18 @@
 2. ✅ Add workspace detection questions to init Phase 3
 3. ✅ Generate appropriate config based on detected/selected mode
 4. ✅ Warn if .s2s created in non-git folder
-5. [ ] Create workspace.yaml template
-6. [ ] Init creates workspace.yaml when --workspace or detected
-7. [ ] Init links new component to existing workspace
-8. [ ] Component config.yaml includes workspace reference
+5. ✅ Create workspace.yaml template (TEMPL-002a)
+6. ✅ Init creates workspace.yaml when --workspace or detected
+7. ✅ Init links new component to existing workspace
+8. ✅ Component config.yaml includes workspace reference (TEMPL-002c)
 
 **Acceptance Criteria** (Phase 1):
 - [x] Detect workspace vs standalone during init
 - [x] Support monorepo/multi-repo/hybrid structures
 - [x] Warn if .s2s created in non-git folder
-- [ ] workspace.yaml created with component registry
-- [ ] Components auto-linked when init run in subfolder
-- [ ] Reference patterns documented and working
+- [x] workspace.yaml created with component registry
+- [x] Components auto-linked when init run in subfolder
+- [x] Reference patterns documented and working
 
 **Related**: TEMPL-002, WORK-002, WORK-003, WORK-004
 
@@ -224,28 +224,27 @@ This approach:
 
 ### TEMPL-002: Workspace Template Cleanup
 
-**Status**: planned | **Created**: 2026-01-16 | **Updated**: 2026-01-17 | **Unblocked by**: WORK-001 spec
+**Status**: completed | **Created**: 2026-01-16 | **Completed**: 2026-01-17 | **Unblocked by**: WORK-001 spec
 
 **Context**: Workspace templates need to align with WORK-001 specification.
 
 **Specification Reference**: `.s2s/specs/WORK-001-workspace-specification.md`
 
 **Tasks**:
-1. [ ] Create `templates/workspace/workspace.yaml` per Section 3.1 of spec
-2. [ ] Update `templates/workspace/CONTEXT.md` - remove non-existent command refs
-3. [ ] Create `templates/workspace/BACKLOG.md` for workspace-level backlog
-4. [ ] Update `templates/project/config.yaml` to support `type: "component"` and `workspace:` section
-5. [ ] Remove or update obsolete templates
+1. ✅ Create `templates/workspace/workspace.yaml` per Section 3.1 of spec
+2. ✅ Update `templates/workspace/CONTEXT.md` - remove non-existent command refs
+3. N/A Create `templates/workspace/BACKLOG.md` - uses same template as project
+4. ✅ Update `templates/project/config.yaml` to support `type: "component"` and `workspace:` section
 
-**Files to Change**:
-- `templates/workspace/workspace.yaml` - rewrite per spec
-- `templates/workspace/CONTEXT.md` - simplify, remove invalid refs
-- `templates/project/config.yaml` - add workspace reference fields
+**Files Changed**:
+- `templates/workspace/workspace.yaml` - rewritten per spec (components[], cross_cutting[], roundtable_scope)
+- `templates/workspace/CONTEXT.md` - simplified, valid commands only
+- `templates/project/config.yaml` - added workspace reference section
 
 **Acceptance Criteria**:
-- [ ] All referenced commands exist OR are removed from templates
-- [ ] workspace.yaml template matches init output
-- [ ] CONTEXT.md references only existing files/commands
+- [x] All referenced commands exist OR are removed from templates
+- [x] workspace.yaml template matches init output
+- [x] CONTEXT.md references only existing files/commands
 
 ---
 
@@ -594,6 +593,8 @@ _Unstructured ideas and observations for future consideration._
 
 | ID | Description | Completed | Notes |
 |----|-------------|-----------|-------|
+| WORK-001 | Workspace Support - Core Structure (Phase 1) | 2026-01-17 | workspace.yaml, init scenarios A-F, component linking |
+| TEMPL-002 | Workspace Template Cleanup | 2026-01-17 | Aligned with WORK-001 spec |
 | PLAN-002 | Refactor plan.md to use template copy | 2026-01-17 | Follows TEMPL-001 decision, merged template sections |
 | INIT-003 | Refactor init.md to use template copy | 2026-01-17 | Follows TEMPL-001 decision |
 | TEMPL-001 | Template usage model decision | 2026-01-17 | Templates = Source of Truth, ${CLAUDE_PLUGIN_ROOT} works |
