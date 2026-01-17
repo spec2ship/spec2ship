@@ -1,6 +1,6 @@
 # Spec2Ship Development Backlog
 
-**Updated**: 2026-01-15T22:00:00Z
+**Updated**: 2026-01-17T09:35:00Z
 **Format**: Single markdown file for LLM consumption
 
 ---
@@ -79,29 +79,41 @@
 
 ### TEMPL-001: Template Usage vs Command Inline
 
-**Status**: draft | **Created**: 2026-01-16 | **Priority**: High
+**Status**: completed | **Created**: 2026-01-16 | **Completed**: 2026-01-17 | **Priority**: High
 
 **Context**: Templates exist in `templates/` but commands generate files inline with duplicated content. This creates potential inconsistencies.
 
-**Current State**:
-- `templates/plan.md` exists but `commands/plan.md` generates plan inline
-- `templates/project/config.yaml` exists but `commands/init.md` has config inline
-- `templates/project/CONTEXT.md` exists but differs from what init generates
+**Investigation Results** (2026-01-17):
 
-**Questions to Investigate**:
-1. Can commands use templates via include/reference mechanism?
-2. Should templates be source of truth, with commands reading them?
-3. Or are templates for documentation only, with commands as source?
+Test conducted with temporary command `test-template-copy.md`:
 
-**Proposed Investigation**:
-1. Test if `@templates/plan.md` works in commands
-2. Check Claude Code documentation for template includes
-3. Define clear responsibility: templates vs commands
+| Mechanism | Result |
+|-----------|--------|
+| `${CLAUDE_PLUGIN_ROOT}` expansion | ✅ Works - expands to plugin install path |
+| Read template from plugin | ✅ Works - full path accessible |
+| Placeholder substitution | ✅ Works - standard string replacement |
+| Write to target location | ✅ Works - files created correctly |
+
+**Decision**: **Templates = Source of Truth**
+
+Commands (e.g., `init.md`) should:
+1. Read templates from `${CLAUDE_PLUGIN_ROOT}/templates/`
+2. Replace placeholders with actual values
+3. Write populated content to target location
+
+This approach:
+- Eliminates content duplication between templates and commands
+- Single place to maintain file structure/content
+- Commands focus on logic, templates focus on content
+
+**Next Steps**:
+- Refactor `init.md` to use template copy approach (INIT-003)
+- Align `plan.md` command with `templates/plan.md`
 
 **Acceptance Criteria**:
-- [ ] Decision on template usage model
-- [ ] Align templates with command output OR vice versa
-- [ ] Document chosen approach in s2s-development.md
+- [x] Decision on template usage model
+- [x] Align templates with command output OR vice versa (INIT-003 - completed 2026-01-17)
+- [x] Document chosen approach in s2s-development.md (completed 2026-01-17)
 
 ---
 
@@ -509,6 +521,8 @@ _Unstructured ideas and observations for future consideration._
 
 | ID | Description | Completed | Notes |
 |----|-------------|-----------|-------|
+| INIT-003 | Refactor init.md to use template copy | 2026-01-17 | Follows TEMPL-001 decision |
+| TEMPL-001 | Template usage model decision | 2026-01-17 | Templates = Source of Truth, ${CLAUDE_PLUGIN_ROOT} works |
 | DEBT-001 | Config values hardcoded in commands | 2026-01-16 | Removed inline defaults |
 | CLEAN-001 | Remove ARCH-001 residual files | 2026-01-16 | Already done, verified |
 | BACK-001 | Backlog file creation in init | 2026-01-16 | Template + CONTEXT.md updated |

@@ -481,6 +481,52 @@ Features intentionally not implemented due to current limitations. Track here wi
 
 ---
 
+## Template-Based File Generation
+
+### Pattern: Templates as Source of Truth
+
+Commands that generate files (e.g., `init.md`) should read from templates instead of inlining content.
+
+**Why**:
+- Single source of truth for file structure/content
+- Commands focus on logic, templates focus on content
+- Easier maintenance (change template once, all commands use it)
+- Guaranteed consistency between templates and generated output
+
+**How**:
+
+```markdown
+### Generate config.yaml
+
+**Read template from plugin**:
+
+Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/project/config.yaml`
+
+**Replace placeholders**:
+- `{project-name}` → `{Detected.project.name}`
+- `"standalone"` → `"{mode}"`
+
+**Write**: Save the modified content to `.s2s/config.yaml`
+```
+
+**Key Points**:
+1. `${CLAUDE_PLUGIN_ROOT}` is expanded to the plugin installation path at runtime
+2. Works for all template types: YAML, Markdown, etc.
+3. Commands specify which placeholders to replace and with what values
+4. Templates use consistent placeholder format: `{placeholder-name}`
+
+### Template Placeholder Conventions
+
+| Placeholder | Used In | Replaced With |
+|-------------|---------|---------------|
+| `{project-name}` | config.yaml, BACKLOG.md | Detected or user-provided project name |
+| `{date}` | CONTEXT.md, BACKLOG.md | Current ISO date |
+| `{description}` | Various | User-provided or detected description |
+
+**Verified in**: TEMPL-001 test (2026-01-17)
+
+---
+
 ## External References
 
 ### Patterns We Follow
