@@ -16,12 +16,12 @@
 
 Spec2Ship is a **Claude Code plugin** that adds structured orchestration for requirements, architecture, and implementation planning.
 
-The core idea: instead of prompting Claude Code directly, you run **roundtable discussions** where multiple AI agents—each representing a real role (Product Manager, Architect, QA Lead, Security Champion)—debate and refine decisions collaboratively.
+The core idea: instead of prompting Claude Code directly, you run **roundtable discussions** where multiple agents—each representing a real role (Product Manager, Architect, QA Lead, Security Champion)—debate and refine decisions collaboratively.
 
 **It is:**
 - A spec-driven framework where specifications are treated as executable intent
 - An orchestration layer built on Claude Code primitives (commands, skills, sessions)
-- A multi-agent deliberation system with configurable facilitation strategies
+- A deliberation system with configurable facilitation strategies
 
 **It is not:**
 - A standalone CLI or generic tool (requires Claude Code)
@@ -36,7 +36,7 @@ When you prompt Claude Code for requirements or architecture decisions:
 
 | What happens | The problem |
 |--------------|-------------|
-| Single AI perspective | Optimized for agreement, not rigor |
+| Single perspective | Optimized for agreement, not rigor |
 | No adversarial review | Security gaps, edge cases, feasibility issues missed |
 | Freeform output | Hard to review, audit, or hand off to team |
 | Ephemeral sessions | Context lost between conversations |
@@ -48,6 +48,30 @@ When you prompt Claude Code for requirements or architecture decisions:
 - Producing **standards-based artifacts** (arc42, ISO 25010, MADR)
 - Persisting **sessions with full audit trail**
 - Supporting **escalation triggers** for human review
+
+---
+
+## How Spec2Ship Compares
+
+| Aspect | Spec2Ship | [Claude-Flow](https://github.com/ruvnet/claude-flow) | [Spec-Kit](https://github.com/github/spec-kit) | [OpenSpec](https://github.com/Fission-AI/OpenSpec) |
+|--------|-----------|-------------|----------|----------|
+| **Approach** | Multi-agent deliberation | Swarm task execution | Document checkpoints | Lightweight diffs |
+| **Agents** | 12 specialized roles debating | 54+ task workers | Single agent | Single agent |
+| **Quality mechanism** | Adversarial review built-in | Speed optimization | Human review points | Minimal overhead |
+| **Strategies** | 5 facilitation methods | Hierarchical/mesh | Linear | Linear |
+| **Output** | arc42, ISO 25010, MADR | Custom | Markdown | Diff-based |
+| **Best for** | Decisions needing debate | Parallel task execution | Greenfield features | Brownfield changes |
+
+**Choose Spec2Ship when:**
+- Decisions need multiple expert perspectives
+- You want adversarial review (security, scalability, edge cases)
+- Artifacts must be auditable and standards-based
+- You're already using Claude Code
+
+**Choose alternatives when:**
+- **Claude-Flow**: You need to parallelize many independent tasks
+- **Spec-Kit**: Simple greenfield specs with checkpoint review
+- **OpenSpec**: Incremental changes to existing codebases
 
 ---
 
@@ -77,7 +101,7 @@ After `/s2s:specs` completes, you'll have:
 
 Roundtable is not a feature—it's **the fundamental abstraction** of Spec2Ship.
 
-Every major decision flows through a structured multi-agent discussion:
+Every major decision flows through a structured discussion:
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
@@ -209,30 +233,6 @@ Even in autonomous mode, the system pauses for human input when:
 - **Blocking questions** that prevent progress
 
 This means Spec2Ship knows when to ask for help—it's not a black-box generator.
-
----
-
-## Comparison with Alternatives
-
-| Aspect | Spec2Ship | [Claude-Flow](https://github.com/ruvnet/claude-flow) | [Spec-Kit](https://github.com/github/spec-kit) | [OpenSpec](https://github.com/Fission-AI/OpenSpec) |
-|--------|-----------|-------------|----------|----------|
-| **Approach** | Multi-agent deliberation | Swarm task execution | Document checkpoints | Lightweight diffs |
-| **Agents** | 12 specialized roles debating | 54+ task workers | Single agent | Single agent |
-| **Quality mechanism** | Adversarial review built-in | Speed optimization | Human review points | Minimal overhead |
-| **Strategies** | 5 facilitation methods | Hierarchical/mesh | Linear | Linear |
-| **Output** | arc42, ISO 25010, MADR | Custom | Markdown | Diff-based |
-| **Best for** | Decisions needing debate | Parallel task execution | Greenfield features | Brownfield changes |
-
-**Choose Spec2Ship when:**
-- Decisions need multiple expert perspectives
-- You want adversarial review (security, scalability, edge cases)
-- Artifacts must be auditable and standards-based
-- You're already using Claude Code
-
-**Choose alternatives when:**
-- **Claude-Flow**: You need to parallelize many independent tasks
-- **Spec-Kit**: Simple greenfield specs with checkpoint review
-- **OpenSpec**: Incremental changes to existing codebases
 
 ---
 
