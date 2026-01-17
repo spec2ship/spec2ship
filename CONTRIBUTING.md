@@ -67,23 +67,40 @@ Thank you for your interest in contributing to Spec2Ship!
 
 ### Installation for Development
 
-```bash
-# Clone the repository
-git clone https://github.com/spec2ship/spec2ship.git
-cd spec2ship
+**Recommended: Local plugin directory**
 
+Clone your fork and use `--plugin-dir` to point Claude Code to it:
+
+```bash
+# Clone your fork
+git clone https://github.com/YOUR-USERNAME/spec2ship.git ~/repos/spec2ship
+
+# Create a test project
+mkdir -p /tmp/test-project && cd /tmp/test-project
+
+# Start Claude Code pointing to your local plugin
+claude --plugin-dir ~/repos/spec2ship
+```
+
+Changes to the plugin are immediately available thanks to hot reload. No reinstallation needed.
+
+**Alternative: Marketplace installation**
+
+If you prefer the marketplace approach:
+
+```bash
 # Remove any existing installation
 /plugin marketplace remove spec2ship
 
-# Add from local path or your fork
+# Add your fork
 /plugin marketplace add https://github.com/YOUR-USERNAME/spec2ship.git#develop
 
 # Install with alias
 /plugin install s2s@spec2ship
-
-# Verify installation
-/plugin list
 ```
+
+> [!NOTE]
+> With marketplace installation, you must reinstall after pulling changes.
 
 ## 📁 Project Structure
 
@@ -177,13 +194,16 @@ Runs structural and strategy-specific consistency checks.
 ### Common Issues
 
 > [!WARNING]
-> **Plugin Not Updating?** This is the most common issue. Always reinstall after pulling changes:
+> **Plugin Not Updating?** If using marketplace installation, reinstall after pulling changes:
 
 ```bash
 /plugin marketplace remove spec2ship
 /plugin marketplace add https://github.com/YOUR-USERNAME/spec2ship.git#YOUR-BRANCH
 /plugin install s2s@spec2ship
 ```
+
+> [!TIP]
+> Use `--plugin-dir` instead to avoid this issue entirely. See [Installation for Development](#installation-for-development).
 
 **Agent Not Found**
 - Check location: `agents/roundtable/{name}.md`
