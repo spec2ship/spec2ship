@@ -305,7 +305,7 @@ For extension guides, ask Claude: `"how to extend s2s"`
 
 ## Documentation
 
-- [Core Concepts](docs/concepts.md): workflows, roundtables, sessions
+- [Core Concepts](docs/): workflows, roundtables, sessions
 - [Architecture](docs/architecture/): system design and ADRs
 
 For interactive help:

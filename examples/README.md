@@ -43,4 +43,4 @@ cd your-project
 
 ---
 
-*See also: [Getting Started](../docs/getting-started.md)*
+*See also: [Core Concepts](../docs/)*

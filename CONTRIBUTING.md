@@ -85,17 +85,15 @@ cd spec2ship
 spec2ship/
 ├── .claude/                  # Claude context and guidelines
 │   ├── CLAUDE.md             # Main context file (read this first)
-│   ├── s2s-development.md    # Development patterns
-│   └── guidelines/           # Conventions and patterns
+│   └── s2s-development.md    # Development patterns
 ├── .claude-plugin/           # Plugin manifest
 ├── commands/                 # Slash commands (/s2s:*)
 ├── agents/                   # AI agents (roundtable, exploration, validation)
 ├── skills/                   # Knowledge bases
 ├── templates/                # File templates
 ├── docs/                     # Documentation (for humans)
-│   ├── architecture/         # Architecture docs and ADRs
-│   ├── concepts/             # Core concept explanations
-│   └── roundtable/           # Roundtable system docs
+│   ├── README.md             # Core concepts
+│   └── architecture/         # Architecture docs and ADRs
 └── examples/                 # Sample outputs
 ```
 
@@ -247,9 +245,9 @@ For extension guides, ask Claude: "how to extend s2s" (loads s2s-guide skill)
 ## Getting Help
 
 - [GitHub Issues](https://github.com/spec2ship/spec2ship/issues)
-- [Documentation](docs/README.md)
-- [Architecture Overview](docs/architecture/README.md)
+- [Core Concepts](docs/)
+- [Architecture](docs/architecture/)
 
 ---
 
-*See also: [Architecture](docs/architecture/README.md)*
+*See also: [Architecture](docs/architecture/)*

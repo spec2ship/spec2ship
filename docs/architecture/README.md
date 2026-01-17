@@ -8,16 +8,12 @@ This document provides a high-level overview of Spec2Ship's architecture for con
 spec2ship/
 ├── .claude/                  # Claude context and guidelines
 │   ├── CLAUDE.md             # Main context file
-│   └── guidelines/           # Conventions and patterns
+│   └── s2s-development.md    # Development patterns
 ├── .claude-plugin/           # Plugin manifest
 ├── commands/                 # Slash commands (/s2s:*)
-│   ├── init.md
-│   ├── specs.md
-│   ├── design.md
-│   ├── brainstorm.md
+│   ├── init.md, specs.md, design.md, brainstorm.md, plan.md, roundtable.md
 │   ├── plan/                 # Plan subcommands
-│   ├── session/              # Session subcommands
-│   └── roundtable/           # Roundtable subcommands
+│   └── session/              # Session subcommands
 ├── agents/                   # AI agents
 │   ├── roundtable/           # Discussion participants
 │   ├── exploration/          # Codebase analysis
