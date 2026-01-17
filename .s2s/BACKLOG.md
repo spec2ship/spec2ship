@@ -1,6 +1,6 @@
 # Spec2Ship Development Backlog
 
-**Updated**: 2026-01-17T16:00:00Z
+**Updated**: 2026-01-17T18:30:00Z
 **Format**: Single markdown file for LLM consumption
 
 ---
@@ -510,6 +510,78 @@ Interactive wizard to configure roundtable options for new users.
 ### EXT-002: Custom Participants Skill
 
 Skill for creating new participant types with templates.
+
+---
+
+### EXT-003: Plugin Extension Skill (s2s-extend)
+
+**Status**: planned | **Created**: 2026-01-17 | **Priority**: Medium
+
+**Context**: Development guidelines are scattered in `.claude/guidelines/` (~6,800 words, ~9,000 tokens). Loading all in memory is excessive. Need a structured way for:
+- **Contributors** to extend the plugin (commands, agents, skills)
+- **End users** to create custom agents and understand the system
+
+**Current State**:
+- `s2s-development.md` - Core patterns (2,218 words) - CRITICAL
+- `llm-patterns.md` - Instruction patterns (1,369 words) - CRITICAL for command writers
+- `glossary.md` - Terminology (~1,400 words) - Reference
+- `naming-conventions.md` - ID formats (608 words) - Reference
+- `state-machine.md` - State transitions (666 words) - Reference
+- `workspace-architecture.md` - Workspace info (571 words) - Reference
+
+**Proposed Solution**: Create `skills/s2s-extend/` with progressive disclosure
+
+```
+skills/s2s-extend/
+├── SKILL.md              # ~500 words - critical patterns + triggers
+├── references/
+│   ├── llm-patterns.md
+│   ├── naming-conventions.md
+│   ├── state-machine.md
+│   ├── glossary.md
+│   └── workspace-architecture.md
+└── examples/
+    ├── new-command.md    # Step-by-step guide
+    ├── new-agent.md      # Step-by-step guide
+    └── new-skill.md      # Step-by-step guide
+```
+
+**Trigger Phrases**:
+- "come creo un nuovo comando"
+- "come estendo s2s"
+- "voglio creare un agente"
+- "create new command"
+- "extend plugin"
+- "add new agent"
+
+**SKILL.md Content** (quick reference always loaded):
+1. Agent invocation pattern (CRITICAL - most common mistake)
+2. YAML I/O pattern for agents
+3. Command structure basics
+4. Pointers to references for deep dives
+
+**Additional Cleanup**:
+1. Remove confusing `@` notation from CLAUDE.md table (lines 122-126)
+2. Add minimal quick reference inline in CLAUDE.md (~200 words)
+3. Keep `.claude/guidelines/` for direct file access during development
+
+**Tasks**:
+1. [ ] Create `skills/s2s-extend/SKILL.md` with critical patterns
+2. [ ] Move/copy guidelines to `skills/s2s-extend/references/`
+3. [ ] Create `examples/new-command.md` step-by-step guide
+4. [ ] Create `examples/new-agent.md` step-by-step guide
+5. [ ] Create `examples/new-skill.md` step-by-step guide
+6. [ ] Update CLAUDE.md - remove @ table, add quick reference
+7. [ ] Add trigger phrases to skill description
+
+**Acceptance Criteria**:
+- [ ] Skill loads only ~500 words by default
+- [ ] References available on-demand via progressive disclosure
+- [ ] Examples cover all extension types (command, agent, skill)
+- [ ] Works for both contributors and end users
+- [ ] CLAUDE.md is cleaner (no confusing @ table)
+
+**Related**: EXT-001 (project agents), EXT-002 (custom participants), QUAL-001 (code reviewer)
 
 ---
 
