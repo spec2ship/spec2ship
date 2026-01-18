@@ -1429,7 +1429,7 @@ timing:
 
 Extract from session file (Single Source of Truth):
 - All artifacts from `artifacts.architecture_decisions`, `artifacts.components`, etc.
-- Aggregate by status (active, open, resolved)
+- Aggregate by state (draft, in_progress, accepted, resolved)
 - Get round summaries for recap
 
 ### Step 3.4: User Review
