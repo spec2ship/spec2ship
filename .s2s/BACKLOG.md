@@ -1,6 +1,6 @@
 # Spec2Ship Development Backlog
 
-**Updated**: 2026-01-17T18:30:00Z
+**Updated**: 2026-01-18T19:30:00Z
 **Format**: Single markdown file for LLM consumption
 
 ---
@@ -462,6 +462,125 @@ This approach:
 - [ ] Project state analysis runs before workflow commands
 - [ ] Clear suggestions based on detected state
 - [ ] Dual-path search for documentation (docs/ → .s2s/)
+
+---
+
+### RT-005: Dynamic Context-Aware Roundtables
+
+**Status**: draft | **Created**: 2026-01-18 | **Priority**: High
+
+**Context**: During a roundtable on "artifact state model for LLM-driven roundtables", participants proposed elaborate patterns (WAL, immutable records, supersedes chains) that were theoretically sound but impractical for the s2s execution context (LLM processing YAML files). The roundtable produced over-engineered proposals because:
+
+1. Context passed to participants was too vague about execution constraints
+2. Facilitator had no instructions to validate proposals against context
+3. Participants applied general expertise without adapting to specific constraints
+4. No mechanism existed to "challenge" proposals against practicality
+
+**Key Insight**: The problem is NOT specific to s2s/LLM. Every project has its own execution context (Java backend, React frontend, Python ML pipeline, etc.) with specific constraints that should inform proposals.
+
+**Proposed Solution**: Dynamic, evolving context that the facilitator builds and refines.
+
+**Phase 1: Facilitator Context Building**
+
+At session start, facilitator should:
+1. Read existing ADRs from `.s2s/decisions/` or `docs/decisions/`
+2. Read requirements.md, architecture.md if present
+3. Read previous session summaries for this topic area
+4. Synthesize an `execution_context` block with:
+   - Executor type and capabilities
+   - Known limitations and constraints
+   - Design principles already established
+   - Guardrails from previous decisions
+
+```yaml
+# Facilitator builds this at session start
+execution_context:
+  project_type: "Claude Code plugin"
+  executor: "LLM (Claude)"
+  capabilities:
+    - Read/write files
+    - Execute bash commands
+    - Spawn sub-agents
+  limitations:
+    - No timers or scheduled tasks
+    - No persistent state between invocations
+    - Complexity increases error probability
+  established_principles:
+    - "Simplicity over theoretical correctness" (ADR-0010)
+    - "Prose over predicates for LLM instructions" (ADR-0010)
+  guardrails:
+    - "Avoid patterns requiring runtime features executor lacks"
+    - "Prefer explicit over clever"
+```
+
+**Phase 2: Context Presentation to Participants**
+
+Facilitator includes `execution_context` in `participant_context.shared`:
+- Participants see constraints BEFORE formulating positions
+- Participants can challenge guardrails if they seem inappropriate
+- Facilitator arbitrates challenges, updating context if warranted
+
+**Phase 3: Proposal Validation**
+
+Facilitator validates each proposal against `execution_context`:
+- Does proposal require unavailable capabilities? → Flag
+- Is complexity proportional to benefit? → Challenge
+- Does proposal contradict established principles? → Note trade-off
+
+**Phase 4: Context Evolution**
+
+After each roundtable:
+1. New principles/constraints discovered → Propose CONTEXT.md update
+2. New ADRs created → Already captured in decisions/
+3. Facilitator suggests: "Based on this discussion, consider adding to CONTEXT.md: [principle]"
+
+**Implementation Tasks**:
+
+1. [ ] Add "Context Building" phase to facilitator.md (before first question)
+2. [ ] Define `execution_context` schema in session-schema.md
+3. [ ] Add context reading instructions (ADRs, requirements, architecture)
+4. [ ] Add "Proposal Validation" section to facilitator synthesis
+5. [ ] Add "Challenge Guardrails" mechanism for participants
+6. [ ] Add "Context Evolution" suggestions at session close
+7. [ ] Update participant agents with "Execution Context Awareness" section
+8. [ ] Add config option: `roundtable.context_evolution: true|false`
+
+**Example Flow**:
+
+```
+Session Start:
+  Facilitator reads: .s2s/decisions/*.md, .s2s/requirements.md
+  Facilitator synthesizes: execution_context with 3 guardrails
+
+Round 1:
+  Facilitator question includes: execution_context in participant_context
+  Participant proposes: "Use WAL for recovery"
+  Facilitator synthesis flags: "WAL requires transaction log - executor has no persistent state"
+
+Round 2:
+  Participants discuss simpler alternatives
+  Facilitator validates: "File-based checkpoint aligns with execution context"
+
+Session Close:
+  Facilitator suggests: "Add to CONTEXT.md: 'Prefer file-based state over transaction patterns'"
+```
+
+**Benefits**:
+- Context-aware proposals from the start (not post-roundtable review)
+- Evolving project context that captures learnings
+- Participants can challenge constraints (not blindly applied)
+- Works for ANY project type, not just s2s
+
+**Related**:
+- ADR-0010: LLM-First Design Principles (example of principles to capture)
+- This roundtable experience as case study
+
+**Acceptance Criteria**:
+- [ ] Facilitator builds execution_context at session start
+- [ ] Participants receive context before formulating positions
+- [ ] Proposals validated against context in synthesis
+- [ ] Context evolution suggested at session close
+- [ ] Mechanism for participants to challenge guardrails
 
 ---
 

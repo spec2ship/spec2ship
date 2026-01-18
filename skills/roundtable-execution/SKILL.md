@@ -124,13 +124,19 @@ project:
 verbose: {verbose_flag}
 interactive: {interactive_flag}
 strategy: "{strategy}"
+
+# Read from config.yaml - DO NOT hardcode values
 limits:
-  min_rounds: 3
-  max_rounds: 20
+  min_rounds: "{from config.yaml: roundtable.limits.min_rounds}"
+  max_rounds: "{from config.yaml: roundtable.limits.max_rounds}"
 escalation:
-  max_rounds_per_conflict: 3
-  confidence_below: 0.5
-  critical_keywords: ["security", "must-have", "blocking", "legal"]
+  max_rounds_per_conflict: "{from config.yaml: roundtable.escalation.triggers.max_rounds_per_conflict}"
+  confidence_below: "{from config.yaml: roundtable.escalation.triggers.confidence_below}"
+  critical_keywords: "{from config.yaml: roundtable.escalation.triggers.critical_keywords}"
+
+# Consensus rules per strategy (ADR-0010)
+consensus: "{from config.yaml: roundtable.strategy.consensus[strategy]}"
+
 participants: [...]
 
 # Workspace scope (only if type is workspace or component)
@@ -348,11 +354,15 @@ strategy: "{strategy}"
 phase: "{current phase from strategy}"
 workflow_type: "{workflow_type}"
 
+# Values from config-snapshot.yaml (NOT hardcoded)
 escalation_config:
-  min_rounds: 3
-  max_rounds: 20
-  max_rounds_per_conflict: 3
-  confidence_below: 0.5
+  min_rounds: "{from config-snapshot.yaml: limits.min_rounds}"
+  max_rounds: "{from config-snapshot.yaml: limits.max_rounds}"
+  max_rounds_per_conflict: "{from config-snapshot.yaml: escalation.max_rounds_per_conflict}"
+  confidence_below: "{from config-snapshot.yaml: escalation.confidence_below}"
+
+# Consensus rules for current strategy (ADR-0010)
+consensus: "{from config-snapshot.yaml: consensus}"
 
 agenda:
   - id: "{topic_id}"
@@ -452,11 +462,15 @@ topic: "{session topic}"
 strategy: "{strategy}"
 phase: "{current phase}"
 
+# Values from config-snapshot.yaml (NOT hardcoded)
 escalation_config:
-  min_rounds: 3
-  max_rounds: 20
-  max_rounds_per_conflict: 3
-  confidence_below: 0.5
+  min_rounds: "{from config-snapshot.yaml: limits.min_rounds}"
+  max_rounds: "{from config-snapshot.yaml: limits.max_rounds}"
+  max_rounds_per_conflict: "{from config-snapshot.yaml: escalation.max_rounds_per_conflict}"
+  confidence_below: "{from config-snapshot.yaml: escalation.confidence_below}"
+
+# Consensus rules for current strategy (ADR-0010)
+consensus: "{from config-snapshot.yaml: consensus}"
 
 question_asked: "{facilitator's question from step 2.2}"
 
@@ -504,7 +518,7 @@ synthesis: "{2-4 sentence summary of alignment and key points}"
 proposed_artifacts:
   - type: "{requirement|conflict|open_question|business_rule|...}"
     title: "{title}"
-    agreement: "{consensus|draft|conflict}"
+    state: "{approved|in_progress|blocked|...}"  # ADR-0010: single state field
     topic_id: "{agenda topic}"
     description: "..."
     # ... type-specific fields
@@ -519,7 +533,7 @@ agenda_update:
 
 constraints_check:
   rounds_completed: {N}
-  min_rounds: 3
+  min_rounds: "{from escalation_config}"  # NOT hardcoded
   can_conclude: {true|false}
   reason: "{explanation}"
 

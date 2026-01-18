@@ -50,11 +50,11 @@ agent_state:
   participants: {}
 
 # ARTIFACTS - embedded with full content (NOT separate files)
+# Uses single "state" field per ADR-0010 (replaces status+agreement)
 artifacts:
   requirements:
     REQ-001:
-      status: "active"
-      agreement: "consensus"
+      state: "approved"          # Single state field (ADR-0010)
       created_round: 1
       topic_id: "user-workflows"
       title: "Gift Throwing Mechanic"
@@ -72,15 +72,14 @@ artifacts:
   exclusions: {}
   open_questions:
     OQ-001:
-      status: "resolved"
+      state: "resolved"          # Single state field
       created_round: 1
       topic_id: "user-workflows"
       title: "Which auth provider?"
       description: "Should we use OAuth or custom auth?"
       raised_by: "technical-lead"
       blocking: false
-      resolution: "Use OAuth for MVP"
-      resolved_round: 2
+      resolution: "Use OAuth for MVP"  # Free text, optional
   conflicts: {}
 
 # Agenda status
@@ -93,6 +92,7 @@ agenda:
     coverage: ["REQ-003"]
 
 # Round summaries (details in rounds/ folder if verbose)
+# Per ADR-0010: artifacts_transitioned provides audit trail for state changes
 rounds:
   - round: 1
     topic_id: "user-workflows"
@@ -102,6 +102,15 @@ rounds:
       product-manager: "Focus on casual gameplay..."
       qa-lead: "Consider edge cases..."
     artifacts_created: ["REQ-001", "REQ-002"]
+    artifacts_transitioned:          # ADR-0010: round-level audit trail
+      - id: "REQ-001"
+        from: "draft"
+        to: "approved"
+        reason: "consensus reached"
+      - id: "OQ-001"
+        from: "in_progress"
+        to: "resolved"
+        reason: "addressed by REQ-002"
     resolved_conflicts:
       - conflict_id: "CONF-001"
         resolution: "Agreed on touch-drag approach"
@@ -178,14 +187,21 @@ verbose: true
 interactive: false
 strategy: "consensus-driven"
 
+# Read from config.yaml at session start
 limits:
-  min_rounds: 3
-  max_rounds: 20
+  min_rounds: 3                  # from config.yaml: roundtable.limits.min_rounds
+  max_rounds: 20                 # from config.yaml: roundtable.limits.max_rounds
 
 escalation:
-  max_rounds_per_conflict: 3
+  max_rounds_per_conflict: 3     # from config.yaml: roundtable.escalation.triggers.*
   confidence_below: 0.5
   critical_keywords: ["security", "must-have", "blocking", "legal"]
+
+# Consensus rules for current strategy (ADR-0010)
+consensus:
+  threshold: 1.0                 # from config.yaml: roundtable.strategy.consensus[strategy]
+  mechanism: "consent"
+  block_prevents_terminal: true
 
 participants:
   - "product-manager"
@@ -229,7 +245,23 @@ topics:
 ## Embedded Artifact Schemas
 
 Artifacts are stored as maps inside `artifacts.{type}` in the session file.
-Each artifact has a **lifecycle status** and an **agreement level**.
+Each artifact has a single **state** field per ADR-0010.
+
+### State Model (ADR-0010)
+
+**Universal states** (all artifact types):
+- `draft` - Initial state after creation
+- `needs_discussion` - Queued for discussion
+- `in_progress` - Currently being discussed
+- `blocked` - Has blocking concern
+- `deferred` - Postponed for later
+- `rejected` - Explicitly rejected
+
+**Type-specific terminal states**:
+- REQ, BR, NFR, EX: `approved`, `implemented`
+- DEC, ARCH: `accepted`
+- IDEA: `promoted`, `parked`
+- OQ, CONF: `resolved`
 
 ### Requirement (REQ-*)
 
@@ -237,8 +269,7 @@ Each artifact has a **lifecycle status** and an **agreement level**.
 artifacts:
   requirements:
     REQ-001:
-      status: "active"           # Always active (artifacts are immutable)
-      agreement: "consensus"     # Agreement: consensus|draft|conflict
+      state: "approved"          # Single state field (ADR-0010)
       created_round: 1
       topic_id: "user-workflows"
       title: "Game Entry"
@@ -260,8 +291,7 @@ artifacts:
 artifacts:
   business_rules:
     BR-001:
-      status: "active"
-      agreement: "consensus"
+      state: "approved"
       created_round: 1
       topic_id: "business-rules"
       title: "60-Second Game Duration"
@@ -280,8 +310,7 @@ artifacts:
 artifacts:
   nfr:
     NFR-001:
-      status: "active"
-      agreement: "consensus"
+      state: "approved"
       created_round: 3
       topic_id: "nfr-measurable"
       title: "Frame Rate"
@@ -300,9 +329,8 @@ artifacts:
 artifacts:
   conflicts:
     CONF-001:
-      status: "resolved"         # open|resolved
+      state: "resolved"          # in_progress|blocked|resolved
       created_round: 1
-      resolved_round: 2
       topic_id: "functional-requirements"
       title: "Mobile Input Method"
       description: |
@@ -310,7 +338,7 @@ artifacts:
       positions:
         product-manager: "Virtual joystick"
         qa-lead: "Touch-drag with offset"
-      resolution: "Direct touch-drag with 40-60px offset"
+      resolution: "Direct touch-drag with 40-60px offset"  # Free text
       resolution_method: "consensus"  # consensus|escalation|facilitator
 ```
 
@@ -320,7 +348,7 @@ artifacts:
 artifacts:
   open_questions:
     OQ-001:
-      status: "open"             # open|resolved
+      state: "in_progress"       # draft|in_progress|blocked|resolved|deferred
       created_round: 1
       topic_id: "user-workflows"
       title: "Pause Functionality"
@@ -328,8 +356,7 @@ artifacts:
         Should the game have pause functionality?
       raised_by: "qa-lead"
       blocking: false
-      resolution: null           # Filled when resolved
-      resolved_round: null
+      resolution: null           # Free text when resolved
 ```
 
 ### Exclusion (EX-*)
@@ -338,8 +365,7 @@ artifacts:
 artifacts:
   exclusions:
     EX-001:
-      status: "active"
-      agreement: "consensus"
+      state: "approved"
       created_round: 3
       topic_id: "out-of-scope"
       title: "Multiplayer Mode"
@@ -505,15 +531,21 @@ response: |
   proposed_artifacts:
     - type: "requirement"
       title: "Game Entry"
-      agreement: "consensus"
+      state: "approved"  # ADR-0010: single state field
       description: "Zero-friction start"
       acceptance:
         - "One-tap start"
     - type: "conflict"
       title: "Mobile Input Method"
+      state: "in_progress"
       positions:
         product-manager: "Virtual joystick"
         qa-lead: "Touch-drag"
+  artifacts_transitioned:  # ADR-0010: audit trail
+    - id: "REQ-001"
+      from: "draft"
+      to: "approved"
+      reason: "consensus reached"
   agenda_update:
     topic_id: "user-workflows"
     new_status: "partial"
@@ -538,17 +570,49 @@ result:
 
 ---
 
-## Status Values
+## State Values (ADR-0010)
 
-| Entity | Valid Statuses |
-|--------|---------------|
+### Session and Agenda
+
+| Entity | Valid States |
+|--------|-------------|
 | Session | active, closed |
 | Agenda topic | open, partial, closed |
-| Requirement | draft, consensus, conflict |
-| Conflict | open, resolved, escalated |
-| Open question | pending, addressed, deferred |
-| Exclusion | proposed, confirmed |
+
+### Artifact States
+
+**Universal states** (apply to all artifact types):
+
+| State | Description | Facilitator Action |
+|-------|-------------|-------------------|
+| `draft` | Initial state after creation | Passive (log) |
+| `needs_discussion` | Queued for discussion | Passive (queue) |
+| `in_progress` | Currently being discussed | Active (drive resolution) |
+| `blocked` | Has blocking concern | Active (address block) |
+| `deferred` | Postponed for later | Passive (review at close) |
+| `rejected` | Explicitly rejected | Passive (archive) |
+
+**Type-specific terminal states**:
+
+| Artifact Type | Terminal States |
+|---------------|-----------------|
+| REQ, BR, NFR, EX | `approved`, `implemented` |
+| DEC, ARCH | `accepted` |
+| IDEA | `promoted`, `parked` |
+| OQ, CONF | `resolved` |
+
+### Transition Conditions (Prose)
+
+- **draft → needs_discussion**: Artifact is ready for group discussion
+- **needs_discussion → in_progress**: Facilitator selects for current round
+- **in_progress → terminal**: Consensus reached per strategy threshold (no blocks)
+- **in_progress → blocked**: At least one participant signals block
+- **in_progress → deferred**: Explicit decision to postpone
+- **blocked → in_progress**: Blocking concern addressed
+- **Any → rejected**: Explicit decision to abandon
+
+For strategies without voting (debate, disney), the facilitator determines terminal transitions based on discussion quality and coverage.
 
 ---
 
-*Part of roundtable-execution skill*
+*Part of roundtable-execution skill | Updated per ADR-0010*

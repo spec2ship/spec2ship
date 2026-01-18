@@ -12,6 +12,10 @@ This directory contains internal ADRs for Spec2Ship development.
 | [0004](0004-participant-context-passing.md) | Participant Context Passing | accepted |
 | [0005](0005-skills-progressive-disclosure.md) | Skills Progressive Disclosure | accepted |
 | [0006](0006-session-embedded-artifacts.md) | Session Embedded Artifacts | accepted |
+| [0007](0007-session-management-simplification.md) | Session Management Simplification | accepted |
+| [0008](0008-validation-simplification.md) | Validation Simplification | accepted |
+| [0009](0009-workspace-context-cascade.md) | Workspace Context Cascade | accepted |
+| [0010](0010-artifact-state-model.md) | Artifact State Model for LLM-Driven Roundtables | accepted |
 
 ## Status Legend
 

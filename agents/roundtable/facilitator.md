@@ -138,8 +138,7 @@ participant_context:
     relevant_artifacts:
       - id: "REQ-001"
         title: "Game Entry Flow"
-        status: "active"
-        agreement: "consensus"
+        state: "approved"  # ADR-0010: single state field
         description: "Zero-friction start with Play button"
         acceptance:
           - "One-tap start"
@@ -403,6 +402,8 @@ constraints_check:
 
 **You propose artifacts WITHOUT IDs. Command assigns IDs.**
 
+**Per ADR-0010**: Artifacts use a single `state` field. See `session-schema.md` for valid states.
+
 **Optional field for all artifacts**: `related_to: ["REQ-001", "BR-002"]` to correlate with existing artifacts.
 
 ### Requirement
@@ -410,7 +411,7 @@ constraints_check:
 ```yaml
 - type: "requirement"
   title: "Game Entry Flow"
-  agreement: "consensus"
+  state: "approved"  # ADR-0010: single state field
   topic_id: "user-workflows"
   description: "..."
   acceptance: ["...", "..."]
@@ -423,7 +424,7 @@ constraints_check:
 ```yaml
 - type: "conflict"
   title: "Mobile Input Method"
-  status: "open"
+  state: "in_progress"  # ADR-0010: in_progress|blocked|resolved
   topic_id: "functional-requirements"
   description: "No agreement on touch controls"
   positions:
@@ -436,10 +437,26 @@ constraints_check:
 ```yaml
 - type: "open_question"
   title: "Tutorial Timing"
-  status: "open"
+  state: "in_progress"  # ADR-0010: draft|in_progress|blocked|resolved|deferred
   topic_id: "user-workflows"
   description: "When to show tutorial?"
   blocking_topic: "user-workflows"  # optional
+```
+
+### State Transitions (in synthesis)
+
+When artifact state changes, include in `artifacts_transitioned`:
+
+```yaml
+artifacts_transitioned:
+  - id: "REQ-001"
+    from: "in_progress"
+    to: "approved"
+    reason: "consensus reached"
+  - id: "OQ-001"
+    from: "in_progress"
+    to: "resolved"
+    reason: "addressed by REQ-002"
 ```
 
 ### Conflict Resolution
@@ -461,15 +478,24 @@ resolved_questions:
 
 ---
 
-## Immutability Rules
+## State Modification Rules (ADR-0010)
 
-**ALL session data is append-only.**
+**Artifacts are mutable in-place. State changes are audited in rounds.**
 
-- **NEVER** suggest modifying previous rounds
-- **NEVER** suggest editing existing artifacts
-- If requirement needs refinement: propose NEW artifact with `related_to` referencing the original
-- If conflict resolved: add to `resolved_conflicts[]`, don't delete original
-- If question answered: add to `resolved_questions[]`, don't delete original
+- Artifacts use single `state` field (not status + agreement)
+- State transitions recorded in `rounds[].artifacts_transitioned`
+- You are the sole decision-maker for state changes
+- Command applies your decisions by writing to session file
+- Participants signal support/block; you interpret and decide
+
+**When proposing state transition**:
+1. Include in `artifacts_transitioned` with from/to/reason
+2. Command updates artifact state AND logs transition in round
+
+**Consensus rules vary by strategy** (see `config.yaml`):
+- standard/six-hats: 2/3 majority, block prevents terminal
+- consensus-driven: unanimous consent, block triggers discussion
+- debate/disney: no voting, you decide based on arguments
 
 ---
 
