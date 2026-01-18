@@ -1322,9 +1322,10 @@ metrics:
       open_questions: {count}
       conflicts: {count}
     by_state:
-      active: {count}      # Standard artifacts (always active)
-      open: {count}        # Resolution artifacts (OQ, CONF)
-      resolved: {count}    # Resolution artifacts (OQ, CONF)
+      draft: {count}
+      in_progress: {count}
+      approved: {count}    # Terminal state for REQ, BR, NFR, EX
+      resolved: {count}    # Terminal state for OQ, CONF
   topics:
     total: 6
     closed: {count closed topics}

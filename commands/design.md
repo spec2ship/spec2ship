@@ -1268,9 +1268,10 @@ metrics:
       open_questions: {count keys in artifacts.open_questions}
       conflicts: {count keys in artifacts.conflicts}
     by_state:
-      active: {count where status=active}
-      open: {count where status=open}
-      resolved: {count where status=resolved}
+      draft: {count where state=draft}
+      in_progress: {count where state=in_progress}
+      accepted: {count where state=accepted}  # Terminal for ARCH, COMP, INT
+      resolved: {count where state=resolved}  # Terminal for OQ, CONF
   topics:
     total: 5
     closed: {count agenda items with status=closed}

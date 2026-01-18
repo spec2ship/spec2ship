@@ -75,7 +75,7 @@ Only use command-level validation (Step 2.6b in specs/design).
 | New ID | Original Check | Type | Implementation |
 |--------|----------------|------|----------------|
 | STR-001 | 1.2 Required Fields | Script | `yq -e '.id' && yq -e '.workflow_type'` |
-| STR-002 | 1.3 Artifact States | Script | Validate status values in `artifacts.*` |
+| STR-002 | 1.3 Artifact States | Script | Validate state values in `artifacts.*` (per ADR-0010) |
 | STR-003 | 1.5 References | Script | Cross-check `rounds[].artifacts_created` vs `artifacts.*` |
 | STR-004 | 1.6 Round Sequence | Script | Verify sequential round numbers |
 | STR-005 | 1.7 Metrics Consistency | Script | Count vs `metrics.artifacts.total` |
