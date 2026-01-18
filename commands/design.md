@@ -844,6 +844,12 @@ responses:
     concerns: [...]
     suggestions: [...]
     confidence: {0.0-1.0}
+  security-champion:
+    position: "{position}"
+    rationale: [...]
+    concerns: [...]
+    suggestions: [...]
+    confidence: {0.0-1.0}
   technical-lead:
     position: "{position}"
     rationale: [...]
@@ -911,6 +917,12 @@ responses:
     concerns: [...]
     suggestions: [...]
     confidence: 0.85
+  security-champion:
+    position: "{position}"
+    rationale: [...]
+    concerns: [...]
+    suggestions: [...]
+    confidence: 0.8
   technical-lead:
     position: "{position}"
     rationale: [...]
