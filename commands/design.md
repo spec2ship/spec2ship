@@ -381,10 +381,10 @@ project_context:
 # Current full state for reference
 session_state:
   artifacts:
-    architecture_decisions: [{id, title, status, description, ...}]
-    components: [{id, title, status, description, ...}]
-    conflicts: [{id, title, status, positions, ...}]
-    open_questions: [{id, title, status, description, ...}]
+    architecture_decisions: [{id, title, state, description, ...}]
+    components: [{id, title, state, description, ...}]
+    conflicts: [{id, title, state, positions, ...}]
+    open_questions: [{id, title, state, description, ...}]
   rounds:
     - round: {N}
       focus: "{topic_id}"
@@ -451,10 +451,10 @@ project_context:
 # Current session state (from session file)
 session_state:
   artifacts:
-    architecture_decisions: [{id, title, status, description, ...}]
-    components: [{id, title, status, description, ...}]
-    conflicts: [{id, title, status, positions, ...}]
-    open_questions: [{id, title, status, description, ...}]
+    architecture_decisions: [{id, title, state, description, ...}]
+    components: [{id, title, state, description, ...}]
+    conflicts: [{id, title, state, positions, ...}]
+    open_questions: [{id, title, state, description, ...}]
   rounds:
     - round: 1
       focus: "{topic_id}"
@@ -594,7 +594,7 @@ For each of: software-architect, security-champion, technical-lead, devops-engin
 Participants have `tools: []` - they CANNOT read files. They base ALL their reasoning on the context you provide. **YOU MUST**:
 
 1. **Copy `participant_context.shared` VERBATIM** - do NOT summarize, paraphrase, or truncate
-2. **Include ALL fields of each artifact** - not just id/title/status, but description, options, rationale, etc.
+2. **Include ALL fields of each artifact** - not just id/title/state, but description, options, rationale, etc.
 3. **Preserve full text** - if facilitator provided a 10-line description, pass all 10 lines
 4. **Never omit fields** - if an artifact has `consequences: {...}`, include the full object
 
@@ -640,7 +640,7 @@ context:
   # COPY ALL artifacts with ALL their fields - do NOT truncate
   relevant_artifacts:
     # For EACH artifact in participant_context.shared.relevant_artifacts:
-    # Copy ALL fields: id, title, status, description, options, rationale, consequences, etc.
+    # Copy ALL fields: id, title, state, description, options, rationale, consequences, etc.
     - id: "ARCH-001"
       title: "{copy full title}"
       status: "{copy status}"
@@ -699,7 +699,7 @@ context:
   # COPY ALL artifacts with ALL their fields - do NOT truncate
   relevant_artifacts:
     # For EACH artifact in participant_context.shared.relevant_artifacts:
-    # Copy ALL fields: id, title, status, description, options, rationale, consequences, etc.
+    # Copy ALL fields: id, title, state, description, options, rationale, consequences, etc.
     - id: "ARCH-001"
       title: "{copy full title}"
       status: "{copy status}"
@@ -881,7 +881,7 @@ focus_topic:
     criteria: [...]
     min_requirements: {N}
 
-open_conflicts: [{id, title, status, positions, ...}]
+open_conflicts: [{id, title, state, positions, ...}]
 artifacts_count: {current count from metrics}
 ```
 
@@ -1463,7 +1463,7 @@ Present architecture decisions:
 
     Open Questions:
     ───────────────
-    {for each ID, artifact in artifacts.open_questions where status=open}
+    {for each ID, artifact in artifacts.open_questions where state=in_progress}
     - {ID}: {artifact.title}
     {/for}
 

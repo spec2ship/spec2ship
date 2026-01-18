@@ -368,11 +368,11 @@ project_context:
 # Current full state for reference
 session_state:
   artifacts:
-    ideas: [{id, title, status, description, ...}]
-    risks: [{id, title, status, description, severity, ...}]
+    ideas: [{id, title, state, description, ...}]
+    risks: [{id, title, state, description, severity, ...}]
     mitigations: [{id, title, risk_id, description, ...}]
-    conflicts: [{id, title, status, positions, ...}]
-    open_questions: [{id, title, status, description, ...}]
+    conflicts: [{id, title, state, positions, ...}]
+    open_questions: [{id, title, state, description, ...}]
   rounds:
     - round: {N}
       focus: "{phase}"
@@ -439,11 +439,11 @@ project_context:
 # Current session state (from session file)
 session_state:
   artifacts:
-    ideas: [{id, title, status, description, ...}]
-    risks: [{id, title, status, description, severity, ...}]
+    ideas: [{id, title, state, description, ...}]
+    risks: [{id, title, state, description, severity, ...}]
     mitigations: [{id, title, risk_id, description, ...}]
-    conflicts: [{id, title, status, positions, ...}]
-    open_questions: [{id, title, status, description, ...}]
+    conflicts: [{id, title, state, positions, ...}]
+    open_questions: [{id, title, state, description, ...}]
   rounds:
     - round: 1
       focus: "{phase}"
@@ -630,7 +630,7 @@ context:
   # COPY ALL artifacts with ALL their fields - do NOT truncate
   relevant_artifacts:
     # For EACH artifact in participant_context.shared.relevant_artifacts:
-    # Copy ALL fields: id, title, status, description, potential_value, severity, etc.
+    # Copy ALL fields: id, title, state, description, potential_value, severity, etc.
     - id: "IDEA-001"
       title: "{copy full title}"
       status: "{copy status}"
@@ -693,7 +693,7 @@ context:
   # COPY ALL artifacts with ALL their fields - do NOT truncate
   relevant_artifacts:
     # For EACH artifact in participant_context.shared.relevant_artifacts:
-    # Copy ALL fields: id, title, status, description, potential_value, severity, etc.
+    # Copy ALL fields: id, title, state, description, potential_value, severity, etc.
     - id: "IDEA-001"
       title: "{copy full title}"
       status: "{copy status}"

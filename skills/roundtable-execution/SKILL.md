@@ -284,12 +284,12 @@ agent_state:
 
 # ARTIFACTS - embedded with full content (NOT separate files)
 artifacts:
-  requirements: {}      # REQ-*: {status, title, description, ...}
-  business_rules: {}    # BR-*: {status, title, description, ...}
-  nfr: {}               # NFR-*: {status, category, target, ...}
-  exclusions: {}        # EX-*: {status, title, rationale, ...}
-  open_questions: {}    # OQ-*: {status, question, raised_by, ...}
-  conflicts: {}         # CONF-*: {status, positions, resolution, ...}
+  requirements: {}      # REQ-*: {state, title, description, ...}
+  business_rules: {}    # BR-*: {state, title, description, ...}
+  nfr: {}               # NFR-*: {state, category, target, ...}
+  exclusions: {}        # EX-*: {state, title, rationale, ...}
+  open_questions: {}    # OQ-*: {state, question, raised_by, ...}
+  conflicts: {}         # CONF-*: {state, positions, resolution, ...}
 
 agenda: []  # Will be populated from agenda.yaml
 

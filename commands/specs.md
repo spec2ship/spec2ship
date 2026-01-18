@@ -394,9 +394,9 @@ project_context:
 # Current full state for reference
 session_state:
   artifacts:
-    requirements: [{id, title, status, description, ...}]
-    conflicts: [{id, title, status, positions, ...}]
-    open_questions: [{id, title, status, description, ...}]
+    requirements: [{id, title, state, description, ...}]
+    conflicts: [{id, title, state, positions, ...}]
+    open_questions: [{id, title, state, description, ...}]
   rounds:
     - round: {N}
       focus: "{topic_id}"
@@ -460,9 +460,9 @@ project_context:
 # Current session state (from session file)
 session_state:
   artifacts:
-    requirements: [{id, title, status, description, ...}]
-    conflicts: [{id, title, status, positions, ...}]
-    open_questions: [{id, title, status, description, ...}]
+    requirements: [{id, title, state, description, ...}]
+    conflicts: [{id, title, state, positions, ...}]
+    open_questions: [{id, title, state, description, ...}]
   rounds:
     - round: 1
       focus: "{topic_id}"
@@ -606,7 +606,7 @@ For each of: product-manager, ux-researcher, business-analyst, qa-lead
 Participants have `tools: []` - they CANNOT read files. They base ALL their reasoning on the context you provide. **YOU MUST**:
 
 1. **Copy `participant_context.shared` VERBATIM** - do NOT summarize, paraphrase, or truncate
-2. **Include ALL fields of each artifact** - not just id/title/status, but description, acceptance criteria, priority, etc.
+2. **Include ALL fields of each artifact** - not just id/title/state, but description, acceptance criteria, priority, etc.
 3. **Preserve full text** - if facilitator provided a 10-line description, pass all 10 lines
 4. **Never omit fields** - if an artifact has `acceptance: [...]`, include the full array
 
@@ -652,7 +652,7 @@ context:
   # COPY ALL artifacts with ALL their fields - do NOT truncate
   relevant_artifacts:
     # For EACH artifact in participant_context.shared.relevant_artifacts:
-    # Copy ALL fields: id, title, status, description, acceptance, priority, etc.
+    # Copy ALL fields: id, title, state, description, acceptance, priority, etc.
     - id: "REQ-001"
       title: "{copy full title}"
       status: "{copy status}"
@@ -711,7 +711,7 @@ context:
   # COPY ALL artifacts with ALL their fields - do NOT truncate
   relevant_artifacts:
     # For EACH artifact in participant_context.shared.relevant_artifacts:
-    # Copy ALL fields: id, title, status, description, acceptance, priority, etc.
+    # Copy ALL fields: id, title, state, description, acceptance, priority, etc.
     - id: "REQ-001"
       title: "{copy full title}"
       status: "{copy status}"
@@ -902,7 +902,7 @@ focus_topic:
     criteria: [...]
     min_requirements: {N}
 
-open_conflicts: [{id, title, status, positions, ...}]
+open_conflicts: [{id, title, state, positions, ...}]
 artifacts_count: {current count from metrics}
 ```
 
@@ -1348,7 +1348,7 @@ metrics:
 
 2. **Verify embedded artifacts**:
    - For each ID in `proposed_artifacts`: verify key exists in `artifacts.{type}`
-   - Verify artifact has required fields: `status`, `title`, `description`, `created_round`
+   - Verify artifact has required fields: `state`, `title`, `created_round`
    - Verify `created_round` matches current round N
 
 3. **Verify metrics consistency**:
@@ -1547,7 +1547,7 @@ Create `.s2s/requirements.md` reading from **embedded artifacts in session file*
 
 ## 2. Functional Requirements
 
-{for each ID, artifact in session.artifacts.requirements where artifact.status == "active"}
+{for each ID, artifact in session.artifacts.requirements where artifact.state == "approved"}
 ### {ID}: {artifact.title}
 - **Priority**: {artifact.priority}
 - **Description**: {artifact.description}
@@ -1559,7 +1559,7 @@ Create `.s2s/requirements.md` reading from **embedded artifacts in session file*
 
 ## 3. Business Rules
 
-{for each ID, artifact in session.artifacts.business_rules where artifact.status == "active"}
+{for each ID, artifact in session.artifacts.business_rules where artifact.state == "approved"}
 ### {ID}: {artifact.title}
 {artifact.description}
 
@@ -1569,7 +1569,7 @@ Create `.s2s/requirements.md` reading from **embedded artifacts in session file*
 
 ## 4. Non-Functional Requirements
 
-{for each ID, artifact in session.artifacts.nfr where artifact.status == "active"}
+{for each ID, artifact in session.artifacts.nfr where artifact.state == "approved"}
 ### {ID}: {artifact.title}
 - **Category**: {artifact.category}
 - **Target**: {artifact.target}
@@ -1579,13 +1579,13 @@ Create `.s2s/requirements.md` reading from **embedded artifacts in session file*
 
 ## 5. Out of Scope
 
-{for each ID, artifact in session.artifacts.exclusions where artifact.status == "active"}
+{for each ID, artifact in session.artifacts.exclusions where artifact.state == "approved"}
 - **{ID}**: {artifact.title} - {artifact.rationale}
 {/for}
 
 ## 6. Open Questions
 
-{for each ID, artifact in session.artifacts.open_questions where artifact.status == "open"}
+{for each ID, artifact in session.artifacts.open_questions where artifact.state == "in_progress"}
 - **{ID}**: {artifact.title}
   - {artifact.description}
   - Raised by: {artifact.raised_by}
