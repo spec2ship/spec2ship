@@ -34,21 +34,43 @@ Terminology used throughout Spec2Ship.
 
 ---
 
-## Artifact States
+## Artifact States (ADR-0010)
 
-### Standard Artifacts (REQ, BR, NFR, EX, ARCH, COMP, INT, IDEA, RISK, MIT)
+All artifacts use a single `state` field (not separate status + agreement).
 
-| Field | Values | Description |
-|-------|--------|-------------|
-| **status** | `active` | Always active (artifacts are immutable) |
-| **agreement** | `consensus` / `draft` / `conflict` | Level of participant agreement |
-| **related_to** | `["REQ-001", ...]` | Optional: IDs of related artifacts |
+### Universal States
 
-### Resolution Artifacts (OQ, CONF)
+All artifact types can use these states:
 
-| Field | Values | Description |
-|-------|--------|-------------|
-| **status** | `open` / `resolved` | Whether the issue is resolved |
+| State | Description | Facilitator Action |
+|-------|-------------|-------------------|
+| **draft** | Initial state after creation | Passive (log) |
+| **needs_discussion** | Queued for discussion | Passive (queue) |
+| **in_progress** | Currently being discussed | Active (drive resolution) |
+| **blocked** | Has blocking concern | Active (address block) |
+| **deferred** | Postponed for later | Passive (review at close) |
+| **rejected** | Explicitly rejected | Passive (archive) |
+
+### Terminal States (by artifact type)
+
+| Artifact Types | Terminal States |
+|----------------|-----------------|
+| REQ, BR, NFR, EX | `approved`, `implemented` |
+| ARCH, DEC, COMP, INT | `accepted` |
+| IDEA | `promoted`, `parked` |
+| OQ, CONF | `resolved` |
+
+### State Transitions
+
+Tracked in `rounds[].artifacts_transitioned` for audit:
+
+```yaml
+artifacts_transitioned:
+  - id: "REQ-001"
+    from: "draft"
+    to: "approved"
+    reason: "consensus reached"
+```
 
 ### Resolution Tracking
 
@@ -58,16 +80,6 @@ Terminology used throughout Spec2Ship.
 | **resolved_questions** | `{question_id, answer}` | How questions were answered |
 
 Resolution methods: `consensus`, `facilitator`, `user_decision`
-
----
-
-## Agreement Levels
-
-| Level | Description |
-|-------|-------------|
-| **consensus** | All participants agreed |
-| **draft** | Tentative, needs further discussion |
-| **conflict** | Disagreement exists |
 
 ---
 

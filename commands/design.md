@@ -265,12 +265,13 @@ agent_state:
 
 # ARTIFACTS - embedded with full content (NOT just IDs)
 # Each artifact type is a map keyed by ID
+# Per ADR-0010: artifacts use single 'state' field
 artifacts:
-  architecture_decisions: {}  # ARCH-*: {status, title, decision, options, ...}
-  components: {}              # COMP-*: {status, title, responsibility, ...}
-  interfaces: {}              # INT-*: {status, title, provides, requires, ...}
-  open_questions: {}          # OQ-*: {status, title, description, ...}
-  conflicts: {}               # CONF-*: {status, title, positions, ...}
+  architecture_decisions: {}  # ARCH-*: {state, title, decision, options, ...}
+  components: {}              # COMP-*: {state, title, responsibility, ...}
+  interfaces: {}              # INT-*: {state, title, provides, requires, ...}
+  open_questions: {}          # OQ-*: {state, title, description, ...}
+  conflicts: {}               # CONF-*: {state, title, positions, ...}
 
 # Agenda topics with status
 agenda:
@@ -299,7 +300,7 @@ metrics:
   artifacts:
     total: 0
     by_type: {}
-    by_status: {}
+    by_state: {}
   topics:
     total: 5
     closed: 0
@@ -960,7 +961,7 @@ synthesis: "{2-4 sentence summary}"
 proposed_artifacts:
   - type: "decision"
     title: "{title}"
-    agreement: "consensus"
+    state: "accepted"  # ADR-0010: single state field
     topic_id: "{topic}"
     description: "..."
     options: [...]
@@ -1075,13 +1076,14 @@ For each `proposed_artifact` from facilitator:
 
 **IMPORTANT**: Artifacts are EMBEDDED in session file, NOT separate files.
 
+**Per ADR-0010**: Artifacts use single `state` field. State transitions are audited in `rounds[].artifacts_transitioned`.
+
 **Artifact schema** (architecture decisions - add to `artifacts.architecture_decisions`):
 ```yaml
 artifacts:
   architecture_decisions:
     ARCH-001:
-      status: "active"    # Always active (immutable)
-      agreement: "consensus"  # From synthesis: consensus|draft|conflict
+      state: "accepted"   # ADR-0010: draft|in_progress|accepted|rejected|deferred
       created_round: {N}
       topic_id: "{topic}"
       title: "{title}"
@@ -1106,16 +1108,12 @@ artifacts:
       related_to: []
 ```
 
-**Note**: Map facilitator's `proposed_artifact.status` → `agreement` field.
-Lifecycle `status` is always `"active"` for new artifacts.
-
 **Artifact schema** (components - add to `artifacts.components`):
 ```yaml
 artifacts:
   components:
     COMP-001:
-      status: "active"
-      agreement: "consensus"
+      state: "accepted"
       created_round: {N}
       topic_id: "{topic}"
       title: "{title}"
@@ -1134,8 +1132,7 @@ artifacts:
 artifacts:
   interfaces:
     INT-001:
-      status: "active"
-      agreement: "consensus"
+      state: "accepted"
       created_round: {N}
       topic_id: "{topic}"
       title: "{title}"
@@ -1151,7 +1148,7 @@ artifacts:
 artifacts:
   open_questions:
     OQ-001:
-      status: "open"      # open|resolved
+      state: "in_progress"  # ADR-0010: draft|in_progress|blocked|resolved|deferred
       created_round: {N}
       topic_id: "{topic}"
       title: "{title}"
@@ -1159,8 +1156,7 @@ artifacts:
         {question or uncertainty}
       raised_by: "{participant}"
       blocking: {true|false}
-      resolution: null    # Filled when resolved
-      resolved_round: null
+      resolution: null    # Free text when resolved
 ```
 
 **Artifact schema** (conflicts - add to `artifacts.conflicts`):
@@ -1168,7 +1164,7 @@ artifacts:
 artifacts:
   conflicts:
     CONF-001:
-      status: "open"      # open|resolved
+      state: "in_progress"  # ADR-0010: in_progress|blocked|resolved
       created_round: {N}
       topic_id: "{topic}"
       title: "{title}"
@@ -1177,18 +1173,25 @@ artifacts:
           stance: "{position summary}"
           rationale: "{reason}"
       resolution: null
-      resolved_round: null
 ```
 
 **For resolved conflicts**:
-Edit the existing conflict in session file to add:
+Edit the existing conflict in session file:
 ```yaml
 artifacts:
   conflicts:
     CONF-001:
-      status: "resolved"
+      state: "resolved"
       resolution: "{resolution summary}"
-      resolved_round: {N}
+```
+
+And add to `rounds[].artifacts_transitioned` for audit:
+```yaml
+artifacts_transitioned:
+  - id: "CONF-001"
+    from: "in_progress"
+    to: "resolved"
+    reason: "{resolution method}"
 ```
 
 #### Step 2.6: Update Session File
@@ -1264,7 +1267,7 @@ metrics:
       interfaces: {count keys in artifacts.interfaces}
       open_questions: {count keys in artifacts.open_questions}
       conflicts: {count keys in artifacts.conflicts}
-    by_status:
+    by_state:
       active: {count where status=active}
       open: {count where status=open}
       resolved: {count where status=resolved}
@@ -1291,7 +1294,7 @@ metrics:
 
 2. **Verify artifact embedding**:
    - For each ID in `proposed_artifacts`: check `artifacts.{type}.{ID}` key exists in session file
-   - Verify each artifact has required fields: `status`, `agreement`, `created_round`, `title`
+   - Verify each artifact has required fields: `state`, `created_round`, `title`
 
 3. **Verify verbose dumps** (if --verbose):
    - Check `rounds/{NNN}-*.yaml` files exist for this round

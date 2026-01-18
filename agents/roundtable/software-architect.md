@@ -43,7 +43,7 @@ context:
   relevant_artifacts:
     - id: "REQ-001"
       title: "..."
-      agreement: "consensus"
+      state: "approved"      # ADR-0010: single state field
       description: "..."
       acceptance: [...]
 

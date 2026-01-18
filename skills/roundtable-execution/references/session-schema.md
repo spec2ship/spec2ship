@@ -127,7 +127,7 @@ metrics:
   artifacts:
     total: 5
     by_type: {requirements: 3, open_questions: 1, exclusions: 1}
-    by_status: {active: 4, resolved: 1}
+    by_state: {approved: 3, in_progress: 1, resolved: 1}
   topics:
     total: 6
     closed: 6

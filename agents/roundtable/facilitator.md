@@ -91,9 +91,9 @@ agenda:
 # Current session state (for context preparation)
 session_state:
   artifacts:
-    requirements: []    # list of {id, title, status, description, ...}
-    conflicts: []       # list of {id, title, status, positions, ...}
-    open_questions: []  # list of {id, title, status, description, ...}
+    requirements: []    # list of {id, title, state, description, ...}
+    conflicts: []       # list of {id, title, state, positions, ...}
+    open_questions: []  # list of {id, title, state, description, ...}
   rounds: []            # list of {number, focus, question, synthesis}
 
 participants:
@@ -230,7 +230,7 @@ participant_context:
    - **DO NOT summarize to the point of losing decision-relevant information**
 
 2. **relevant_artifacts**: **MUST include COMPLETE artifact content**, not summaries:
-   - Include ALL fields of each artifact (id, title, status, description, acceptance criteria, priority, etc.)
+   - Include ALL fields of each artifact (id, title, state, description, acceptance criteria, priority, etc.)
    - Include artifacts directly related to current topic
    - Include artifacts referenced by other artifacts in scope
    - **NEVER truncate descriptions or acceptance criteria**
@@ -319,7 +319,7 @@ synthesis: "Strong alignment on four-phase workflow. All participants agree on E
 proposed_artifacts:
   - type: "requirement"
     title: "Game Entry Flow"
-    agreement: "consensus"
+    state: "approved"         # ADR-0010: single state field
     topic_id: "user-workflows"
     description: "Zero-friction start with Play button, no registration required"
     acceptance:
@@ -328,7 +328,7 @@ proposed_artifacts:
     priority: "must"
   - type: "open_question"
     title: "Tutorial Integration"
-    status: "open"
+    state: "in_progress"      # ADR-0010: single state field
     topic_id: "user-workflows"
     description: "When and how to show tutorial? First play only or optional?"
 
@@ -713,8 +713,7 @@ participant_context:
     relevant_artifacts:
       - id: "REQ-003"
         title: "Mobile Controls"
-        status: "active"
-        agreement: "draft"
+        state: "draft"        # ADR-0010: single state field
         description: "Touch-based controls for mobile play"
 
     open_conflicts:
@@ -761,7 +760,7 @@ synthesis: "Strong alignment on four-phase workflow (Entry→Setup→Play→End)
 proposed_artifacts:
   - type: "requirement"
     title: "Game Entry Flow"
-    agreement: "consensus"
+    state: "approved"         # ADR-0010: single state field
     topic_id: "user-workflows"
     description: "Zero-friction start with Play button"
     acceptance:
@@ -770,7 +769,7 @@ proposed_artifacts:
     priority: "must"
   - type: "open_question"
     title: "Tutorial Integration"
-    status: "open"
+    state: "in_progress"      # ADR-0010: single state field
     topic_id: "user-workflows"
     description: "When and how to show tutorial?"
 

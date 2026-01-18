@@ -277,13 +277,14 @@ agent_state:
 
 # ARTIFACTS - embedded with full content (NOT just IDs)
 # Each artifact type is a map keyed by ID
+# Per ADR-0010: artifacts use single 'state' field
 artifacts:
-  requirements: {}      # REQ-*: {status, title, description, acceptance, ...}
-  business_rules: {}    # BR-*: {status, title, description, conditions, ...}
-  nfr: {}               # NFR-*: {status, title, category, target, ...}
-  exclusions: {}        # EX-*: {status, title, description, rationale, ...}
-  open_questions: {}    # OQ-*: {status, title, description, raised_by, ...}
-  conflicts: {}         # CONF-*: {status, title, positions, resolution, ...}
+  requirements: {}      # REQ-*: {state, title, description, acceptance, ...}
+  business_rules: {}    # BR-*: {state, title, description, conditions, ...}
+  nfr: {}               # NFR-*: {state, title, category, target, ...}
+  exclusions: {}        # EX-*: {state, title, description, rationale, ...}
+  open_questions: {}    # OQ-*: {state, title, description, raised_by, ...}
+  conflicts: {}         # CONF-*: {state, title, positions, resolution, ...}
 
 # Agenda topics with status
 agenda:
@@ -315,7 +316,7 @@ metrics:
   artifacts:
     total: 0
     by_type: {}
-    by_status: {}
+    by_state: {}
   topics:
     total: 6
     closed: 0
@@ -990,7 +991,7 @@ synthesis: "{2-4 sentence summary}"
 proposed_artifacts:
   - type: "requirement"
     title: "{title}"
-    agreement: "consensus"
+    state: "approved"  # ADR-0010: single state field
     topic_id: "{topic}"
     description: "..."
     acceptance: [...]
@@ -1120,13 +1121,14 @@ For each `proposed_artifact` from facilitator:
 
 **IMPORTANT**: Artifacts are EMBEDDED in session file, NOT separate files.
 
+**Per ADR-0010**: Artifacts use single `state` field. State transitions are audited in `rounds[].artifacts_transitioned`.
+
 **Artifact schema** (requirements - add to `artifacts.requirements`):
 ```yaml
 artifacts:
   requirements:
     REQ-001:
-      status: "active"    # Always active (immutable)
-      agreement: "consensus"  # From synthesis: consensus|draft|conflict
+      state: "approved"   # ADR-0010: draft|in_progress|approved|rejected|deferred
       created_round: {N}
       topic_id: "{topic}"
       title: "{title}"
@@ -1142,16 +1144,12 @@ artifacts:
       related_to: []      # Optional: related artifact IDs
 ```
 
-**Note**: Map facilitator's `proposed_artifact.status` → `agreement` field.
-Lifecycle `status` is always `"active"` for new artifacts.
-
 **Artifact schema** (business rules - add to `artifacts.business_rules`):
 ```yaml
 artifacts:
   business_rules:
     BR-001:
-      status: "active"
-      agreement: "consensus"
+      state: "approved"
       created_round: {N}
       topic_id: "{topic}"
       title: "{title}"
@@ -1169,8 +1167,7 @@ artifacts:
 artifacts:
   nfr:
     NFR-001:
-      status: "active"
-      agreement: "consensus"
+      state: "approved"
       created_round: {N}
       topic_id: "nfr-measurable"
       title: "{title}"
@@ -1188,8 +1185,7 @@ artifacts:
 artifacts:
   exclusions:
     EX-001:
-      status: "active"
-      agreement: "consensus"
+      state: "approved"
       created_round: {N}
       topic_id: "out-of-scope"
       title: "{title}"
@@ -1206,7 +1202,7 @@ artifacts:
 artifacts:
   open_questions:
     OQ-001:
-      status: "open"      # open|resolved
+      state: "in_progress"  # ADR-0010: draft|in_progress|blocked|resolved|deferred
       created_round: {N}
       topic_id: "{topic}"
       title: "{title}"
@@ -1214,8 +1210,7 @@ artifacts:
         {question or uncertainty}
       raised_by: "{participant}"
       blocking: {true|false}
-      resolution: null    # Filled when resolved
-      resolved_round: null
+      resolution: null    # Free text when resolved
 ```
 
 **Artifact schema** (conflicts - add to `artifacts.conflicts`):
@@ -1223,7 +1218,7 @@ artifacts:
 artifacts:
   conflicts:
     CONF-001:
-      status: "open"      # open|resolved
+      state: "in_progress"  # ADR-0010: in_progress|blocked|resolved
       created_round: {N}
       topic_id: "{topic}"
       title: "{title}"
@@ -1232,18 +1227,25 @@ artifacts:
           stance: "{position summary}"
           rationale: "{reason}"
       resolution: null
-      resolved_round: null
 ```
 
 **For resolved conflicts**:
-Edit the existing conflict in session file to add:
+Edit the existing conflict in session file:
 ```yaml
 artifacts:
   conflicts:
     CONF-001:
-      status: "resolved"
+      state: "resolved"
       resolution: "{resolution summary}"
-      resolved_round: {N}
+```
+
+And add to `rounds[].artifacts_transitioned` for audit:
+```yaml
+artifacts_transitioned:
+  - id: "CONF-001"
+    from: "in_progress"
+    to: "resolved"
+    reason: "{resolution method}"
 ```
 
 #### Step 2.6: Update Session File
@@ -1319,7 +1321,7 @@ metrics:
       exclusions: {count}
       open_questions: {count}
       conflicts: {count}
-    by_status:
+    by_state:
       active: {count}      # Standard artifacts (always active)
       open: {count}        # Resolution artifacts (OQ, CONF)
       resolved: {count}    # Resolution artifacts (OQ, CONF)
@@ -1480,7 +1482,7 @@ Extract from session file (Single Source of Truth - ALL artifacts are embedded):
 - `artifacts.exclusions` - map of EX-* with full content
 - `artifacts.open_questions` - map of OQ-* with full content
 - `artifacts.conflicts` - map of CONF-* with full content
-- Aggregate counts from `metrics.artifacts.by_type` and `metrics.artifacts.by_status`
+- Aggregate counts from `metrics.artifacts.by_type` and `metrics.artifacts.by_state`
 
 ### Step 3.4: User Review
 
@@ -1593,7 +1595,7 @@ Create `.s2s/requirements.md` reading from **embedded artifacts in session file*
 ---
 *Generated by Spec2Ship /s2s:specs*
 *Session: {session-id}*
-*Artifacts: {metrics.artifacts.total} ({metrics.artifacts.by_status.active} active)*
+*Artifacts: {metrics.artifacts.total} ({metrics.artifacts.by_state.active} active)*
 ```
 
 ### Step 3.6: Update CONTEXT.md

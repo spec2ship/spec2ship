@@ -300,7 +300,7 @@ metrics:
   artifacts:
     total: 0
     by_type: {}
-    by_status: {}
+    by_state: {}
   topics:
     total: 0
     closed: 0
@@ -555,20 +555,20 @@ escalation_reason: null
 
 For each `proposed_artifact`:
 
-1. **Determine ID**: Read current registry, assign next available ID
+1. **Determine ID**: Count existing keys in `artifacts.{type}`, assign next available ID
    - Requirements: `REQ-{NNN}`
    - Conflicts: `CONF-{NNN}`
    - Open questions: `OQ-{NNN}`
    - Etc.
 
-2. **Write artifact file**: `{session_folder}/{ID}.yaml`
+2. **Embed in session file**: Add to `artifacts.{type}` map with full content
 
-3. **Update registry** in session file
+**IMPORTANT**: Artifacts are EMBEDDED in session file, NOT separate files.
 
 For each `resolved_conflict`:
 
-1. **Update conflict file**: Add `resolved_round` and `resolution`
-2. **Update registry** if needed
+1. **Update state**: Change `state` from `in_progress` to `resolved`, add `resolution` text
+2. **Track transition**: Add to `rounds[].artifacts_transitioned` for audit
 
 ### Step 2.6: Update Session File
 

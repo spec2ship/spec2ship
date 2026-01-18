@@ -85,10 +85,11 @@ If S2S initialized is "NOT_S2S":
       Open Questions:  {count} ({list IDs})
       Conflicts:       {count} ({list IDs})
 
-    By Status:
-      Active:     {metrics.artifacts.by_status.active}
-      Open:       {metrics.artifacts.by_status.open}
-      Resolved:   {metrics.artifacts.by_status.resolved}
+    By State:
+      Draft:       {metrics.artifacts.by_state.draft}
+      In progress: {metrics.artifacts.by_state.in_progress}
+      Approved:    {metrics.artifacts.by_state.approved}
+      Resolved:    {metrics.artifacts.by_state.resolved}
 
     Agenda ({metrics.topics.closed}/{metrics.topics.total} closed)
     ─────────────────────────────────────

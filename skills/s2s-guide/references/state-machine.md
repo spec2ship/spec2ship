@@ -19,50 +19,76 @@ State transitions in Spec2Ship.
 
 ---
 
-## Artifact Lifecycle
+## Artifact Lifecycle (ADR-0010)
 
-### Standard Artifacts (REQ, BR, NFR, EX, ARCH, COMP, INT, IDEA, RISK, MIT)
+All artifacts use a single `state` field with transitions tracked for audit.
 
-```
-┌────────┐
-│ create │
-└───┬────┘
-    │
-    ▼
-┌────────┐
-│ active │  (permanent)
-└────────┘
-```
-
-Standard artifacts are **immutable** once created:
-- `status`: always `active`
-- `agreement`: `consensus` | `draft` | `conflict`
-
-If a requirement needs refinement, create a **new artifact** with `related_to` referencing the original.
-
-### Resolution Artifacts (OQ, CONF)
+### State Transition Diagram
 
 ```
-┌──────┐         ┌──────────┐
-│ open │────────▶│ resolved │
-└──────┘         └──────────┘
+                    ┌─────────────────────────────────────────┐
+                    │                                         │
+                    ▼                                         │
+┌───────┐    ┌─────────────────┐    ┌─────────────┐    ┌──────────┐
+│ draft │───▶│ needs_discussion│───▶│ in_progress │───▶│ TERMINAL │
+└───────┘    └─────────────────┘    └─────────────┘    └──────────┘
+                                          │                  ▲
+                                          ▼                  │
+                                    ┌─────────┐              │
+                                    │ blocked │──────────────┘
+                                    └─────────┘
+
+Side states (any → these):
+    ┌──────────┐     ┌──────────┐
+    │ deferred │     │ rejected │
+    └──────────┘     └──────────┘
 ```
+
+### Terminal States
+
+| Artifact Types | Terminal States |
+|----------------|-----------------|
+| REQ, BR, NFR, EX | `approved`, `implemented` |
+| ARCH, DEC, COMP, INT | `accepted` |
+| IDEA | `promoted`, `parked` |
+| OQ, CONF | `resolved` |
+
+### Transition Conditions
 
 | From | To | Trigger |
 |------|-----|---------|
-| open | resolved | Question answered or conflict resolved |
+| draft | needs_discussion | Artifact ready for group discussion |
+| needs_discussion | in_progress | Facilitator selects for current round |
+| in_progress | *terminal* | Consensus reached (no blocks) |
+| in_progress | blocked | At least one participant signals block |
+| in_progress | deferred | Explicit decision to postpone |
+| blocked | in_progress | Blocking concern addressed |
+| *any* | rejected | Explicit decision to abandon |
 
-Resolution tracking:
+### Audit Trail
+
+State transitions are tracked in `rounds[].artifacts_transitioned`:
+
 ```yaml
-resolved_conflicts:
-  - conflict_id: "CONF-001"
-    resolution: "Agreed on JWT approach"
-    method: consensus  # consensus | facilitator | user_decision
-
-resolved_questions:
-  - question_id: "OQ-001"
-    answer: "Use PostgreSQL for persistence"
+artifacts_transitioned:
+  - id: "REQ-001"
+    from: "draft"
+    to: "approved"
+    reason: "consensus reached"
+  - id: "CONF-001"
+    from: "in_progress"
+    to: "resolved"
+    reason: "facilitator decision"
 ```
+
+### Resolution Tracking
+
+| Field | Structure | Description |
+|-------|-----------|-------------|
+| resolved_conflicts | `{conflict_id, resolution, method}` | How conflicts were resolved |
+| resolved_questions | `{question_id, answer}` | How questions were answered |
+
+Resolution methods: `consensus`, `facilitator`, `user_decision`
 
 ---
 

@@ -246,11 +246,11 @@ agent_state:
 # ARTIFACTS - embedded with full content (NOT just IDs)
 # Each artifact type is a map keyed by ID
 artifacts:
-  ideas: {}             # IDEA-*: {status, title, description, ...}
-  risks: {}             # RISK-*: {status, title, severity, ...}
-  mitigations: {}       # MIT-*: {status, title, risk_id, ...}
-  open_questions: {}    # OQ-*: {status, title, description, ...}
-  conflicts: {}         # CONF-*: {status, title, positions, ...}
+  ideas: {}             # IDEA-*: {state, title, description, ...}
+  risks: {}             # RISK-*: {state, title, severity, ...}
+  mitigations: {}       # MIT-*: {state, title, risk_id, ...}
+  open_questions: {}    # OQ-*: {state, title, description, ...}
+  conflicts: {}         # CONF-*: {state, title, positions, ...}
 
 # Disney phases (replaces formal agenda)
 current_phase: "dreamer"
@@ -274,7 +274,7 @@ metrics:
   artifacts:
     total: 0
     by_type: {}
-    by_status: {}
+    by_state: {}
   phases:
     dreamer: 0
     realist: 0
@@ -579,7 +579,7 @@ For each of: product-manager, software-architect, technical-lead, devops-enginee
 Participants have `tools: []` - they CANNOT read files. They base ALL their reasoning on the context you provide. **YOU MUST**:
 
 1. **Copy `participant_context.shared` VERBATIM** - do NOT summarize, paraphrase, or truncate
-2. **Include ALL fields of each artifact** - not just id/title/status, but description, potential_value, severity, etc.
+2. **Include ALL fields of each artifact** - not just id/title/state, but description, potential_value, severity, etc.
 3. **Preserve full text** - if facilitator provided a 10-line description, pass all 10 lines
 4. **Never omit fields** - if an artifact has `affected_ideas: [...]`, include the full array
 
@@ -953,16 +953,16 @@ synthesis: "{2-4 sentence summary of phase contributions}"
 proposed_artifacts:
   - type: "idea"       # dreamer phase
     title: "{title}"
-    agreement: "draft"
+    state: "draft"     # ADR-0010: single state field
     description: "..."
   - type: "risk"       # critic phase
     title: "{title}"
-    agreement: "consensus"
+    state: "approved"  # ADR-0010: single state field
     description: "..."
     severity: "{high|medium|low}"
   - type: "mitigation"  # critic phase
     title: "{title}"
-    agreement: "consensus"
+    state: "approved"  # ADR-0010: single state field
     risk_id: "{RISK-NNN to mitigate}"
     description: "..."
 
@@ -1092,8 +1092,7 @@ For each `proposed_artifact` from facilitator:
 artifacts:
   ideas:
     IDEA-001:
-      status: "active"          # Always active (immutable)
-      agreement: "draft"        # From synthesis: consensus|draft|conflict
+      state: "draft"            # ADR-0010: draft|in_progress|promoted|parked|rejected
       created_round: {N}
       disney_phase: "dreamer"
       title: "{title}"
@@ -1108,16 +1107,12 @@ artifacts:
       related_to: []
 ```
 
-**Note**: Map facilitator's `proposed_artifact.status` → `agreement` field.
-Lifecycle `status` is always `"active"` for new artifacts.
-
 **Artifact schema** (risks - add to `artifacts.risks`):
 ```yaml
 artifacts:
   risks:
     RISK-001:
-      status: "active"
-      agreement: "consensus"
+      state: "approved"         # ADR-0010: draft|in_progress|approved|rejected
       created_round: {N}
       disney_phase: "critic"
       title: "{title}"
@@ -1136,8 +1131,7 @@ artifacts:
 artifacts:
   mitigations:
     MIT-001:
-      status: "active"
-      agreement: "consensus"
+      state: "approved"         # ADR-0010: draft|in_progress|approved|rejected
       created_round: {N}
       disney_phase: "critic"
       title: "{title}"
@@ -1155,7 +1149,7 @@ artifacts:
 artifacts:
   open_questions:
     OQ-001:
-      status: "open"            # open|resolved
+      state: "in_progress"      # ADR-0010: draft|in_progress|blocked|resolved|deferred
       created_round: {N}
       disney_phase: "{dreamer|realist|critic}"
       title: "{title}"
@@ -1163,8 +1157,7 @@ artifacts:
         {question or uncertainty}
       raised_by: "{participant}"
       blocking: {true|false}
-      resolution: null          # Filled when resolved
-      resolved_round: null
+      resolution: null          # Free text when resolved
 ```
 
 **Artifact schema** (conflicts - add to `artifacts.conflicts`):
@@ -1172,7 +1165,7 @@ artifacts:
 artifacts:
   conflicts:
     CONF-001:
-      status: "open"            # open|resolved
+      state: "in_progress"      # ADR-0010: in_progress|blocked|resolved
       created_round: {N}
       disney_phase: "{dreamer|realist|critic}"
       title: "{title}"
@@ -1180,19 +1173,26 @@ artifacts:
         - participant: "{participant-id}"
           stance: "{position summary}"
           rationale: "{reason}"
-      resolution: null
-      resolved_round: null
+      resolution: null          # Free text when resolved
 ```
 
 **For resolved conflicts**:
-Edit the existing conflict in session file to add:
+Edit the existing conflict in session file:
 ```yaml
 artifacts:
   conflicts:
     CONF-001:
-      status: "resolved"
+      state: "resolved"
       resolution: "{resolution summary}"
-      resolved_round: {N}
+```
+
+And add to `rounds[].artifacts_transitioned` for audit:
+```yaml
+artifacts_transitioned:
+  - id: "CONF-001"
+    from: "in_progress"
+    to: "resolved"
+    reason: "{resolution method}"
 ```
 
 #### Step 2.6: Update Session File
@@ -1273,10 +1273,11 @@ metrics:
       mitigations: {count keys in artifacts.mitigations}
       open_questions: {count keys in artifacts.open_questions}
       conflicts: {count keys in artifacts.conflicts}
-    by_status:
-      active: {count where status=active}
-      open: {count where status=open}
-      resolved: {count where status=resolved}
+    by_state:
+      draft: {count where state=draft}
+      in_progress: {count where state=in_progress}
+      approved: {count where state=approved}
+      resolved: {count where state=resolved}
   phases:
     dreamer: {rounds in dreamer phase}
     realist: {rounds in realist phase}
@@ -1301,7 +1302,7 @@ metrics:
 
 2. **Verify embedded artifacts**:
    - For each ID in `proposed_artifacts`: verify key exists in `artifacts.{type}`
-   - Verify artifact has required fields: `status`, `title`, `description`, `created_round`
+   - Verify artifact has required fields: `state`, `title`, `created_round`
    - Verify `created_round` matches current round N
 
 3. **Verify metrics consistency**:
@@ -1460,7 +1461,7 @@ Extract from session file (Single Source of Truth - ALL artifacts are embedded):
 - `artifacts.mitigations` - map of MIT-* with full content
 - `artifacts.open_questions` - map of OQ-* with full content
 - `artifacts.conflicts` - map of CONF-* with full content
-- Aggregate counts from `metrics.artifacts.by_type` and `metrics.artifacts.by_status`
+- Aggregate counts from `metrics.artifacts.by_type` and `metrics.artifacts.by_state`
 
 Categorize artifacts by Disney phase:
 - **Dreamer phase**: IDEA-* where `disney_phase == "dreamer"`
@@ -1496,7 +1497,7 @@ Pair risks with mitigations.
 ### {ID}: {artifact.title}
 {artifact.description}
 
-**Status**: {artifact.agreement}
+**State**: {artifact.state}
 {/for}
 
 ## Realist Assessment
@@ -1526,7 +1527,7 @@ Pair risks with mitigations.
 
 ## Unresolved Questions
 
-{for each ID, artifact in artifacts.open_questions where artifact.status == "open"}
+{for each ID, artifact in artifacts.open_questions where artifact.state == "in_progress"}
 - **{ID}**: {artifact.title}
 {/for}
 

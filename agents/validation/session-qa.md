@@ -113,7 +113,7 @@ missing_fields: []
 
 ---
 
-### STR-002: Artifact States Valid
+### STR-002: Artifact States Valid (ADR-0010)
 
 | Property | Value |
 |----------|-------|
@@ -121,37 +121,73 @@ missing_fields: []
 | **Type** | Structural (script) |
 | **Severity** | high |
 
-**Purpose**: Verify all artifacts have valid status values.
+**Purpose**: Verify all artifacts have valid `state` field values per ADR-0010.
 
-**Valid States**:
-- Standard artifacts (REQ, BR, NFR, EX, ARCH, COMP, INT, IDEA, RISK, MIT): `active` only (immutable)
-- Resolution artifacts (OQ, CONF): `open`, `resolved`
+**Valid States** (single `state` field):
+
+Universal states (all artifact types):
+- `draft`, `needs_discussion`, `in_progress`, `blocked`, `deferred`, `rejected`
+
+Terminal states by artifact type:
+- REQ, BR, NFR, EX: `approved`, `implemented`
+- ARCH, COMP, INT: `accepted`
+- IDEA: `promoted`, `parked`
+- OQ, CONF: `resolved`
 
 **Verification Steps**:
 
 ```bash
 SESSION_FILE=".s2s/sessions/SESSION_ID.yaml"
 
-# Check standard artifacts (always status=active)
-echo "=== Standard Artifacts ==="
-for TYPE in requirements business_rules nfr exclusions architecture components interfaces ideas risks mitigations; do
+# Universal states valid for all artifact types
+UNIVERSAL_STATES="draft|needs_discussion|in_progress|blocked|deferred|rejected"
+
+# Check requirements, business_rules, nfr, exclusions (terminal: approved|implemented)
+echo "=== Requirements-like Artifacts ==="
+for TYPE in requirements business_rules nfr exclusions; do
   yq ".artifacts.$TYPE | keys | .[]" "$SESSION_FILE" 2>/dev/null | while read ID; do
-    STATUS=$(yq ".artifacts.$TYPE[\"$ID\"].status" "$SESSION_FILE" 2>/dev/null)
-    case "$STATUS" in
-      active) echo "OK: $ID = $STATUS" ;;
-      *) echo "INVALID: $ID = $STATUS (expected: active)" ;;
+    STATE=$(yq ".artifacts.$TYPE[\"$ID\"].state" "$SESSION_FILE" 2>/dev/null)
+    case "$STATE" in
+      draft|needs_discussion|in_progress|blocked|deferred|rejected|approved|implemented)
+        echo "OK: $ID = $STATE" ;;
+      *) echo "INVALID: $ID = $STATE (expected: universal or approved|implemented)" ;;
     esac
   done
 done
 
-# Check resolution artifacts (open_questions, conflicts)
+# Check architecture_decisions, components, interfaces (terminal: accepted)
+echo "=== Architecture Artifacts ==="
+for TYPE in architecture_decisions components interfaces; do
+  yq ".artifacts.$TYPE | keys | .[]" "$SESSION_FILE" 2>/dev/null | while read ID; do
+    STATE=$(yq ".artifacts.$TYPE[\"$ID\"].state" "$SESSION_FILE" 2>/dev/null)
+    case "$STATE" in
+      draft|needs_discussion|in_progress|blocked|deferred|rejected|accepted)
+        echo "OK: $ID = $STATE" ;;
+      *) echo "INVALID: $ID = $STATE (expected: universal or accepted)" ;;
+    esac
+  done
+done
+
+# Check ideas (terminal: promoted|parked)
+echo "=== Ideas ==="
+yq ".artifacts.ideas | keys | .[]" "$SESSION_FILE" 2>/dev/null | while read ID; do
+  STATE=$(yq ".artifacts.ideas[\"$ID\"].state" "$SESSION_FILE" 2>/dev/null)
+  case "$STATE" in
+    draft|needs_discussion|in_progress|blocked|deferred|rejected|promoted|parked)
+      echo "OK: $ID = $STATE" ;;
+    *) echo "INVALID: $ID = $STATE (expected: universal or promoted|parked)" ;;
+  esac
+done
+
+# Check open_questions and conflicts (terminal: resolved)
 echo "=== Resolution Artifacts ==="
 for TYPE in open_questions conflicts; do
   yq ".artifacts.$TYPE | keys | .[]" "$SESSION_FILE" 2>/dev/null | while read ID; do
-    STATUS=$(yq ".artifacts.$TYPE[\"$ID\"].status" "$SESSION_FILE" 2>/dev/null)
-    case "$STATUS" in
-      open|resolved) echo "OK: $ID = $STATUS" ;;
-      *) echo "INVALID: $ID = $STATUS (expected: open|resolved)" ;;
+    STATE=$(yq ".artifacts.$TYPE[\"$ID\"].state" "$SESSION_FILE" 2>/dev/null)
+    case "$STATE" in
+      draft|needs_discussion|in_progress|blocked|deferred|rejected|resolved)
+        echo "OK: $ID = $STATE" ;;
+      *) echo "INVALID: $ID = $STATE (expected: universal or resolved)" ;;
     esac
   done
 done
@@ -163,8 +199,8 @@ check: STR-002
 status: pass|fail
 invalid_artifacts:
   - id: "REQ-001"
-    status: "invalid_value"
-    expected: "active"
+    state: "invalid_value"
+    expected: "universal or approved|implemented"
 ```
 
 ---
