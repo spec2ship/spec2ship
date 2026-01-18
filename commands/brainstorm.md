@@ -1,7 +1,7 @@
 ---
-description: Creative brainstorming session using the Disney strategy (Dreamer → Realist → Critic). Use for ideation and exploring new ideas without constraints.
-allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Read, Write, Edit, Glob, Task, AskUserQuestion
-argument-hint: "topic" [--participants <list>] [--verbose] [--interactive] [--diagnostic]
+description: Creative brainstorming session using the Disney strategy (Dreamer → Realist → Critic). Use for ideation and exploring new ideas without constraints. Auto-detects active sessions.
+allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Bash(grep:*), Read, Write, Edit, Glob, Task, AskUserQuestion
+argument-hint: "topic" [--strategy disney|six-hats|standard] [--participants <list>] [--verbose] [--interactive] [--diagnostic] [--new] [--session <id>]
 skills: roundtable-execution, roundtable-strategies
 ---
 
@@ -33,10 +33,74 @@ Based on the Directory contents output, determine:
 
 ## Instructions
 
+### Parse flags for session handling
+
+Extract from $ARGUMENTS:
+- **--new**: Force create new session (skip auto-detect)
+- **--session**: Resume specific session by ID
+
+### Auto-detect active sessions
+
+**IF** --session flag is present:
+- Verify session exists: `.s2s/sessions/{session-id}.yaml`
+- If exists, jump to **Phase 2: Round Execution Loop** (resume session)
+- If not exists, display error and list available sessions
+
+**IF** --new flag is present:
+- Skip auto-detect
+- Continue to parse arguments
+
+**OTHERWISE** check for active brainstorm sessions:
+
+**Use Bash tool** to find active brainstorm sessions:
+
+```bash
+grep -l 'workflow_type: brainstorm' .s2s/sessions/*.yaml 2>/dev/null | xargs grep -l 'status: active' 2>/dev/null
+```
+
+**IF** no active brainstorm sessions found:
+- Continue to parse arguments (create new session)
+
+**IF** active brainstorm sessions found:
+
+1. Read each session file to extract:
+   - `id`
+   - `topic`
+   - `metrics.rounds_completed`
+
+2. Display list:
+
+```
+Active brainstorm sessions found:
+══════════════════════════════════
+
+1. {session-id}
+   Topic: {topic}
+   Progress: Round {rounds_completed}
+
+2. {session-id}
+   ...
+
+[n] Start new session
+
+Which would you like to continue?
+```
+
+3. Ask using AskUserQuestion with options:
+   - For each session: "{session-id}"
+   - "Start new session"
+
+4. Based on user choice:
+   - If existing session selected → Jump to **Phase 2** (resume)
+   - If "Start new session" → Continue to parse arguments
+
+---
+
 ### Parse Arguments
 
 Extract from $ARGUMENTS:
-- **topic**: Required. The subject for brainstorming (first quoted argument)
+- **topic**: Required (unless resuming). The subject for brainstorming (first quoted argument)
+- **--strategy**: Override strategy (optional)
 - **--participants**: Optional. Comma-separated list to override defaults
 
 **Boolean flags**: `--verbose`, `--interactive`, and `--diagnostic` → parse as `true` if present, `false` if absent.
@@ -45,6 +109,18 @@ Extract from $ARGUMENTS:
 
 If topic is missing, ask using AskUserQuestion:
 - "What would you like to brainstorm?"
+
+### Determine strategy
+
+Read `.s2s/config.yaml` and determine the strategy to use:
+
+1. **IF --strategy argument provided**: Use that value
+2. **ELSE**: Read `roundtable.strategy.by_workflow_type.brainstorm` from config
+3. **FALLBACK**: If not found in config, use `"disney"`
+
+Store as **strategy_to_use** and use this value throughout the command.
+
+**Note**: Brainstorm is optimized for Disney strategy (Dreamer → Realist → Critic phases). Other strategies will work but without phase-based structure.
 
 ### Validate Environment
 
@@ -122,14 +198,14 @@ source: ".s2s/config.yaml"
 verbose: {verbose_flag}
 interactive: {interactive_flag}
 diagnostic: {diagnostic_flag}
-strategy: "disney"
+strategy: "{strategy_to_use}"
 limits:
-  min_rounds: {from config: roundtable.limits.min_rounds, default: 3}
-  max_rounds: {from config: roundtable.limits.max_rounds, default: 20}
+  min_rounds: {from config: roundtable.limits.min_rounds}
+  max_rounds: {from config: roundtable.limits.max_rounds}
 escalation:
-  max_rounds_per_conflict: {from config: roundtable.escalation.triggers.max_rounds_per_conflict, default: 3}
-  confidence_below: {from config: roundtable.escalation.triggers.confidence_below, default: 0.5}
-  critical_keywords: {from config: roundtable.escalation.triggers.critical_keywords, default: ["security", "must-have", "blocking", "legal"]}
+  max_rounds_per_conflict: {from config: roundtable.escalation.triggers.max_rounds_per_conflict}
+  confidence_below: {from config: roundtable.escalation.triggers.confidence_below}
+  critical_keywords: {from config: roundtable.escalation.triggers.critical_keywords}
 participants:
   - "product-manager"
   - "software-architect"
@@ -150,13 +226,13 @@ participants:
 id: "{session-id}"
 topic: "{topic}"
 workflow_type: "brainstorm"
-strategy: "disney"
+strategy: "{strategy_to_use}"
 status: "active"
 
 timing:
-  started: "{ISO timestamp}"
-  last_activity: "{ISO timestamp}"
-  completed: null
+  started_at: "{ISO timestamp}"
+  updated_at: "{ISO timestamp}"
+  closed_at: null
 
 # Agent state (for resume capability)
 # Stores agent IDs to enable resuming agents across rounds
@@ -215,13 +291,6 @@ validation:
   warnings: []
 ```
 
-### Step 1.5: Update State File
-
-**YOU MUST use Edit tool NOW** to update `.s2s/state.yaml`:
-```yaml
-current_session: "{session-id}"
-```
-
 ---
 
 ## Phase 2: Round Execution Loop (Disney Strategy)
@@ -240,7 +309,7 @@ Initialize:
 ```
 ═══════════════════════════════════════════════════════════════
 BRAINSTORM: {topic}
-Strategy: Disney | Phase: {current_phase} | Round: {round_number + 1}
+Strategy: {strategy_to_use} | Phase: {current_phase} | Round: {round_number + 1}
 ═══════════════════════════════════════════════════════════════
 
 {if current_phase == "dreamer"}
@@ -271,7 +340,7 @@ action: "question"
 round: {round_number + 1}
 resume: true
 topic: "{brainstorm topic}"
-strategy: "disney"
+strategy: "{strategy_to_use}"
 phase: "{current_phase}"  # dreamer | realist | critic
 workflow_type: "brainstorm"
 
@@ -339,9 +408,20 @@ participants:
 action: "question"
 round: {round_number + 1}
 topic: "{brainstorm topic}"
-strategy: "disney"
+strategy: "{strategy_to_use}"
 phase: "{current_phase}"  # dreamer | realist | critic
 workflow_type: "brainstorm"
+
+# Project scope (for workspace awareness)
+project_scope:
+  type: {from config-snapshot.yaml: project.type}  # standalone | workspace | component
+  workspace_path: {from config-snapshot.yaml: project.workspace_path}
+
+# Workspace scope (from config-snapshot.yaml, null if standalone)
+workspace_scope: {from config-snapshot.yaml: workspace_scope}
+
+# Cross-cutting decisions (from config-snapshot.yaml, null if not workspace)
+cross_cutting_decisions: {from config-snapshot.yaml: cross_cutting_decisions}
 
 escalation_config:
   min_rounds: {from config-snapshot.yaml: limits.min_rounds}
@@ -431,8 +511,8 @@ phase: 1
 actor: "facilitator"
 action: "question"
 disney_phase: "{dreamer|realist|critic}"
-started: "{ISO timestamp}"
-completed: "{ISO timestamp}"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
 
 input: {... the YAML input sent to facilitator ...}
 
@@ -468,7 +548,7 @@ response:
     overrides: {... or null ...}
 
 result:
-  status: "completed"
+  status: "closed"
 
 tokens:
   input_estimate: {N}
@@ -678,8 +758,8 @@ phase: 2
 actor: "{participant-id}"
 action: "response"
 disney_phase: "{dreamer|realist|critic}"
-started: "{ISO timestamp}"
-completed: "{ISO timestamp}"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
 
 input: {... the YAML input sent to participant ...}
 
@@ -692,7 +772,7 @@ response:
   mitigations: [...]
 
 result:
-  status: "completed"
+  status: "closed"
 
 tokens:
   input_estimate: {N}
@@ -735,7 +815,7 @@ action: "synthesis"
 round: {round_number + 1}
 resume: true
 topic: "{brainstorm topic}"
-strategy: "disney"
+strategy: "{strategy_to_use}"
 phase: "{current_phase}"  # dreamer | realist | critic
 
 escalation_config:
@@ -810,7 +890,7 @@ artifacts_count: {current count}
 action: "synthesis"
 round: {round_number + 1}
 topic: "{brainstorm topic}"
-strategy: "disney"
+strategy: "{strategy_to_use}"
 phase: "{current_phase}"  # dreamer | realist | critic
 
 escalation_config:
@@ -916,8 +996,8 @@ phase: 3
 actor: "facilitator"
 action: "synthesis"
 disney_phase: "{dreamer|realist|critic}"
-started: "{ISO timestamp}"
-completed: "{ISO timestamp}"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
 
 input: {... the YAML input sent to facilitator ...}
 
@@ -930,7 +1010,7 @@ response:
 
 result:
   artifacts_proposed: {count}
-  status: "completed"
+  status: "closed"
 
 tokens:
   input_estimate: {N}
@@ -1155,7 +1235,7 @@ rounds:
 2. **Update timing**:
 ```yaml
 timing:
-  last_activity: "{ISO timestamp}"
+  updated_at: "{ISO timestamp}"
 ```
 
 3. **Update phase status** in `phases:` array:
@@ -1246,7 +1326,7 @@ mode: "per-round"
 session_path: ".s2s/sessions/{session-id}"
 round: {round_number + 1}
 workflow_type: "brainstorm"
-strategy: "disney"
+strategy: "{strategy_to_use}"
 ```
 
 The observer will return:
@@ -1295,7 +1375,7 @@ Show synthesis, new artifacts, phase progress.
 
 #### Step 2.8: Handle Interactive Mode
 
-**IF interactive_flag == true**: Ask user to continue, skip phase, or pause.
+**IF interactive_flag == true**: Ask user to continue, skip phase, or exit.
 **IF interactive_flag == false**: Proceed automatically.
 
 #### Step 2.9: Evaluate Next Action (CRITICAL)
@@ -1303,7 +1383,7 @@ Show synthesis, new artifacts, phase progress.
 **MANDATORY min_rounds enforcement:**
 
 ```
-IF round_number < min_rounds (default: 3) AND next == "conclude":
+IF round_number < min_rounds (from config) AND next == "conclude":
   OVERRIDE next to "continue"
   Display: "⚠️ min_rounds not reached ({round_number}/{min_rounds}), continuing..."
 ```
@@ -1328,7 +1408,7 @@ Then evaluate based on `next`:
 mode: "end-session"
 session_path: ".s2s/sessions/{session-id}"
 workflow_type: "brainstorm"
-strategy: "disney"
+strategy: "{strategy_to_use}"
 ```
 
 The observer will return a final diagnostic summary.
@@ -1339,7 +1419,7 @@ The observer will return a final diagnostic summary.
 ║                    DIAGNOSTIC REPORT                        ║
 ╠════════════════════════════════════════════════════════════╣
 ║ Session: {session-id}                                       ║
-║ Workflow: brainstorm | Strategy: disney | Rounds: {N}       ║
+║ Workflow: brainstorm | Strategy: {strategy_to_use} | Rounds: {N} ║
 ╠════════════════════════════════════════════════════════════╣
 {for each round's diagnostic result}
 ║ Round {N}: {status} {findings count if > 0}                ║
@@ -1356,17 +1436,12 @@ The observer will return a final diagnostic summary.
 
 **YOU MUST use Edit tool NOW** to update session file:
 ```yaml
-status: "completed"
+status: "closed"
 timing:
-  completed: "{ISO timestamp}"
-  duration_ms: {calculated}
+  closed_at: "{ISO timestamp}"
 ```
 
-### Step 3.2: Clear State
-
-**YOU MUST use Edit tool NOW** to set `current_session: null` in `.s2s/state.yaml`.
-
-### Step 3.3: Read Session for Summary
+### Step 3.2: Read Session for Summary
 
 **YOU MUST use Read tool** to read the completed session file.
 
@@ -1490,4 +1565,4 @@ Pair risks with mitigations.
       /s2s:design
 
     To create a plan for top idea:
-      /s2s:plan:create "{top idea}"
+      /s2s:plan --new "{top idea}"

@@ -110,9 +110,5 @@ For detailed patterns and examples, see:
 ## Integration with S2S
 
 In Spec2Ship projects:
-- Architecture docs go in `docs/architecture/`
-- Use README.md for overview (Section 1-3)
-- Use components.md for building blocks (Section 5)
-- Use runtime.md for scenarios (Section 6)
-- Use deployment.md for infrastructure (Section 7)
-- ADRs go in `docs/decisions/` (Section 9)
+- Architecture goes in `.s2s/architecture.md` (single consolidated file)
+- ADRs go in `.s2s/decisions/` (Section 9)

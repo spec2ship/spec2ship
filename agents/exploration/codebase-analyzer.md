@@ -96,6 +96,12 @@ Return analysis as:
 ## What to Look For
 
 - README and documentation files
+- Architecture documentation (check both locations):
+  - `docs/architecture/` (exported/public - higher priority)
+  - `.s2s/architecture.md` (internal/working)
+- Decision records:
+  - `docs/architecture/decisions/` or `docs/decisions/` (exported/public)
+  - `.s2s/decisions/` (internal/working)
 - Configuration files for build tools, linters
 - Test files to understand testing patterns
 - Core business logic modules

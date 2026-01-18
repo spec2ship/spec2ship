@@ -164,7 +164,7 @@ Claude Code subagents cannot use the Task tool to spawn further subagents.
 orchestrator.md (agent) → Task(facilitator) → Task(participant)
 
 # CORRECT - Orchestration inline in command
-start.md (command) → Task(facilitator) → Task(participant)
+roundtable.md (command) → Task(facilitator) → Task(participant)
 ```
 
 **Solution**: All orchestration logic must be in commands, not agents.
@@ -207,7 +207,7 @@ Source: [GitHub Issue #1078](https://github.com/anthropics/claude-code/issues/10
 ```markdown
 # WRONG - specs.md continues without waiting
 Phase 1: Use SlashCommand to start roundtable
-  SlashCommand:/s2s:roundtable:start "topic"
+  SlashCommand:/s2s:roundtable "topic"
 
 # CORRECT - Execute inline following skill
 Phase 1: Execute roundtable following skill instructions
@@ -234,10 +234,10 @@ allowed-tools: Bash(ls:*), Bash(git:*), Bash(mkdir:*), Read, Write, Edit
 
 ```yaml
 # Without arguments
-allowed-tools: SlashCommand:/s2s:roundtable:list
+allowed-tools: SlashCommand:/s2s:session:list
 
 # With arguments (note the :* suffix)
-allowed-tools: SlashCommand:/s2s:roundtable:start:*
+allowed-tools: SlashCommand:/s2s:roundtable:*
 ```
 
 **IMPORTANT**: If target command accepts arguments, you MUST use `:*` suffix!
@@ -285,7 +285,7 @@ allowed-tools: SlashCommand:/s2s:roundtable:start:*
    - `defaults.consensus`: policy and threshold
    - `validation`: rules and constraints
 3. Add auto-detection keywords to SKILL.md
-4. Test: `/s2s:roundtable:start "topic" --strategy {strategy}`
+4. Test: `/s2s:roundtable "topic" --strategy {strategy}`
 
 ### Strategy Configuration Structure
 
@@ -355,6 +355,24 @@ In complex multi-agent systems, LLMs can "forget" instructions from earlier cont
 | All content in SKILL.md | Token bloat | Progressive disclosure |
 | Generic trigger phrases | Skill never activates | Exact phrases users would say |
 
+### File Writing (CRITICAL)
+
+| Anti-Pattern | Problem | Correct Approach |
+|--------------|---------|------------------|
+| Writing to `docs/` directly | Bypasses export control | Write to `.s2s/`, export via command |
+| Creating ADRs in `docs/decisions/` | Public docs without review | Write to `.s2s/decisions/`, export later |
+
+**File Output Boundaries:**
+
+| Scope | Path | Written By |
+|-------|------|------------|
+| **Internal (working)** | `.s2s/decisions/`, `.s2s/sessions/`, `.s2s/plans/` | All commands |
+| **External (public)** | `docs/decisions/`, `docs/specifications/`, `docs/architecture/` | `/s2s:export` only (TBD) |
+
+Commands write to `.s2s/` ONLY. Public documentation in `docs/` is created ONLY via explicit export command (to be implemented).
+
+See also: `skills/madr-decisions/SKILL.md` for ADR-specific rules.
+
 ---
 
 ## Session File Management
@@ -423,6 +441,106 @@ Claude may decide to batch operations for efficiency:
 Initially used `Task(subagent_type="general-purpose", prompt="...")` which created generic agents without the specialized configuration.
 
 **Solution**: Use `**Use the roundtable-X agent**` pattern to trigger proper agent loading.
+
+---
+
+## Deferred Features
+
+Features intentionally not implemented due to current limitations. Track here with reintroduction conditions.
+
+### Validation: LLM-Based Semantic Checks
+
+**ADR**: `.s2s/decisions/0008-validation-simplification.md`
+**Deferred in**: v0.x (2026-01-16)
+
+| Feature | Why Deferred | Reintroduce When |
+|---------|--------------|------------------|
+| State Transitions Valid | Session file has current state only, no history | Track `state_history[]` per artifact |
+| Participant Coherence Check | Requires cross-round memory; LLM forgets earlier positions | Vector store or persistent memory for session history |
+| Context Integrity Check | Massive cross-reference, high error rate | Track `context_hash` per round for deterministic comparison |
+| Quality Assessment Check | Too subjective, high false positive rate | Define quantitative criteria (word count, structure patterns) |
+| Blocking Concerns Resolution | Semantic parsing unreliable | Structured output format for concerns in participant responses |
+
+### Validation: Strategy-Specific Phase Tracking
+
+**ADR**: `.s2s/decisions/0008-validation-simplification.md`
+**Deferred in**: v0.x (2026-01-16)
+
+| Feature | Why Deferred | Reintroduce When |
+|---------|--------------|------------------|
+| Consensus Phase Validation | Field `consent_phase` not in session schema | Add `consent_phase` to session file and command writes |
+| Disney Phase Validation | Field `disney_phase` not in session schema | Add `disney_phase` to session file and command writes |
+| Phase Tone Analysis | Too subjective for reliable validation | Likely not reintroducible; tone is inherently qualitative |
+
+### Wisdom Gained
+
+1. **Script-first for structural checks**: yq/bash are deterministic, LLM is not
+2. **Only validate what you track**: If a field doesn't exist in the session file, you can't validate it
+3. **LLM judgment is expensive**: Reserve for genuinely qualitative assessments, not counting or cross-referencing
+4. **Deferred ≠ deleted**: Track conditions so future work can reintroduce features systematically
+
+---
+
+## Template-Based File Generation
+
+### Pattern: Templates as Source of Truth
+
+Commands that generate files (e.g., `init.md`) should read from templates instead of inlining content.
+
+**Why**:
+- Single source of truth for file structure/content
+- Commands focus on logic, templates focus on content
+- Easier maintenance (change template once, all commands use it)
+- Guaranteed consistency between templates and generated output
+
+**How**:
+
+```markdown
+### Generate config.yaml
+
+**Read template from plugin**:
+
+Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/project/config.yaml`
+
+**Replace placeholders**:
+- `{project-name}` → `{Detected.project.name}`
+- `"standalone"` → `"{mode}"`
+
+**Write**: Save the modified content to `.s2s/config.yaml`
+```
+
+**Key Points**:
+1. `${CLAUDE_PLUGIN_ROOT}` is expanded to the plugin installation path at runtime
+2. Works for all template types: YAML, Markdown, etc.
+3. Commands specify which placeholders to replace and with what values
+4. Templates use consistent placeholder format: `{placeholder-name}`
+
+### Template Placeholder Conventions
+
+**Placeholder formats** (in order of preference):
+
+| Format | Use Case | Example |
+|--------|----------|---------|
+| `{placeholder-name}` | Simple values replaced by init | `{project-name}`, `{date}`, `{description}` |
+| `{opt1 \| opt2 \| opt3}` | Finite choices | `{standalone \| workspace \| component}` |
+| Human-readable default | User-visible hints | `TBD - run /s2s:design to define` |
+
+**Why this pattern**:
+1. All placeholders start with `{` and end with `}` - easy regex: `\{[^}]+\}`
+2. LLM can identify ALL placeholders by pattern matching
+3. `|` separator indicates valid options (LLM knows allowed values)
+4. User-visible text (not in `{}`) serves as hint for future commands
+
+**Key insight**: Users never see template placeholders - init replaces them. So:
+- `{business-domain}` is fine (init replaces it)
+- `TBD - run /s2s:design` is fine (user sees it after init, knows what to do)
+
+**Anti-patterns to avoid**:
+- `{description - run /s2s:init to populate}` - hint text inside placeholder is never seen
+- Pseudo-code like `{Context.X}` - confuses (looks like code, not placeholder)
+- Nested braces `{{...}}` - harder to parse
+
+**Verified in**: TEMPL-001 test (2026-01-17), updated 2026-01-17 for simplified placeholders
 
 ---
 

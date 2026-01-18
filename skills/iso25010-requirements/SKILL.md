@@ -79,7 +79,7 @@ ISO 25010 defines a product quality model with 8 characteristics and 31 sub-char
 | `CN-{NNN}` | Technical/business constraint | CN-001 |
 | `AS-{NNN}` | Assumption to validate | AS-001 |
 
-**Area codes for FR-** (functional):
+**Area codes for REQ-** (functional requirements):
 - AUTH: Authentication/Authorization
 - USER: User management
 - DATA: Data handling
@@ -100,14 +100,14 @@ ISO 25010 defines a product quality model with 8 characteristics and 31 sub-char
 
 | Internal ID | SRS Section | Volere | Checklist |
 |-------------|-------------|--------|-----------|
-| FR-AUTH-001 | 3.1.1 | FR-1 | ☐ Feature |
+| REQ-AUTH-001 | 3.1.1 | REQ-1 | ☐ Feature |
 | NFR-PERF-001 | 4.1 | NFR-1 | ☐ Quality |
 | EX-001 | 5.x | Excluded | (omitted) |
 
 ```
 Examples:
-FR-AUTH-001          Login with email/password
-FR-USER-002          View user profile
+REQ-AUTH-001         Login with email/password
+REQ-USER-002         View user profile
 NFR-PERF-001         Response time < 2s
 NFR-SEC-001          Data encryption at rest
 BR-001               Maximum 5 login attempts
@@ -187,7 +187,7 @@ AS-001               Users have stable internet
 ## Integration with S2S
 
 In Spec2Ship projects:
-- Requirements go in `docs/specifications/requirements.md`
-- Use consistent ID format (FR-*, NFR-*)
+- Requirements go in `.s2s/requirements.md`
+- Use consistent ID format (REQ-*, NFR-*)
 - Reference requirements in plans
 - Link to ADRs for quality decisions

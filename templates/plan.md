@@ -1,24 +1,35 @@
-# Implementation Plan: {TOPIC}
+# Implementation Plan: {topic}
 
-**ID**: {YYYYMMDD-HHMMSS-slug}
-**Status**: planning
-**Branch**: {feature/FNN-slug}
-**Created**: {YYYY-MM-DDTHH:MM:SSZ}
-**Updated**: {YYYY-MM-DDTHH:MM:SSZ}
+**ID**: {plan-id}
+**Status**: active
+**Branch**: {branch-name}
+**Created**: {created-timestamp}
+**Updated**: {updated-timestamp}
 
 ## References
 
 ### Requirements
 <!-- Link to relevant functional requirements -->
-<!-- Format: - FR-XXX: description @docs/specifications/requirements.md#anchor -->
+<!-- Format: - REQ-XXX: description @.s2s/requirements.md -->
+{requirements-list}
 
 ### Architecture
 <!-- Link to relevant architecture sections -->
-<!-- Format: - Component: role @docs/architecture/components.md#anchor -->
+<!-- Format: - Component: role @.s2s/architecture.md -->
+{architecture-list}
 
 ### Decisions
 <!-- Link to relevant ADRs -->
-<!-- Format: - ADR: summary @docs/decisions/YYYYMMDD-HHMMSS-topic.md -->
+<!-- Format: - ADR-NNN: summary @.s2s/decisions/ADR-NNN-topic.md -->
+{decisions-list}
+
+### Dependencies
+<!-- Other plans that must complete first -->
+{dependencies-list}
+
+## Overview
+
+{overview-description}
 
 ## Design Notes
 
@@ -38,9 +49,22 @@ Each task should be:
 - Independently testable when possible
 -->
 
-- [ ] Task 1: {description}
-- [ ] Task 2: {description}
-- [ ] Task 3: {description}
+- [ ] {task-1}
+- [ ] {task-2}
+- [ ] {task-3}
+
+## Acceptance Criteria
+
+- [ ] {criterion-1}
+- [ ] {criterion-2}
+
+## Testing Approach
+
+{testing-description}
+
+## Integration Notes
+
+{integration-description}
 
 ## Notes
 

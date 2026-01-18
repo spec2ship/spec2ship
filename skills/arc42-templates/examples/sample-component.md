@@ -232,6 +232,7 @@ probes:
 
 ## Related Decisions
 
-- [ADR-001: JWT vs Session-based Authentication](../../decisions/20241201-jwt-authentication.md)
-- [ADR-007: Password Hashing Algorithm](../../decisions/20241210-password-hashing.md)
-- [ADR-012: Session Storage Strategy](../../decisions/20241215-session-storage.md)
+<!-- Example references - replace with actual ADR paths in your project -->
+- ADR-001: JWT vs Session-based Authentication
+- ADR-007: Password Hashing Algorithm
+- ADR-012: Session Storage Strategy

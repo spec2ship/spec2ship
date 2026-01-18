@@ -18,8 +18,7 @@ Based on the context output above, determine:
 - **S2S initialized**: If `.s2s` directory appears → "yes", otherwise → "NOT_S2S"
 
 If S2S is initialized:
-- Read `.s2s/state.yaml` to get `current_session` value
-- If `current_session` is set, read the session file
+- Use Bash: `grep -l 'status: active' .s2s/sessions/*.yaml 2>/dev/null` to find active sessions
 
 ---
 
@@ -31,11 +30,11 @@ If S2S initialized is "NOT_S2S":
 
     Error: Not an s2s project. Run /s2s:init first.
 
-### Check for current session
+### Check for active sessions
 
-Read `.s2s/state.yaml` and extract `current_session` field.
+Find active sessions using grep result from context.
 
-**IF** `current_session` is null or empty:
+**IF** no active sessions found:
 
     No active session.
 
@@ -47,10 +46,17 @@ Read `.s2s/state.yaml` and extract `current_session` field.
       /s2s:specs             - Start requirements roundtable
       /s2s:design            - Start design roundtable
       /s2s:brainstorm        - Start brainstorm session
+      /s2s:roundtable        - Start generic roundtable
 
-### Display current session
+**IF** multiple active sessions found:
+- List all active sessions with brief info
+- Suggest: "Use `/s2s:session:status {id}` for details"
 
-**YOU MUST use Read tool** to read `.s2s/sessions/{current_session}.yaml`.
+### Display active session
+
+**IF** single active session found:
+
+**YOU MUST use Read tool** to read the session file.
 
 Display session summary:
 
@@ -62,7 +68,7 @@ Display session summary:
     Strategy: {strategy}
     Status:   {status}
 
-    Started:  {timing.started}
+    Started:  {timing.started_at}
     Duration: {calculated from timing}
 
     Progress
@@ -87,7 +93,7 @@ Display session summary:
     ─────────────────────────────────────
       /s2s:session:status    - Detailed view
       /s2s:session:validate  - Check consistency
-      /s2s:roundtable:resume - Continue discussion
+      /s2s:session:close     - Close this session
 
 ---
 

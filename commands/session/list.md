@@ -1,7 +1,7 @@
 ---
-description: List all roundtable sessions with their status, workflow type, and progress.
-allowed-tools: Bash(pwd:*), Bash(ls:*), Read, Glob
-argument-hint: [--status active|completed|paused|failed] [--workflow specs|design|brainstorm]
+description: List all sessions with their status, workflow type, and progress.
+allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(grep:*), Read, Glob
+argument-hint: [--status active|closed] [--type specs|design|brainstorm|roundtable]
 ---
 
 # List Sessions
@@ -18,7 +18,6 @@ Based on the context output above, determine:
 - **S2S initialized**: If `.s2s` directory appears → "yes", otherwise → "NOT_S2S"
 
 If S2S is initialized:
-- Read `.s2s/state.yaml` to get `current_session` value
 - Use Glob to find all `.s2s/sessions/*.yaml` files
 
 ---
@@ -34,8 +33,8 @@ If S2S initialized is "NOT_S2S":
 ### Parse arguments
 
 Extract from $ARGUMENTS:
-- **--status**: Filter by session status (active|completed|paused|failed)
-- **--workflow**: Filter by workflow type (specs|design|brainstorm)
+- **--status**: Filter by session status (active|closed)
+- **--type**: Filter by workflow type (specs|design|brainstorm|roundtable)
 
 ### Find sessions
 
@@ -60,20 +59,21 @@ For each session file found:
 1. **YOU MUST use Read tool** to read the session file
 2. Extract:
    - `id`
+   - `topic`
    - `workflow_type`
    - `strategy`
    - `status`
-   - `timing.started`
-   - `timing.completed`
+   - `timing.started_at`
+   - `timing.closed_at`
    - `metrics.rounds_completed`
    - `metrics.artifacts.total`
 
 ### Apply filters
 
 **IF** --status provided:
-- Only include sessions where `status` matches
+- Only include sessions where `status` matches (active or closed)
 
-**IF** --workflow provided:
+**IF** --type provided:
 - Only include sessions where `workflow_type` matches
 
 ### Format output
@@ -87,44 +87,29 @@ Group sessions by status:
     ─────────────────────────────────────
     {for each session where status == "active"}
     * {id}
-      Workflow: {workflow_type} | Strategy: {strategy}
-      Started: {timing.started}
+      Type: {workflow_type} | Strategy: {strategy}
+      Topic: {topic}
+      Started: {timing.started_at}
       Progress: {metrics.rounds_completed} rounds, {metrics.artifacts.total} artifacts
     {/for}
 
-    Completed ({count})
+    Closed ({count})
     ─────────────────────────────────────
-    {for each session where status == "completed"}
+    {for each session where status == "closed"}
     ✓ {id}
-      Workflow: {workflow_type} | Strategy: {strategy}
-      Duration: {calculated}
+      Type: {workflow_type} | Strategy: {strategy}
+      Topic: {topic}
+      Duration: {calculated from started to closed_at}
       Result: {metrics.artifacts.total} artifacts
-    {/for}
-
-    Paused ({count})
-    ─────────────────────────────────────
-    {for each session where status == "paused"}
-    ⏸ {id}
-      Workflow: {workflow_type}
-      Paused at: {timing.last_activity}
-    {/for}
-
-    Failed ({count})
-    ─────────────────────────────────────
-    {for each session where status == "failed"}
-    ✗ {id}
-      Workflow: {workflow_type}
-      Failed at: {timing.last_activity}
     {/for}
 
     ─────────────────────────────────────
     Total: {total count} sessions
 
-### Mark current session
-
-If `current_session` from state.yaml matches a session ID, mark it with `→`:
-
-    → * {id}  (current)
+    Commands:
+    - Close a session: /s2s:session:close {id}
+    - View session details: /s2s:session:status {id}
+    - Clean up old sessions: /s2s:session:cleanup
 
 ---
 
@@ -133,7 +118,4 @@ If `current_session` from state.yaml matches a session ID, mark it with `→`:
 | Status | Icon |
 |--------|------|
 | active | * |
-| completed | ✓ |
-| paused | ⏸ |
-| failed | ✗ |
-| abandoned | ∅ |
+| closed | ✓ |

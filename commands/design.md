@@ -1,7 +1,7 @@
 ---
-description: Design technical architecture through a roundtable discussion. Reads requirements.md and produces architecture documentation.
-allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Read, Write, Edit, Glob, Task, AskUserQuestion
-argument-hint: [--skip-roundtable] [--focus components|api|deployment] [--strategy standard|debate|disney] [--verbose] [--interactive] [--diagnostic]
+description: Design technical architecture through a roundtable discussion. Reads requirements.md and produces architecture documentation. Auto-detects active sessions.
+allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Bash(grep:*), Read, Write, Edit, Glob, Task, AskUserQuestion
+argument-hint: [--skip-roundtable] [--focus components|api|deployment] [--strategy debate|standard|consensus-driven] [--verbose] [--interactive] [--diagnostic] [--new] [--session <id>]
 skills: roundtable-execution, roundtable-strategies, arc42-templates, madr-decisions
 ---
 
@@ -21,13 +21,76 @@ Based on the context output above, determine:
 
 If S2S is initialized:
 - Read `.s2s/CONTEXT.md` for project context
-- Read `docs/specifications/requirements.md` if exists
-- Check `docs/architecture/` for existing docs
+- Read `.s2s/requirements.md` if exists
+- Check if `.s2s/architecture.md` exists
 - Read `.s2s/config.yaml` for settings
 
 ---
 
 ## Instructions
+
+### Parse flags for session handling
+
+Extract from $ARGUMENTS:
+- **--new**: Force create new session (skip auto-detect)
+- **--session**: Resume specific session by ID
+
+### Auto-detect active sessions
+
+**IF** --session flag is present:
+- Verify session exists: `.s2s/sessions/{session-id}.yaml`
+- If exists, jump to **Phase 2: Round Execution Loop** (resume session)
+- If not exists, display error and list available sessions
+
+**IF** --new flag is present:
+- Skip auto-detect
+- Continue to validation
+
+**OTHERWISE** check for active design sessions:
+
+**Use Bash tool** to find active design sessions:
+
+```bash
+grep -l 'workflow_type: design' .s2s/sessions/*.yaml 2>/dev/null | xargs grep -l 'status: active' 2>/dev/null
+```
+
+**IF** no active design sessions found:
+- Continue to validation (create new session)
+
+**IF** active design sessions found:
+
+1. Read each session file to extract:
+   - `id`
+   - `topic`
+   - `metrics.rounds_completed`
+
+2. Display list:
+
+```
+Active design sessions found:
+═════════════════════════════
+
+1. {session-id}
+   Topic: {topic}
+   Progress: Round {rounds_completed}
+
+2. {session-id}
+   ...
+
+[n] Start new session
+
+Which would you like to continue?
+```
+
+3. Ask using AskUserQuestion with options:
+   - For each session: "{session-id}"
+   - "Start new session"
+
+4. Based on user choice:
+   - If existing session selected → Jump to **Phase 2** (resume)
+   - If "Start new session" → Continue to validation
+
+---
 
 ### Validate environment
 
@@ -37,7 +100,7 @@ If S2S initialized is "NOT_S2S":
 
 ### Check prerequisites
 
-If `docs/specifications/requirements.md` does not exist:
+If `.s2s/requirements.md` does not exist:
 
     Warning: No requirements document found.
 
@@ -53,23 +116,36 @@ Ask using AskUserQuestion:
 
 ### Check for existing architecture
 
-Use Glob to find `docs/architecture/*.md` files.
+Check if `.s2s/architecture.md` exists.
 
-If architecture docs exist:
-- Display summary
-- Ask: "Architecture docs exist. What would you like to do?"
-  - Options: "Refine existing" / "Start fresh" / "Cancel"
+If architecture doc exists:
+- Display summary (count components, decisions)
+- Ask: "Architecture doc exists. What would you like to do?"
+  - Options: "Override (replace all)" / "Merge (add new)" / "Cancel"
+- If cancel, stop
+- If override, will replace entire file at end
+- If merge, will append new components/decisions with incremented IDs
 
 ### Parse arguments
 
 Extract from $ARGUMENTS:
 - **--skip-roundtable**: Skip discussion, generate directly
 - **--focus**: Focus area (components|api|deployment)
-- **--strategy**: Override strategy. Default: debate (Pro/Con evaluation)
+- **--strategy**: Override strategy (optional)
 
 **Boolean flags**: `--verbose`, `--interactive`, and `--diagnostic` → parse as `true` if present, `false` if absent.
 
 **IF --diagnostic is true**: Force `verbose_flag = true` (diagnostic mode requires verbose dumps for analysis).
+
+### Determine strategy
+
+Read `.s2s/config.yaml` and determine the strategy to use:
+
+1. **IF --strategy argument provided**: Use that value
+2. **ELSE**: Read `roundtable.strategy.by_workflow_type.design` from config
+3. **FALLBACK**: If not found in config, use `"debate"`
+
+Store as **strategy_to_use** and use this value throughout the command.
 
 ### Display context summary
 
@@ -116,7 +192,7 @@ mkdir -p .s2s/sessions/{session-id}/rounds
 
 **YOU MUST use Write tool NOW** to create `context-snapshot.yaml`:
 
-Read `.s2s/CONTEXT.md` and `docs/specifications/requirements.md`, then write:
+Read `.s2s/CONTEXT.md` and `.s2s/requirements.md`, then write:
 ```yaml
 # Captured: {ISO timestamp}
 source: ".s2s/CONTEXT.md"
@@ -140,14 +216,14 @@ source: ".s2s/config.yaml"
 verbose: {verbose_flag}
 interactive: {interactive_flag}
 diagnostic: {diagnostic_flag}
-strategy: "{strategy or debate}"
+strategy: "{strategy_to_use}"
 limits:
-  min_rounds: {from config: roundtable.limits.min_rounds, default: 3}
-  max_rounds: {from config: roundtable.limits.max_rounds, default: 20}
+  min_rounds: {from config: roundtable.limits.min_rounds}
+  max_rounds: {from config: roundtable.limits.max_rounds}
 escalation:
-  max_rounds_per_conflict: {from config: roundtable.escalation.triggers.max_rounds_per_conflict, default: 3}
-  confidence_below: {from config: roundtable.escalation.triggers.confidence_below, default: 0.5}
-  critical_keywords: {from config: roundtable.escalation.triggers.critical_keywords, default: ["security", "must-have", "blocking", "legal"]}
+  max_rounds_per_conflict: {from config: roundtable.escalation.triggers.max_rounds_per_conflict}
+  confidence_below: {from config: roundtable.escalation.triggers.confidence_below}
+  critical_keywords: {from config: roundtable.escalation.triggers.critical_keywords}
 participants:
   - "software-architect"
   - "security-champion"
@@ -170,13 +246,13 @@ Read `skills/roundtable-execution/references/agenda-design.md` and extract topic
 id: "{session-id}"
 topic: "Architecture design for {project name}"
 workflow_type: "design"
-strategy: "{strategy}"
+strategy: "{strategy_to_use}"
 status: "active"
 
 timing:
-  started: "{ISO timestamp}"
-  last_activity: "{ISO timestamp}"
-  completed: null
+  started_at: "{ISO timestamp}"
+  updated_at: "{ISO timestamp}"
+  closed_at: null
 
 # Agent state (for resume capability)
 # Stores agent IDs to enable resuming agents across rounds
@@ -239,13 +315,6 @@ validation:
   warnings: []
 ```
 
-### Step 1.5: Update State File
-
-**YOU MUST use Edit tool NOW** to update `.s2s/state.yaml`:
-```yaml
-current_session: "{session-id}"
-```
-
 ---
 
 ## Phase 2: Round Execution Loop
@@ -277,7 +346,7 @@ action: "question"
 round: {round_number + 1}
 resume: true
 topic: "Architecture design for {project name}"
-strategy: "{strategy from config}"
+strategy: "{strategy_to_use}"
 phase: "design"
 workflow_type: "design"
 
@@ -345,9 +414,20 @@ participants:
 action: "question"
 round: {round_number + 1}
 topic: "Architecture design for {project name}"
-strategy: "{strategy from config, e.g. debate}"
+strategy: "{strategy_to_use}"
 phase: "design"
 workflow_type: "design"
+
+# Project scope (for workspace awareness)
+project_scope:
+  type: {from config-snapshot.yaml: project.type}  # standalone | workspace | component
+  workspace_path: {from config-snapshot.yaml: project.workspace_path}
+
+# Workspace scope (from config-snapshot.yaml, null if standalone)
+workspace_scope: {from config-snapshot.yaml: workspace_scope}
+
+# Cross-cutting decisions (from config-snapshot.yaml, null if not workspace)
+cross_cutting_decisions: {from config-snapshot.yaml: cross_cutting_decisions}
 
 escalation_config:
   min_rounds: {from config-snapshot.yaml: limits.min_rounds}
@@ -428,7 +508,10 @@ participant_context:
 
 **IF verbose_flag == true**: Write dump to `rounds/{NNN}-01-facilitator-question.yaml`:
 
-**IMPORTANT**: Save FULL content, not just keys or placeholders.
+**CRITICAL - ALL fields below are REQUIRED**:
+- Save FULL content, not just keys or placeholders
+- You MUST save `response.participant_context.shared` with ALL sub-fields
+- ALL fields are REQUIRED regardless of resume mode
 
 ```yaml
 # Round {N} - Facilitator Question
@@ -436,8 +519,8 @@ round: {N}
 phase: 1
 actor: "facilitator"
 action: "question"
-started: "{ISO timestamp}"
-completed: "{ISO timestamp}"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
 
 input: {... the YAML input sent to facilitator ...}
 
@@ -479,7 +562,7 @@ response:
     overrides: {... or null ...}
 
 result:
-  status: "completed"
+  status: "closed"
 
 tokens:
   input_estimate: {N}
@@ -671,16 +754,21 @@ references:
 **Store responses** for synthesis and verbose dump.
 
 **IF verbose_flag == true**: Write dump for each participant to `rounds/{NNN}-02-{participant-id}.yaml`:
+
+**CRITICAL - ALL fields below are REQUIRED** (including in resume mode):
+
 ```yaml
 # Round {N} - {Role} Response
 round: {N}
 phase: 2
 actor: "{participant-id}"
 action: "response"
-started: "{ISO timestamp}"
-completed: "{ISO timestamp}"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
 
-input: {... the YAML input sent to participant ...}
+input:
+  question: "{the question}"
+  context: {... context sent ...}
 
 response:
   participant: "{participant-id}"
@@ -691,7 +779,7 @@ response:
   suggestions: [...]
 
 result:
-  status: "completed"
+  status: "closed"
 
 tokens:
   input_estimate: {N}
@@ -734,7 +822,7 @@ action: "synthesis"
 round: {round_number + 1}
 resume: true
 topic: "Architecture design for {project name}"
-strategy: "{strategy}"
+strategy: "{strategy_to_use}"
 phase: "design"
 
 escalation_config:
@@ -802,7 +890,7 @@ artifacts_count: {current count from metrics}
 action: "synthesis"
 round: {round_number + 1}
 topic: "Architecture design for {project name}"
-strategy: "{strategy}"
+strategy: "{strategy_to_use}"
 phase: "design"
 
 escalation_config:
@@ -907,8 +995,8 @@ round: {N}
 phase: 3
 actor: "facilitator"
 action: "synthesis"
-started: "{ISO timestamp}"
-completed: "{ISO timestamp}"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
 
 input: {... the YAML input sent to facilitator ...}
 
@@ -922,7 +1010,7 @@ response:
 
 result:
   artifacts_proposed: {count}
-  status: "completed"
+  status: "closed"
 
 tokens:
   input_estimate: {N}
@@ -1111,6 +1199,7 @@ rounds:
   - round: {N}
     timestamp: "{ISO timestamp}"
     topic_id: "{focus topic_id}"
+    debate_phase: "{opening|rebuttal|closing|synthesis}"  # Include for debate strategy
 
     # Facilitator question (for audit)
     facilitator_question: |
@@ -1142,7 +1231,7 @@ rounds:
 2. **Update timing**:
 ```yaml
 timing:
-  last_activity: "{ISO timestamp}"
+  updated_at: "{ISO timestamp}"
 ```
 
 3. **Update agenda status** from facilitator's `agenda_update`:
@@ -1222,7 +1311,7 @@ mode: "per-round"
 session_path: ".s2s/sessions/{session-id}"
 round: {round_number + 1}
 workflow_type: "design"
-strategy: "{strategy}"
+strategy: "{strategy_to_use}"
 ```
 
 The observer will return:
@@ -1256,7 +1345,7 @@ Show synthesis, new artifacts, resolved conflicts, agenda status.
 
 #### Step 2.8: Handle Interactive Mode
 
-**IF interactive_flag == true**: Ask user to continue, skip, or pause.
+**IF interactive_flag == true**: Ask user to continue, skip, or exit.
 **IF interactive_flag == false**: Proceed automatically.
 
 #### Step 2.9: Evaluate Next Action (CRITICAL)
@@ -1264,7 +1353,7 @@ Show synthesis, new artifacts, resolved conflicts, agenda status.
 **MANDATORY min_rounds enforcement:**
 
 ```
-IF round_number < min_rounds (default: 3) AND next == "conclude":
+IF round_number < min_rounds (from config) AND next == "conclude":
   OVERRIDE next to "continue"
   Display: "⚠️ min_rounds not reached ({round_number}/{min_rounds}), continuing..."
 ```
@@ -1288,7 +1377,7 @@ Then evaluate based on `next`:
 mode: "end-session"
 session_path: ".s2s/sessions/{session-id}"
 workflow_type: "design"
-strategy: "{strategy}"
+strategy: "{strategy_to_use}"
 ```
 
 The observer will return a final diagnostic summary.
@@ -1299,7 +1388,7 @@ The observer will return a final diagnostic summary.
 ║                    DIAGNOSTIC REPORT                        ║
 ╠════════════════════════════════════════════════════════════╣
 ║ Session: {session-id}                                       ║
-║ Workflow: design | Strategy: {strategy} | Rounds: {N}       ║
+║ Workflow: design | Strategy: {strategy_to_use} | Rounds: {N} ║
 ╠════════════════════════════════════════════════════════════╣
 {for each round's diagnostic result}
 ║ Round {N}: {status} {findings count if > 0}                ║
@@ -1317,16 +1406,12 @@ The observer will return a final diagnostic summary.
 **YOU MUST use Edit tool NOW** to update session file:
 
 ```yaml
-status: "completed"
+status: "closed"
 timing:
-  completed: "{ISO timestamp}"
+  closed_at: "{ISO timestamp}"
 ```
 
-### Step 3.2: Clear State
-
-**YOU MUST use Edit tool NOW** to set `current_session: null` in `.s2s/state.yaml`.
-
-### Step 3.3: Read Session for Summary
+### Step 3.2: Read Session for Summary
 
 **YOU MUST use Read tool** to read the completed session file.
 
@@ -1377,17 +1462,25 @@ Ask using AskUserQuestion:
 
 ### Step 3.5: Generate Architecture Documentation
 
-Read artifacts from session file and create/update documents.
+**IF merge mode** (user selected "Merge" earlier):
+1. Read existing `.s2s/architecture.md`
+2. Find highest existing COMP-* and ARCH-* IDs
+3. Renumber new artifacts starting from next IDs
+4. Append new sections to existing document
+5. Update metadata (date, session reference)
 
-**docs/architecture/README.md:**
+**IF override mode** (user selected "Override" or file doesn't exist):
+Create `.s2s/architecture.md` reading from **embedded artifacts in session file**:
+
 ```markdown
-<!-- WARNING: IMMUTABLE - Generated by /s2s:design. Manual edits will be lost. -->
+<!-- Generated by /s2s:design - Source: session file is the single source of truth -->
 
-# Architecture Overview
+# Architecture
 
 **Project**: {name from context-snapshot.yaml}
 **Version**: 1.0
 **Date**: {date}
+**Session**: {session-id}
 
 ## System Context
 
@@ -1399,12 +1492,26 @@ Read artifacts from session file and create/update documents.
 - **{artifact.title}**: {artifact.decision summary}
 {/for}
 
-## Component Overview
+## Components
 
 | Component | Responsibility | Technology |
 |-----------|---------------|------------|
 {for each ID, artifact in artifacts.components}
 | {artifact.title} | {artifact.responsibility} | {artifact.technology} |
+{/for}
+
+{for each ID, artifact in artifacts.components}
+### {ID}: {artifact.title}
+
+**Responsibility**: {artifact.responsibility}
+
+**Interfaces**:
+- Provides: {artifact.interfaces.provides}
+- Requires: {artifact.interfaces.requires}
+
+**Dependencies**: {artifact.dependencies}
+
+**Technology**: {artifact.technology}
 {/for}
 
 ## Interfaces
@@ -1415,48 +1522,24 @@ Read artifacts from session file and create/update documents.
 
 ## Key Decisions
 
-See individual ADRs in `/docs/decisions/`
+See ADRs in `.s2s/decisions/`
 
 ---
 *Generated by Spec2Ship /s2s:design*
-*Session: {session-id}*
-```
-
-**docs/architecture/components.md:**
-```markdown
-<!-- WARNING: IMMUTABLE - Generated by /s2s:design. Manual edits will be lost. -->
-
-# Component Design
-
-{for each ID, artifact in artifacts.components}
-## {ID}: {artifact.title}
-
-### Responsibility
-{artifact.responsibility}
-
-### Interfaces
-- Provides: {artifact.interfaces.provides}
-- Requires: {artifact.interfaces.requires}
-
-### Dependencies
-{artifact.dependencies}
-
-### Technology
-{artifact.technology}
-{/for}
 ```
 
 ### Step 3.6: Generate ADRs
 
-For each ARCH-* in `artifacts.architecture_decisions`, create `docs/decisions/{ID}-{slug}.md`:
+For each ARCH-* in `artifacts.architecture_decisions`, create `.s2s/decisions/ADR-{NNN}-{slug}.md`:
 
 ```markdown
-<!-- WARNING: IMMUTABLE - Generated by /s2s:design. Manual edits will be lost. -->
+<!-- Generated by /s2s:design - Source: session file is the single source of truth -->
 
-# {ID}: {artifact.title}
+# ADR-{NNN}: {artifact.title}
 
 **Status**: accepted
 **Date**: {date}
+**Session**: {session-id}
 **Participants**: software-architect, technical-lead, devops-engineer
 
 ## Context
@@ -1493,19 +1576,20 @@ Update `.s2s/CONTEXT.md`:
 
     Architecture design complete!
 
-    Documents created:
-    - docs/architecture/README.md
-    - docs/architecture/components.md
-    - docs/decisions/ARCH-*.md ({count} decisions)
+    Document: .s2s/architecture.md
+    Mode: {override | merge}
+
+    Decisions: .s2s/decisions/
+    - ADR-{NNN}-*.md ({count} decisions)
 
     Tech Stack:
     {summary}
 
-    Session folder: .s2s/sessions/{session-id}/
+    Session: .s2s/sessions/{session-id}.yaml
 
     Next steps:
       /s2s:plan              - Generate implementation plans
-      /s2s:plan:create "x"   - Create specific plan
+      /s2s:plan --new   - Create specific plan
 
 ---
 

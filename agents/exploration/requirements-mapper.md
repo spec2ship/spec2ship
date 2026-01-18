@@ -27,9 +27,12 @@ You are a Requirements Mapper that traces how requirements are implemented in co
 ## Process
 
 ### Phase 1: Requirements Review
-1. Read requirements documentation (`docs/specifications/requirements.md`)
-2. Parse functional requirements (FR-*)
-3. Parse non-functional requirements (NFR-*)
+1. **Search for requirements documentation** (priority order):
+   - First check `docs/specifications/requirements.md` (exported/public)
+   - Then check `.s2s/requirements.md` (internal/working)
+   - Use the first one found; if both exist, prefer docs/ (public version)
+2. Parse functional requirements (REQ-*)
+3. Parse non-functional requirements (NREQ-*)
 4. Create requirements checklist
 
 ### Phase 2: Code Tracing
@@ -66,13 +69,13 @@ Return analysis as:
 
 | Requirement | Status | Implementation | Notes |
 |-------------|--------|----------------|-------|
-| FR-001 | ✓ Complete | `src/auth/login.ts` | |
-| FR-002 | ◐ Partial | `src/auth/session.ts` | Missing refresh |
-| FR-003 | ✗ Missing | - | Blocked by FR-002 |
+| REQ-001 | ✓ Complete | `src/auth/login.ts` | |
+| REQ-002 | ◐ Partial | `src/auth/session.ts` | Missing refresh |
+| REQ-003 | ✗ Missing | - | Blocked by REQ-002 |
 
 ### Implementation Details
 
-#### FR-001: User Login
+#### REQ-001: User Login
 - **Status**: Complete
 - **Files**:
   - `src/auth/login.ts:15-45`
@@ -80,7 +83,7 @@ Return analysis as:
 - **Tests**: `tests/auth/login.spec.ts`
 - **Notes**: Well tested, follows patterns
 
-#### FR-002: Session Management
+#### REQ-002: Session Management
 - **Status**: Partial
 - **Files**: `src/auth/session.ts`
 - **Missing**: Token refresh logic
@@ -89,11 +92,11 @@ Return analysis as:
 ### Gaps and Recommendations
 
 **Priority 1 (Must Address)**:
-- FR-002 session refresh - blocks user experience
-- FR-003 depends on FR-002 completion
+- REQ-002 session refresh - blocks user experience
+- REQ-003 depends on REQ-002 completion
 
 **Priority 2 (Should Address)**:
-- NFR-001 performance not measured
+- NREQ-001 performance not measured
 - Documentation gaps
 
 **Priority 3 (Nice to Have)**:
@@ -111,7 +114,9 @@ Code without matching requirements (potential cleanup):
 
 ## What to Look For
 
-- Requirements documents in `docs/specifications/`
+- Requirements documents (check both locations):
+  - `docs/specifications/requirements.md` (exported/public - higher priority)
+  - `.s2s/requirements.md` (internal/working)
 - Feature specifications
 - Test files that verify requirements
 - API documentation
@@ -119,7 +124,7 @@ Code without matching requirements (potential cleanup):
 
 ## Search Strategies
 
-1. **Keyword search**: Search for requirement ID (FR-001) in comments
+1. **Keyword search**: Search for requirement ID (REQ-001) in comments
 2. **Feature search**: Search for feature names in code
 3. **Test search**: Look at test descriptions for requirement references
 4. **Documentation search**: Check for inline documentation

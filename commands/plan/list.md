@@ -1,7 +1,7 @@
 ---
 description: List all implementation plans with their status.
-allowed-tools: Bash(ls:*), Bash(cat:*), Read, Glob, Grep
-argument-hint: [--status planning|active|completed|blocked]
+allowed-tools: Bash(ls:*), Read, Glob, Grep
+argument-hint: [--status active|closed]
 ---
 
 # List Implementation Plans
@@ -17,9 +17,8 @@ Based on the context output above, determine:
 
 - **S2S initialized**: If `.s2s` directory appears in Directory contents → "yes", otherwise → "NOT_S2S"
 
-If S2S is initialized, use Read tool or Glob to:
+If S2S is initialized, use Glob to:
 - List `.s2s/plans/` contents to find plan files
-- Read `.s2s/state.yaml` to get current_plan value
 
 If no plans found → "NO_PLANS"
 
@@ -32,10 +31,10 @@ If the context shows "NO_PLANS", display this message and stop:
     No implementation plans found.
 
     Create your first plan:
-      /s2s:plan:create "feature name"
+      /s2s:plan --new
 
     Or with a git branch:
-      /s2s:plan:create "feature name" --branch
+      /s2s:plan --new --with-branches
 
 ### If plans exist
 
@@ -61,17 +60,11 @@ If $ARGUMENTS contains "--status", filter the results to show only plans matchin
 
 Group plans by status and display:
 
-**Active plans** (prefix with *):
+**Active plans** (prefix with →):
 - Show plan ID, topic, branch, progress (completed/total tasks), start date
 
-**Planning plans** (prefix with -):
-- Show plan ID, topic, task count, creation date
-
-**Completed plans** (prefix with ✓):
-- Show plan ID, topic, completion date
-
-**Blocked plans** (prefix with !):
-- Show plan ID, topic, branch
+**Closed plans** (prefix with ✓):
+- Show plan ID, topic, closed date
 
 End with a summary line showing total counts by status.
 

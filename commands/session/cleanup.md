@@ -1,7 +1,7 @@
 ---
 description: Remove old or abandoned sessions to free up space.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(rm:*), Bash(date:*), Read, Glob, AskUserQuestion
-argument-hint: [--older-than 7d|30d|90d] [--status completed|failed|abandoned] [--dry-run]
+argument-hint: [--older-than 7d|30d|90d] [--status closed] [--dry-run]
 ---
 
 # Cleanup Sessions
@@ -19,7 +19,6 @@ Based on the context output above, determine:
 - **S2S initialized**: If `.s2s` directory appears → "yes", otherwise → "NOT_S2S"
 
 If S2S is initialized:
-- Read `.s2s/state.yaml` to get `current_session` value
 - Use Glob to find all `.s2s/sessions/*.yaml` files
 
 ---
@@ -36,7 +35,7 @@ If S2S initialized is "NOT_S2S":
 
 Extract from $ARGUMENTS:
 - **--older-than**: Age threshold (7d|30d|90d). Default: 30d
-- **--status**: Only cleanup sessions with this status. Default: completed,failed,abandoned
+- **--status**: Only cleanup sessions with this status. Default: closed
 - **--dry-run**: Show what would be deleted without deleting
 
 Parse age threshold:
@@ -57,20 +56,18 @@ For each session file:
 2. Extract:
    - `id`
    - `status`
-   - `timing.started`
-   - `timing.completed` (if exists)
-   - `timing.last_activity`
-3. Calculate age from `timing.last_activity` or `timing.completed`
+   - `timing.started_at`
+   - `timing.closed_at` (if exists)
+   - `timing.updated_at`
+3. Calculate age from `timing.updated_at` or `timing.closed_at`
 4. Mark for deletion if:
    - Age > threshold AND
-   - Status matches filter AND
-   - NOT the current_session
+   - Status matches filter
 
 ### Protection rules
 
 **NEVER delete**:
-- The current active session (`current_session` from state.yaml)
-- Sessions with `status: "active"` (unless explicitly included)
+- Sessions with `status: "active"`
 - Sessions younger than threshold
 
 ### Show cleanup preview
@@ -89,7 +86,7 @@ For each session file:
     {status_icon} {id}
       Status: {status}
       Age: {calculated age}
-      Last activity: {timing.last_activity}
+      Last activity: {timing.updated_at}
       Artifacts: {metrics.artifacts.total}
     {/for}
 
@@ -139,8 +136,7 @@ rm -rf .s2s/sessions/{id}/
 
     Remaining: {count} sessions
       - Active: {count}
-      - Completed: {count}
-      - Other: {count}
+      - Closed: {count}
 
 **IF** user cancels:
 
@@ -151,14 +147,14 @@ rm -rf .s2s/sessions/{id}/
 ## Examples
 
 ```bash
-# Remove completed sessions older than 7 days
-/s2s:session:cleanup --older-than 7d --status completed
+# Remove closed sessions older than 7 days
+/s2s:session:cleanup --older-than 7d --status closed
 
 # Preview what would be deleted (30 days, all non-active)
 /s2s:session:cleanup --dry-run
 
-# Remove all failed/abandoned sessions older than 90 days
-/s2s:session:cleanup --older-than 90d --status failed,abandoned
+# Remove all closed sessions older than 90 days
+/s2s:session:cleanup --older-than 90d --status closed
 ```
 
 ---
@@ -167,7 +163,6 @@ rm -rf .s2s/sessions/{id}/
 
 | Status | Icon |
 |--------|------|
-| completed | ✓ |
-| failed | ✗ |
-| abandoned | ∅ |
+| active | → |
+| closed | ✓ |
 | protected | 🛡️ |

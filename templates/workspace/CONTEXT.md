@@ -1,59 +1,69 @@
-# {Workspace Name} - S2S Context
+# {workspace-name} - Workspace Context
 
 <!--
-This file is automatically maintained by Spec2Ship.
-Components import this using @{workspace-path}/.s2s/CONTEXT.md
+This file is maintained by Spec2Ship init command.
+Import this in CLAUDE.md using @.s2s/CONTEXT.md
+Run /s2s:init to populate or update this file.
+
+MEMORY LOADING:
+- This file is loaded via @ import from CLAUDE.md
+- Component CONTEXT.md files reference THIS file via @ cascade
+- DO NOT use @ references to component CONTEXT.md files here (memory bloat)
+- Components are listed as TEXT only - details loaded on-demand when needed
+
+HEADER CONVENTION:
+- Headers use "System" or "Workspace" prefix to avoid ambiguity
+- When loaded alongside component CONTEXT.md, Claude can distinguish
+- See ADR-0009 for rationale on @ cascade design and header naming
+
+NOTE: S2S commands, paths, and how-to documentation are in README.md (not loaded in memory)
 -->
 
-## Workspace Structure
+## System Overview
 
-| Category | Path |
-|----------|------|
-| Architecture | `docs/architecture/` |
-| Requirements | `docs/specifications/requirements.md` |
-| API Specs | `docs/specifications/api/` |
-| Decisions | `docs/decisions/` |
-| Guides | `docs/guides/` |
-| Cross-component Plans | `.s2s/plans/` |
-| Roundtable Sessions | `.s2s/sessions/` |
+{description}
+
+## Business Domain
+
+{business-domain}
+
+## System Objectives
+
+- {objective-1}
+- {objective-2}
+
+## System Constraints
+
+- {constraint-1}
+- {constraint-2}
+
+## Cross-Cutting Concerns
+
+<!-- Populated by /s2s:design or manually -->
+- **Authentication**: TBD
+- **Authorization**: TBD
+- **Logging**: TBD
+- **Monitoring**: TBD
 
 ## Components
 
-<!--
-Component registry from components.yaml
--->
+<!-- TEXT ONLY - No @ references to avoid loading all components into memory -->
+| Component | Role |
+|-----------|------|
+| {component-name} | {component-role} |
 
-@.s2s/components.yaml
+*Component registry is maintained in `.s2s/workspace.yaml`*
 
-## S2S Commands
+## Architecture Principles
 
-### Workspace Management
+<!-- Populated by /s2s:design -->
+TBD - run `/s2s:design` to define architecture
 
-| Command | Description |
-|---------|-------------|
-| `/s2s:init:detect` | Show workspace status |
-| `/s2s:workspace:add-component` | Add component to registry |
-| `/s2s:workspace:sync` | Sync context across components |
+## Workspace Open Questions
 
-### Planning
+<!-- Populated during /s2s:specs or /s2s:design sessions -->
+- None identified yet
 
-| Command | Description |
-|---------|-------------|
-| `/s2s:plan:create "topic"` | Create cross-component plan |
-| `/s2s:plan:start "id"` | Start plan |
-| `/s2s:plan:complete` | Complete plan |
+---
 
-### Roundtable
-
-| Command | Description |
-|---------|-------------|
-| `/s2s:roundtable:start "topic"` | Start workspace discussion |
-| `/s2s:roundtable:start "topic" --components a,b` | Cross-component discussion |
-
-## Active Plans
-
-@.s2s/plans/
-
-## Recent Decisions
-
-@docs/decisions/
+*Last updated: {date}*

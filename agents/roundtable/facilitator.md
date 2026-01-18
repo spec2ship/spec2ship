@@ -35,6 +35,30 @@ strategy: "consensus-driven"
 phase: "requirements"  # from strategy
 workflow_type: "specs"  # specs | design | brainstorm
 
+# Project scope (for workspace awareness)
+project_scope:
+  type: "standalone"  # standalone | workspace | component
+  workspace_path: null  # "../" if component
+
+# Workspace scope (only if type is workspace or component)
+# Use this to understand discussion appropriateness
+workspace_scope: null  # or:
+#   decision_principle: "Workspace discussions focus on..."
+#   indicators: ["cross-component", "shared", ...]
+#   defer_indicators: ["internal", "UI specific", ...]  # workspace only
+#   escalate_indicators: ["affects other", ...]  # component only
+
+# Cross-cutting decisions (only if workspace-level roundtable)
+# Helps understand which decisions affect which components
+cross_cutting_decisions: null  # or:
+#   - id: "authentication"
+#     decision: "ADR-001"
+#     affects: ["frontend", "backend"]
+
+# NOTE: Component/workspace context is NOT passed here.
+# CONTEXT.md files use @ references to include workspace context automatically.
+# The context-snapshot.yaml contains full project context after @ resolution.
+
 escalation_config:
   min_rounds: 3
   max_rounds: 20
@@ -181,6 +205,23 @@ participant_context:
 ### Participant Context Guidelines
 
 **CRITICAL**: Participants have NO tools. They cannot read files. They base ALL reasoning on the context you provide. Insufficient context = poor quality responses.
+
+#### Workspace-Aware Context
+
+**Context inheritance via @ references**: Component CONTEXT.md files include `@../.s2s/CONTEXT.md` references to workspace context. This is resolved automatically when context-snapshot.yaml is created. No manual aggregation needed.
+
+**IF project_scope.type == "workspace"**:
+- Reference which components are affected by current topic
+- Include cross_cutting_decisions if relevant to discussion
+- Frame questions to consider system-wide impact
+
+**IF project_scope.type == "component"**:
+- Workspace context is already included via @ reference in CONTEXT.md
+- Reference relevant workspace decisions (ADRs)
+- Note if topic might affect other components (escalate_indicators)
+
+**IF project_scope.type == "standalone"**:
+- No special handling needed
 
 1. **project_summary**: **MUST include all facts needed to make informed decisions**. Include:
    - Project name, description, domain

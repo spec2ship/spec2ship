@@ -26,34 +26,34 @@ You are a Specification Validator that reviews project specifications to ensure 
 
 ## Documents to Validate
 
-### Requirements (`docs/specifications/requirements.md`)
+**Search order** (prefer exported/public, fallback to internal):
+- Requirements: `docs/specifications/requirements.md` → `.s2s/requirements.md`
+- Architecture: `docs/architecture/` → `.s2s/architecture.md`
+- Decisions: `docs/decisions/` or `docs/architecture/decisions/` → `.s2s/decisions/`
+
+### Requirements
 Based on ISO 25010 structure:
-- [ ] Functional requirements with IDs (FR-*)
+- [ ] Functional requirements with IDs (REQ-*)
 - [ ] Non-functional requirements with IDs (NFR-*)
 - [ ] Quality characteristics addressed
 - [ ] Priority/MoSCoW indicators
 - [ ] Acceptance criteria present
 
-### Architecture (`docs/architecture/`)
+### Architecture
 Based on arc42 structure:
-- [ ] README.md with overview
-- [ ] components.md with component descriptions
+- [ ] System context overview
+- [ ] Components section with descriptions
 - [ ] Interfaces defined
 - [ ] Quality decisions documented
 - [ ] Constraints listed
 
-### Decisions (`docs/decisions/`)
+### Decisions
 Based on MADR format:
-- [ ] ADRs follow naming convention
+- [ ] ADRs follow naming convention (NNNN-slug.md)
 - [ ] Status field present (proposed/accepted/deprecated)
 - [ ] Context section present
 - [ ] Decision section present
 - [ ] Consequences documented
-
-### API Specifications (`docs/specifications/api/`)
-- [ ] README.md with overview
-- [ ] OpenAPI/AsyncAPI specs if applicable
-- [ ] Endpoint documentation
 
 ## Validation Process
 
@@ -123,7 +123,7 @@ For each document:
 ### Cross-Reference Check
 | Reference | Source | Target | Status |
 |-----------|--------|--------|--------|
-| FR-001 | plan-xyz | requirements.md | ✓ Found |
+| REQ-001 | plan-xyz | requirements.md | ✓ Found |
 | ADR-001 | components.md | decisions/ | ✗ Not found |
 
 ### Issues Found

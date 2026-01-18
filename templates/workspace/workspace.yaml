@@ -1,35 +1,89 @@
 # Spec2Ship Workspace Configuration
 # This file is created by /s2s:init --workspace
+# For help, ask Claude: "how do workspaces work in s2s" (loads s2s-guide skill)
 
 name: "{workspace-name}"
-type: "workspace"                       # or "workspace-hub" for stack repo pattern
+version: "0.1.0"
 
-# Shared documentation location
-shared_docs:
-  path: "./docs"                        # Relative to this file
+# === GIT STRUCTURE ===
+# Detected automatically by init, informs reference patterns
+structure: "{monorepo | multi-repo | hybrid}"
 
-# Git workflow configuration
-git:
-  branch_convention: "feature/F{id}-{slug}"
-  commit_convention: "conventional"
-  default_branch: "main"
+# === COMPONENT REGISTRY ===
+# Components are added via /s2s:init from each component folder
+components: []
+# Example entry (added by init):
+#   - id: "frontend"
+#     name: "Web Application"
+#     path: "./frontend"              # Relative to workspace root
+#     type: "application"             # application | service | library
+#     owner: "@team-frontend"         # Team owner (optional)
+#     has_own_git: false              # Detected by init
+#     depends_on:                     # Auto-detected workspace component dependencies
+#       - "shared-lib"
 
-# Roundtable configuration
-roundtable:
-  default_scope: "workspace"            # workspace | component
-  default_participants:
-    - software-architect
-    - technical-lead
-  strategy: "round-robin"
+# === CROSS-CUTTING CONCERNS ===
+# Decisions that affect multiple components
+# Updated when workspace-level roundtables produce decisions
+cross_cutting: []
+# Example entry (added by roundtable):
+#   - id: "authentication"
+#     decision: "ADR-001"             # Reference to decision in decisions/
+#     affects: ["frontend", "backend", "mobile"]
+#     propagated_to:                  # Tracks which components have backlog items
+#       - component: "frontend"
+#         backlog_item: "TECH-003"
 
-# Documentation paths
-docs:
-  architecture: "docs/architecture"
-  specifications: "docs/specifications"
-  decisions: "docs/decisions"
-  guides: "docs/guides"
+# === ROUNDTABLE SCOPE ===
+# Guides facilitator on appropriate discussion levels
+# Uses PRINCIPLES (for LLM reasoning) instead of topic lists
+roundtable_scope:
+  workspace_level:
+    # Core decision principle for facilitator
+    decision_principle: |
+      Workspace discussions focus on decisions that AFFECT MULTIPLE components.
+      Key question: "Does this decision require coordination between teams?"
+      If yes → workspace level. If no → component level.
 
-# File naming
-naming:
-  timestamp_format: "YYYYMMDD-HHMMSS"
-  slug_max_length: 50
+    # Keywords that indicate workspace-level scope
+    indicators:
+      - "cross-component"
+      - "shared"
+      - "interface"
+      - "contract"
+      - "system-wide"
+      - "platform"
+      - "authentication"
+      - "authorization"
+      - "API versioning"
+      - "security policy"
+
+    # Keywords that indicate should defer to component
+    defer_indicators:
+      - "internal"
+      - "implementation detail"
+      - "refactoring"
+      - "UI specific"
+      - "only affects"
+      - "database schema"
+
+    context_note: |
+      Component CONTEXT.md files inherit workspace context via @ cascade.
+      Workspace context is always in memory when running from components.
+      For cross-component discussions, facilitator loads specific siblings on-demand.
+      Decisions made here may generate backlog items in components.
+      See ADR-0009 for @ cascade design rationale.
+
+  component_level:
+    inherits_context_from: "workspace"  # Include workspace CONTEXT.md as background
+
+    decision_principle: |
+      Component discussions focus on decisions INTERNAL to this component.
+      Key question: "Does this affect only this component's implementation?"
+      If yes → component level. If no → escalate to workspace.
+
+    escalate_indicators:
+      - "affects other components"
+      - "changes interface"
+      - "new shared requirement"
+      - "cross-component dependency"

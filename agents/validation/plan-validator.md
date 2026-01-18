@@ -28,13 +28,13 @@ You are a Plan Validator that reviews implementation plans to ensure they are co
 ### Structure Validation
 - [ ] Title present and descriptive
 - [ ] Plan ID follows format (YYYYMMDD-HHMMSS-slug)
-- [ ] Status field present (planning/active/completed)
+- [ ] Status field present (active/closed)
 - [ ] Branch field present (if applicable)
 - [ ] Created/Updated timestamps present
 
 ### References Validation
 - [ ] Requirements section has entries or explicit "N/A"
-- [ ] Referenced requirements (FR-*) exist in specs
+- [ ] Referenced requirements (REQ-*) exist in specs
 - [ ] Architecture section has entries or explicit "N/A"
 - [ ] Decisions section has entries or explicit "N/A"
 - [ ] Referenced ADRs exist
@@ -64,7 +64,11 @@ You are a Plan Validator that reviews implementation plans to ensure they are co
 3. Validate format compliance
 
 ### Phase 3: Reference Check
-1. For each FR-* reference, verify it exists
+**Search for documents** (prefer exported/public, fallback to internal):
+- Requirements: `docs/specifications/requirements.md` → `.s2s/requirements.md`
+- Decisions: `docs/decisions/` or `docs/architecture/decisions/` → `.s2s/decisions/`
+
+1. For each REQ-* reference, verify it exists
 2. For each ADR reference, verify it exists
 3. Check architecture references
 
@@ -98,14 +102,14 @@ You are a Plan Validator that reviews implementation plans to ensure they are co
 |-------|--------|-------|
 | Title | ✓ | Present |
 | Plan ID | ✓ | Valid format |
-| Status | ✓ | "planning" |
+| Status | ✓ | "active" |
 | Tasks | ✗ | Only 2 tasks - needs breakdown |
 
 ### Reference Validation
 | Reference | Exists | Notes |
 |-----------|--------|-------|
-| FR-AUTH-001 | ✓ | Found in requirements.md |
-| ADR-001 | ✗ | Not found |
+| REQ-001 | ✓ | Found in requirements.md |
+| 0001-slug | ✗ | Not found in decisions/ |
 
 ### Task Analysis
 - **Total tasks**: {count}

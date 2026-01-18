@@ -2,10 +2,16 @@
 # This file is created by /s2s:init
 
 name: "{project-name}"
-type: "standalone"
+type: "{standalone | workspace | component}"
 version: "0.1.0"
 
-# Git workflow configuration
+# === WORKSPACE REFERENCE ===
+# Only present when type is "component"
+# workspace:
+#   path: ".."                         # Relative path to workspace root
+#   workspace_yaml: "../.s2s/workspace.yaml"
+
+# Git workflow
 git:
   branch_convention: "feature/F{id}-{slug}"
   commit_convention: "conventional"
@@ -13,50 +19,49 @@ git:
 
 # Roundtable configuration
 roundtable:
-  # === EXECUTION SETTINGS ===
-  verbose: false          # Include full participant responses in session file
-  interactive: false      # Ask user after each round (pause/continue/skip)
+  verbose: false           # Save full responses in session file
+  interactive: false       # Pause after each round for user input
 
   # === STRATEGY ===
-  # Loads facilitation method from skills/roundtable-strategies/
-  strategy: "standard"  # standard | disney | debate | consensus-driven | six-hats
+  # Facilitation method from skills/roundtable-strategies/
+  strategy:
+    default: "standard"            # Used by /s2s:roundtable when no workflow
 
-  # === STRATEGY OVERRIDES (optional) ===
-  # Warning if contradicts strategy, but executed anyway
-  # overrides:
-  #   participation: "sequential"  # Override strategy default
+    by_workflow_type:
+      specs: "consensus-driven"    # Best for requirements agreement
+      design: "debate"             # Best for evaluating architectural options
+      brainstorm: "disney"         # Best for creative ideation
 
   # === PARTICIPANTS ===
   participants:
     default:
-      - software-architect
-      - technical-lead
+      - software-architect         # System design, patterns, scalability
+      - technical-lead             # Implementation feasibility, code quality
 
-    # Per WORKFLOW TYPE (specs, design, brainstorm)
     by_workflow_type:
       specs:
-        - product-manager
-        - ux-researcher       # User needs, accessibility, experience
-        - business-analyst    # Focus on WHAT (requirements), not HOW
-        - qa-lead
+        - product-manager          # User value, priorities, scope
+        - ux-researcher            # User needs, accessibility, experience
+        - business-analyst         # Requirements clarity, domain rules
+        - qa-lead                  # Testability, edge cases, acceptance
       design:
-        - software-architect
-        - security-champion   # Threat modeling, secure design
-        - technical-lead
-        - devops-engineer
+        - software-architect       # System structure, patterns, trade-offs
+        - security-champion        # Threat modeling, secure design, OWASP
+        - technical-lead           # Code quality, effort, maintainability
+        - devops-engineer          # Deployment, scalability, monitoring
       brainstorm:
-        - product-manager
-        - software-architect
-        - technical-lead
-        - devops-engineer
+        - product-manager          # User value, market fit
+        - software-architect       # Technical feasibility
+        - technical-lead           # Implementation complexity
+        - devops-engineer          # Infrastructure considerations
 
-  # === ESCALATION (global) ===
+  # === ESCALATION ===
   escalation:
     enabled: true
     triggers:
-      max_rounds_per_conflict: 3  # Escalate if same conflict persists this many rounds
-      confidence_below: 0.5       # Escalate if any participant confidence drops below
-      critical_keywords:          # Escalate if these keywords detected
+      max_rounds_per_conflict: 3   # Escalate if conflict persists
+      confidence_below: 0.5        # Escalate if confidence drops
+      critical_keywords:           # Escalate if detected
         - security
         - must-have
         - blocking
@@ -66,34 +71,11 @@ roundtable:
       show_rationale: true
       facilitator_recommendation: true
 
-  # === SAFETY LIMITS ===
+  # === LIMITS ===
   limits:
-    min_rounds: 3               # Minimum rounds before allowing conclusion
-    max_rounds: 20              # Force conclude after this many rounds
-    max_rounds_per_phase: 10    # Force phase advance after this many rounds
-
-# === OUTPUT FORMATS ===
-# Uncomment and customize as needed
-# specs:
-#   format: "srs-lite"        # srs | srs-lite | volere | simple
-# architecture:
-#   format: "arc42"           # arc42 | arc42-lite | c4 | simple
-# decisions:
-#   format: "madr"            # madr | adr | simple
-
-# === WORKFLOW-SPECIFIC STRATEGIES (optional) ===
-# Override global strategy for specific workflows
-# strategy_by_workflow:
-#   specs: "consensus-driven"     # Best for finding agreement on requirements
-#   design: "debate"              # Best for evaluating architectural options
-#   brainstorm: "disney"          # Best for creative ideation
-
-# Documentation paths
-docs:
-  architecture: "docs/architecture"
-  specifications: "docs/specifications"
-  decisions: "docs/decisions"
-  guides: "docs/guides"
+    min_rounds: 3                  # Minimum before allowing conclusion
+    max_rounds: 20                 # Force conclude after this
+    max_rounds_per_phase: 10       # Force phase advance after this
 
 # File naming
 naming:

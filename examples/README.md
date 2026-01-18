@@ -37,10 +37,12 @@ cd your-project
 
 ## Notes
 
-- Examples are representative outputs, not templates
-- Your actual output will vary based on project context
+> [!NOTE]
+> Examples are **representative outputs**, not templates. Your actual output will vary based on project context and roundtable discussions.
+
 - Session files (`.s2s/sessions/`) are not included
+- Each run produces unique artifacts based on your project
 
 ---
 
-*See also: [Getting Started](../docs/getting-started.md)*
+*See also: [Core Concepts](../docs/)*

@@ -1,5 +1,7 @@
 # Spec2Ship Development Context
 
+@.s2s/CONTEXT.md
+
 Spec2Ship (s2s) is a Claude Code plugin that automates the software lifecycle: specifications → planning → implementation → shipping.
 
 ## Project Structure
@@ -8,68 +10,23 @@ Spec2Ship (s2s) is a Claude Code plugin that automates the software lifecycle: s
 spec2ship/
 ├── .claude/                  # Claude configuration (this folder)
 │   ├── CLAUDE.md             # Main context (you're reading it)
-│   ├── s2s-development.md    # Development patterns
-│   ├── guidelines/           # Standards and conventions
-│   │   ├── glossary.md       # Terminology definitions
-│   │   ├── naming-conventions.md
-│   │   ├── state-machine.md  # State transitions
-│   │   └── llm-patterns.md   # Instruction patterns
-│   └── decisions/            # Architecture decisions (MADR format)
-│       └── SAD-006-*.md      # SAD-001 to SAD-005 inline below
+│   └── s2s-development.md    # Development patterns and lessons learned
 ├── .claude-plugin/           # Plugin manifest
 ├── commands/                 # Slash commands (/s2s:*)
-│   ├── init.md, brainstorm.md, specs.md, design.md, plan.md
-│   ├── plan/                 # create, list, start, complete
-│   └── roundtable/           # start, list, resume
+│   ├── init.md, brainstorm.md, specs.md, design.md, plan.md, roundtable.md
+│   ├── plan/                 # close, list
+│   └── session/              # list, status, close, cleanup, validate
 ├── agents/roundtable/        # Discussion participants
 │   ├── facilitator.md        # Orchestrates rounds
 │   └── *.md                  # Participants (architect, tech-lead, etc.)
 ├── skills/                   # Knowledge bases
+│   ├── s2s-guide/            # Comprehensive usage and extension guide
 │   ├── roundtable-execution/ # Shared execution logic
 │   ├── roundtable-strategies/# disney, debate, standard, etc.
-│   └── arc42, iso25010, madr, conventional-commits
+│   └── arc42, iso25010, madr, conventional-commits, ...
 ├── templates/                # File templates for user projects
-└── docs/                     # User documentation
+└── docs/                     # Public documentation (for humans)
 ```
-
----
-
-## Architecture Decisions
-
-### SAD-001: Component Separation
-
-| Component | Purpose | When to Use |
-|-----------|---------|-------------|
-| **Commands** | Workflow orchestration | User-facing operations with phases, state |
-| **Agents** | Specialized tasks | Domain expertise, parallelizable work |
-| **Skills** | Knowledge on-demand | Standards, patterns, templates |
-
-### SAD-002: Roundtable Implementation
-
-- **Inline orchestration**: Commands execute roundtable loop directly (not via SlashCommand)
-- **Skill as library**: `roundtable-execution` skill provides shared logic
-- **Constraint**: Claude Code subagents cannot spawn other subagents
-
-### SAD-003: Agent Tiers
-
-| Tier | Model | Use Case |
-|------|-------|----------|
-| **Critical** | opus | Facilitator decisions |
-| **Default** | inherit | Most agents - inherits user's model |
-| **Fast** | haiku | Simple validation |
-
-### SAD-004: Skills Progressive Disclosure
-
-```
-skills/{name}/
-├── SKILL.md          # Always loaded (~1,500-2,000 words)
-├── references/       # Loaded on demand
-└── examples/         # Loaded on demand
-```
-
-### SAD-005: State Management
-
-Single source of truth: `.s2s/state.yaml`
 
 ---
 
@@ -93,20 +50,14 @@ Task(subagent_type="general-purpose", prompt="You are a facilitator...")
 
 ---
 
-## Naming Conventions
+## Quick Reference
 
 | Type | Format | Example |
 |------|--------|---------|
 | Plan ID | `YYYYMMDD-HHMMSS-slug` | `20241228-143022-user-auth` |
 | Branch | `feature/F{NN}-slug` | `feature/F01-user-auth` |
-| Session | `YYYYMMDD-HHMMSS-topic` | `20241228-150000-auth-strategy` |
-
-### Command Structure
-
-```
-/s2s:{category}:{operation}        # Subcommands = operations
-/s2s:roundtable:start --strategy   # Flags = configuration
-```
+| Session | `YYYYMMDD-workflow-slug` | `20241228-specs-auth` |
+| Command | `/s2s:{category}:{operation}` | `/s2s:session:validate` |
 
 ---
 
@@ -116,33 +67,6 @@ Task(subagent_type="general-purpose", prompt="You are a facilitator...")
 - **Markdown**: GitHub-flavored, CommonMark compatible
 - **YAML**: 2-space indent, quoted strings with special chars
 - **File encoding**: UTF-8, LF line endings
-
----
-
-## Testing
-
-```bash
-/plugin marketplace remove spec2ship
-/plugin marketplace add https://github.com/spec2ship/spec2ship.git#develop
-/plugin install s2s@spec2ship
-```
-
----
-
-## Development Reference
-
-For detailed patterns, examples, anti-patterns, and lessons learned, see:
-**`.claude/s2s-development.md`**
-
-Key topics covered:
-- Agent invocation patterns (YAML I/O)
-- Command writing patterns (context, instructions)
-- Multi-agent orchestration
-- Adding new skills/strategies
-- Anti-patterns to avoid
-- Session file management
-
----
 
 ## Key Reminders
 
@@ -154,17 +78,35 @@ Key topics covered:
 
 ---
 
-## Reference Documentation
+## Development Reference
 
-For detailed guidelines, see:
+### For Contributors
 
-| Document | Contents |
-|----------|----------|
-| `@.claude/s2s-development.md` | Development patterns, anti-patterns, lessons learned |
-| `@.claude/guidelines/glossary.md` | Terminology: artifact types, states, strategies |
-| `@.claude/guidelines/naming-conventions.md` | ID formats, file paths, command structure |
-| `@.claude/guidelines/state-machine.md` | Session, artifact, topic lifecycles |
-| `@.claude/guidelines/llm-patterns.md` | Instruction patterns for commands |
-| `@.claude/decisions/` | Architecture decisions SAD-006+ (MADR format) |
+**Primary reference**: `.claude/s2s-development.md`
+- Agent invocation patterns (YAML I/O)
+- Command writing patterns (context, instructions)
+- Multi-agent orchestration
+- Anti-patterns to avoid
+- Lessons learned
 
-**Note**: SAD-001 through SAD-005 remain inline above for quick reference. New decisions go in `decisions/` folder.
+### For Everyone (Usage & Extension)
+
+**Skill**: `s2s-guide` - Comprehensive guide activated by questions like:
+- "what is s2s", "how do I use specs", "which command for..."
+- "how to create custom agent", "extend s2s", "add new command"
+
+The skill provides:
+- Workflow explanations
+- Command reference
+- Glossary and terminology
+- Extension guides (new agent, skill, command)
+
+---
+
+## Testing Plugin Changes
+
+```bash
+/plugin marketplace remove spec2ship
+/plugin marketplace add https://github.com/spec2ship/spec2ship.git#develop
+/plugin install s2s@spec2ship
+```

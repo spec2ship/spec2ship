@@ -18,7 +18,7 @@ This skill provides facilitation strategies for s2s Roundtable sessions. Each st
 
 ## When to Use This Skill
 
-- Starting a `/s2s:roundtable:start` session
+- Starting a `/s2s:roundtable` session
 - Running `/s2s:specs` requirements gathering
 - Running `/s2s:design` architecture design
 - Custom brainstorming or decision-making sessions

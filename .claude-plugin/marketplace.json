@@ -10,7 +10,7 @@
       "name": "s2s",
       "source": "./",
       "description": "AI-assisted development framework for the full software lifecycle",
-      "version": "0.1.0"
+      "version": "0.3.0"
     }
   ]
 }

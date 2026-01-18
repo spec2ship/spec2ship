@@ -18,7 +18,7 @@ Based on the context output above, determine:
 - **S2S initialized**: If `.s2s` directory appears → "yes", otherwise → "NOT_S2S"
 
 If S2S is initialized:
-- Read `.s2s/state.yaml` to get `current_session` value
+- Use Glob to find session files: `.s2s/sessions/*.yaml`
 
 ---
 
@@ -35,9 +35,11 @@ If S2S initialized is "NOT_S2S":
 **IF** $ARGUMENTS contains a session ID:
 - Use that ID
 
-**ELSE**:
-- Read `.s2s/state.yaml` and use `current_session`
-- **IF** `current_session` is null: Show error and list available sessions
+**ELSE** find active sessions:
+- Use Bash: `grep -l 'status: active' .s2s/sessions/*.yaml 2>/dev/null`
+- **IF** no active sessions: Show error and list available sessions
+- **IF** multiple active sessions: List them and ask user which to show using AskUserQuestion
+- **IF** single active session: Use that session
 
 ### Read session file
 
@@ -63,9 +65,9 @@ If S2S initialized is "NOT_S2S":
 
     Timing
     ─────────────────────────────────────
-    Started:      {timing.started}
-    Last Activity: {timing.last_activity}
-    Completed:    {timing.completed or "In progress"}
+    Started:      {timing.started_at}
+    Updated:      {timing.updated_at}
+    Closed:       {timing.closed_at or "In progress"}
     Duration:     {calculated}
 
     Agent State
@@ -115,7 +117,7 @@ If S2S initialized is "NOT_S2S":
     Commands
     ─────────────────────────────────────
       /s2s:session:validate {id}  - Check consistency
-      /s2s:roundtable:resume      - Continue discussion
+      /s2s:session:close      - Close this session
 
 ---
 

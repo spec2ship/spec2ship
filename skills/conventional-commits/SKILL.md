@@ -123,14 +123,14 @@ All clients must update to include Bearer token.
 BREAKING CHANGE: Session cookies no longer work.
 Clients must use Authorization header with JWT.
 
-Migration guide: docs/migration/jwt-auth.md
+Migration guide: .s2s/guides/jwt-auth.md
 ```
 
 ### Documentation
 ```
 docs: add architecture decision records
 
-- Create ADR template in docs/decisions
+- Create ADR template in .s2s/decisions
 - Document database selection (ADR-001)
 - Document API versioning (ADR-002)
 ```

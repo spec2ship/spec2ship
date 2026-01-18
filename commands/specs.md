@@ -1,7 +1,7 @@
 ---
-description: Define functional requirements through a roundtable discussion. Reads CONTEXT.md and produces structured requirements.md.
-allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Read, Write, Edit, Glob, Task, AskUserQuestion
-argument-hint: [--skip-roundtable] [--format srs|volere|simple] [--strategy standard|disney|consensus-driven] [--verbose] [--interactive] [--diagnostic]
+description: Define functional requirements through a roundtable discussion. Reads CONTEXT.md and produces structured requirements.md. Auto-detects active sessions.
+allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Bash(grep:*), Read, Write, Edit, Glob, Task, AskUserQuestion
+argument-hint: [--skip-roundtable] [--format srs|volere|simple] [--strategy consensus-driven|standard|six-hats] [--verbose] [--interactive] [--diagnostic] [--new] [--session <id>]
 skills: roundtable-execution, roundtable-strategies, iso25010-requirements
 ---
 
@@ -21,12 +21,75 @@ Based on the context output above, determine:
 
 If S2S is initialized:
 - Read `.s2s/CONTEXT.md` for project context
-- Check if `docs/specifications/requirements.md` exists
+- Check if `.s2s/requirements.md` exists
 - Read `.s2s/config.yaml` for roundtable settings
 
 ---
 
 ## Instructions
+
+### Parse flags for session handling
+
+Extract from $ARGUMENTS:
+- **--new**: Force create new session (skip auto-detect)
+- **--session**: Resume specific session by ID
+
+### Auto-detect active sessions
+
+**IF** --session flag is present:
+- Verify session exists: `.s2s/sessions/{session-id}.yaml`
+- If exists, jump to **Phase 2: Round Execution Loop** (resume session)
+- If not exists, display error and list available sessions
+
+**IF** --new flag is present:
+- Skip auto-detect
+- Continue to validation
+
+**OTHERWISE** check for active specs sessions:
+
+**Use Bash tool** to find active specs sessions:
+
+```bash
+grep -l 'workflow_type: specs' .s2s/sessions/*.yaml 2>/dev/null | xargs grep -l 'status: active' 2>/dev/null
+```
+
+**IF** no active specs sessions found:
+- Continue to validation (create new session)
+
+**IF** active specs sessions found:
+
+1. Read each session file to extract:
+   - `id`
+   - `topic`
+   - `metrics.rounds_completed`
+
+2. Display list:
+
+```
+Active specs sessions found:
+════════════════════════════
+
+1. {session-id}
+   Topic: {topic}
+   Progress: Round {rounds_completed}
+
+2. {session-id}
+   ...
+
+[n] Start new session
+
+Which would you like to continue?
+```
+
+3. Ask using AskUserQuestion with options:
+   - For each session: "{session-id}"
+   - "Start new session"
+
+4. Based on user choice:
+   - If existing session selected → Jump to **Phase 2** (resume)
+   - If "Start new session" → Continue to validation
+
+---
 
 ### Validate environment
 
@@ -45,23 +108,34 @@ If CONTEXT.md contains placeholder text like "{Project description}":
 
 ### Check for existing requirements
 
-If `docs/specifications/requirements.md` exists and has content:
-- Display summary of existing requirements
+If `.s2s/requirements.md` exists and has content:
+- Display summary of existing requirements (count REQ-* entries)
 - Ask using AskUserQuestion: "Requirements exist. What would you like to do?"
-  - Options: "Refine existing" / "Start fresh" / "Cancel"
+  - Options: "Override (replace all)" / "Merge (add new)" / "Cancel"
 - If cancel, stop
-- If start fresh, backup existing file
+- If override, will replace entire file at end
+- If merge, will append new REQ-* with incremented IDs at end
 
 ### Parse arguments
 
 Extract from $ARGUMENTS:
 - **--skip-roundtable**: Skip discussion, generate from CONTEXT.md directly
 - **--format**: Document format (srs|volere|simple). Default: srs
-- **--strategy**: Override strategy for roundtable. Default: consensus-driven
+- **--strategy**: Override strategy (optional)
 
 **Boolean flags**: `--verbose`, `--interactive`, and `--diagnostic` → parse as `true` if present, `false` if absent.
 
 **IF --diagnostic is true**: Force `verbose_flag = true` (diagnostic mode requires verbose dumps for analysis).
+
+### Determine strategy
+
+Read `.s2s/config.yaml` and determine the strategy to use:
+
+1. **IF --strategy argument provided**: Use that value
+2. **ELSE**: Read `roundtable.strategy.by_workflow_type.specs` from config
+3. **FALLBACK**: If not found in config, use `"consensus-driven"`
+
+Store as **strategy_to_use** and use this value throughout the command.
 
 ### Display context summary
 
@@ -136,14 +210,14 @@ source: ".s2s/config.yaml"
 verbose: {verbose_flag}
 interactive: {interactive_flag}
 diagnostic: {diagnostic_flag}
-strategy: "{strategy or consensus-driven}"
+strategy: "{strategy_to_use}"
 limits:
-  min_rounds: {from config: roundtable.limits.min_rounds, default: 3}
-  max_rounds: {from config: roundtable.limits.max_rounds, default: 20}
+  min_rounds: {from config: roundtable.limits.min_rounds}
+  max_rounds: {from config: roundtable.limits.max_rounds}
 escalation:
-  max_rounds_per_conflict: {from config: roundtable.escalation.triggers.max_rounds_per_conflict, default: 3}
-  confidence_below: {from config: roundtable.escalation.triggers.confidence_below, default: 0.5}
-  critical_keywords: {from config: roundtable.escalation.triggers.critical_keywords, default: ["security", "must-have", "blocking", "legal"]}
+  max_rounds_per_conflict: {from config: roundtable.escalation.triggers.max_rounds_per_conflict}
+  confidence_below: {from config: roundtable.escalation.triggers.confidence_below}
+  critical_keywords: {from config: roundtable.escalation.triggers.critical_keywords}
 participants:
   - "product-manager"
   - "ux-researcher"
@@ -184,13 +258,13 @@ topics:
 id: "{session-id}"
 topic: "Requirements definition for {project name}"
 workflow_type: "specs"
-strategy: "{strategy}"
+strategy: "{strategy_to_use}"
 status: "active"
 
 timing:
-  started: "{ISO timestamp}"
-  last_activity: "{ISO timestamp}"
-  completed: null
+  started_at: "{ISO timestamp}"
+  updated_at: "{ISO timestamp}"
+  closed_at: null
 
 # Agent state (for resume capability)
 # Stores agent IDs to enable resuming agents across rounds
@@ -257,13 +331,6 @@ validation:
   warnings: []
 ```
 
-### Step 1.5: Update State File
-
-**YOU MUST use Edit tool NOW** to update `.s2s/state.yaml`:
-```yaml
-current_session: "{session-id}"
-```
-
 ---
 
 ## Phase 2: Round Execution Loop
@@ -295,7 +362,7 @@ action: "question"
 round: {round_number + 1}
 resume: true
 topic: "Requirements definition for {project name}"
-strategy: "{strategy from config}"
+strategy: "{strategy_to_use}"
 phase: "requirements"
 workflow_type: "specs"
 
@@ -359,9 +426,20 @@ participants:
 action: "question"
 round: {round_number + 1}
 topic: "Requirements definition for {project name}"
-strategy: "{strategy from config, e.g. consensus-driven}"
+strategy: "{strategy_to_use}"
 phase: "requirements"
 workflow_type: "specs"
+
+# Project scope (for workspace awareness)
+project_scope:
+  type: {from config-snapshot.yaml: project.type}  # standalone | workspace | component
+  workspace_path: {from config-snapshot.yaml: project.workspace_path}
+
+# Workspace scope (from config-snapshot.yaml, null if standalone)
+workspace_scope: {from config-snapshot.yaml: workspace_scope}
+
+# Cross-cutting decisions (from config-snapshot.yaml, null if not workspace)
+cross_cutting_decisions: {from config-snapshot.yaml: cross_cutting_decisions}
 
 escalation_config:
   min_rounds: {from config-snapshot.yaml: limits.min_rounds}
@@ -438,7 +516,10 @@ participant_context:
 
 **IF verbose_flag == true**: Write dump to `rounds/{NNN}-01-facilitator-question.yaml`:
 
-**IMPORTANT**: Save FULL content, not just keys or placeholders.
+**CRITICAL - ALL fields below are REQUIRED**:
+- Save FULL content, not just keys or placeholders
+- You MUST save `response.participant_context.shared` with ALL sub-fields
+- ALL fields are REQUIRED regardless of resume mode
 
 ```yaml
 # Round {N} - Facilitator Question
@@ -446,8 +527,8 @@ round: {N}
 phase: 1
 actor: "facilitator"
 action: "question"
-started: "{ISO timestamp}"
-completed: "{ISO timestamp}"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
 
 input: {... the YAML input sent to facilitator ...}
 
@@ -493,7 +574,7 @@ response:
   participants: "{all or list}"
 
 result:
-  status: "completed"
+  status: "closed"
 
 tokens:
   input_estimate: {estimated input tokens}
@@ -685,16 +766,21 @@ references:
 **Store responses** for synthesis and verbose dump.
 
 **IF verbose_flag == true**: Write dump for each participant to `rounds/{NNN}-02-{participant-id}.yaml`:
+
+**CRITICAL - ALL fields below are REQUIRED** (including in resume mode):
+
 ```yaml
 # Round {N} - {Participant Role} Response
 round: {N}
 phase: 2
 actor: "{participant-id}"
 action: "response"
-started: "{ISO timestamp}"
-completed: "{ISO timestamp}"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
 
-input: {... the YAML input sent to participant ...}
+input:
+  question: "{the question}"
+  context: {... context sent ...}
 
 response:
   participant: "{participant-id}"
@@ -705,7 +791,7 @@ response:
   suggestions: [...]
 
 result:
-  status: "completed"
+  status: "closed"
 
 tokens:
   input_estimate: {estimated input tokens}
@@ -748,7 +834,7 @@ action: "synthesis"
 round: {round_number + 1}
 resume: true
 topic: "Requirements definition for {project name}"
-strategy: "{strategy}"
+strategy: "{strategy_to_use}"
 phase: "requirements"
 
 escalation_config:
@@ -762,6 +848,12 @@ question_asked: "{facilitator's question from step 2.2}"
 # Participant responses to synthesize (full content for decision-making)
 responses:
   product-manager:
+    position: "{position}"
+    rationale: [...]
+    concerns: [...]
+    suggestions: [...]
+    confidence: {0.0-1.0}
+  ux-researcher:
     position: "{position}"
     rationale: [...]
     concerns: [...]
@@ -819,7 +911,7 @@ artifacts_count: {current count from metrics}
 action: "synthesis"
 round: {round_number + 1}
 topic: "Requirements definition for {project name}"
-strategy: "{strategy}"
+strategy: "{strategy_to_use}"
 phase: "requirements"
 
 escalation_config:
@@ -837,6 +929,12 @@ responses:
     concerns: [...]
     suggestions: [...]
     confidence: 0.85
+  ux-researcher:
+    position: "{position}"
+    rationale: [...]
+    concerns: [...]
+    suggestions: [...]
+    confidence: 0.8
   business-analyst:
     position: "{position}"
     rationale: [...]
@@ -927,8 +1025,8 @@ round: {N}
 phase: 3
 actor: "facilitator"
 action: "synthesis"
-started: "{ISO timestamp}"
-completed: "{ISO timestamp}"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
 
 input: {... the YAML input sent to facilitator ...}
 
@@ -944,7 +1042,7 @@ response:
 result:
   artifacts_proposed: {count}
   conflicts_resolved: {count}
-  status: "completed"
+  status: "closed"
 
 tokens:
   input_estimate: {estimated input tokens}
@@ -1187,7 +1285,7 @@ rounds:
 2. **Update timing**:
 ```yaml
 timing:
-  last_activity: "{ISO timestamp}"
+  updated_at: "{ISO timestamp}"
 ```
 
 3. **Update agenda status** from facilitator's `agenda_update`:
@@ -1277,7 +1375,7 @@ mode: "per-round"
 session_path: ".s2s/sessions/{session-id}"
 round: {round_number + 1}
 workflow_type: "specs"
-strategy: "{strategy}"
+strategy: "{strategy_to_use}"
 ```
 
 The observer will return:
@@ -1311,7 +1409,7 @@ Show synthesis, new artifacts, resolved conflicts, agenda status.
 
 #### Step 2.8: Handle Interactive Mode
 
-**IF interactive_flag == true**: Ask user to continue, skip, or pause.
+**IF interactive_flag == true**: Ask user to continue, skip, or exit.
 **IF interactive_flag == false**: Proceed automatically.
 
 #### Step 2.9: Evaluate Next Action
@@ -1333,7 +1431,7 @@ Show synthesis, new artifacts, resolved conflicts, agenda status.
 mode: "end-session"
 session_path: ".s2s/sessions/{session-id}"
 workflow_type: "specs"
-strategy: "{strategy}"
+strategy: "{strategy_to_use}"
 ```
 
 The observer will return a final diagnostic summary.
@@ -1344,7 +1442,7 @@ The observer will return a final diagnostic summary.
 ║                    DIAGNOSTIC REPORT                        ║
 ╠════════════════════════════════════════════════════════════╣
 ║ Session: {session-id}                                       ║
-║ Workflow: specs | Strategy: {strategy} | Rounds: {N}        ║
+║ Workflow: specs | Strategy: {strategy_to_use} | Rounds: {N}  ║
 ╠════════════════════════════════════════════════════════════╣
 {for each round's diagnostic result}
 ║ Round {N}: {status} {findings count if > 0}                ║
@@ -1361,17 +1459,12 @@ The observer will return a final diagnostic summary.
 
 **YOU MUST use Edit tool NOW** to update session file:
 ```yaml
-status: "completed"
+status: "closed"
 timing:
-  completed: "{ISO timestamp}"
-  duration_ms: {calculated}
+  closed_at: "{ISO timestamp}"
 ```
 
-### Step 3.2: Clear State
-
-**YOU MUST use Edit tool NOW** to set `current_session: null` in `.s2s/state.yaml`.
-
-### Step 3.3: Read Session for Summary
+### Step 3.2: Read Session for Summary
 
 **YOU MUST use Read tool** to read the completed session file.
 
@@ -1412,12 +1505,20 @@ Ask using AskUserQuestion:
 
 ### Step 3.5: Generate Requirements Document
 
-Create `docs/specifications/requirements.md` reading from **embedded artifacts in session file**:
+**IF merge mode** (user selected "Merge" earlier):
+1. Read existing `.s2s/requirements.md`
+2. Find highest existing REQ-* ID
+3. Renumber new artifacts starting from next ID
+4. Append new sections to existing document
+5. Update metadata (date, session reference)
+
+**IF override mode** (user selected "Override" or file doesn't exist):
+Create `.s2s/requirements.md` reading from **embedded artifacts in session file**:
 
 **For SRS format (default):**
 
 ```markdown
-<!-- WARNING: IMMUTABLE - Generated by /s2s:specs. Manual edits will be lost. -->
+<!-- Generated by /s2s:specs - Source: session file is the single source of truth -->
 
 # Software Requirements Specification
 
@@ -1501,7 +1602,8 @@ Update `.s2s/CONTEXT.md`:
 
     Requirements defined successfully!
 
-    Document: docs/specifications/requirements.md
+    Document: .s2s/requirements.md
+    Mode: {override | merge}
     Format: {format}
 
     Summary:
@@ -1510,7 +1612,7 @@ Update `.s2s/CONTEXT.md`:
     - Business rules: {count}
     - Out of scope: {count}
 
-    Session folder: .s2s/sessions/{session-id}/
+    Session: .s2s/sessions/{session-id}.yaml
 
     Next steps:
       /s2s:design    - Design architecture
