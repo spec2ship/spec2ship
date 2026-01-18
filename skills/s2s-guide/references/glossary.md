@@ -36,12 +36,28 @@ Terminology used throughout Spec2Ship.
 
 ## Artifact States
 
-| State | Description |
-|-------|-------------|
-| **active** | Current, valid artifact |
-| **amended** | Modified by subsequent round |
-| **superseded** | Replaced by newer artifact |
-| **withdrawn** | Removed from scope |
+### Standard Artifacts (REQ, BR, NFR, EX, ARCH, COMP, INT, IDEA, RISK, MIT)
+
+| Field | Values | Description |
+|-------|--------|-------------|
+| **status** | `active` | Always active (artifacts are immutable) |
+| **agreement** | `consensus` / `draft` / `conflict` | Level of participant agreement |
+| **related_to** | `["REQ-001", ...]` | Optional: IDs of related artifacts |
+
+### Resolution Artifacts (OQ, CONF)
+
+| Field | Values | Description |
+|-------|--------|-------------|
+| **status** | `open` / `resolved` | Whether the issue is resolved |
+
+### Resolution Tracking
+
+| Field | Structure | Description |
+|-------|-----------|-------------|
+| **resolved_conflicts** | `{conflict_id, resolution, method}` | How conflicts were resolved |
+| **resolved_questions** | `{question_id, answer}` | How questions were answered |
+
+Resolution methods: `consensus`, `facilitator`, `user_decision`
 
 ---
 

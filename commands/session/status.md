@@ -87,7 +87,6 @@ If S2S initialized is "NOT_S2S":
 
     By Status:
       Active:     {metrics.artifacts.by_status.active}
-      Amended:    {metrics.artifacts.by_status.amended}
       Open:       {metrics.artifacts.by_status.open}
       Resolved:   {metrics.artifacts.by_status.resolved}
 

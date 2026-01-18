@@ -348,6 +348,7 @@ workflow_type: "brainstorm"
 updates_since_last_round:
   new_artifacts: ["{IDs of artifacts created last round}"]
   resolved_conflicts: ["{IDs of conflicts resolved}"]
+  resolved_questions: ["{IDs of questions answered}"]
   phase_changes:
     old_phase: "{previous phase if changed}"
     new_phase: "{current_phase}"
@@ -615,6 +616,7 @@ disney_phase_instructions:
 context_update:
   new_artifacts_since_last: ["{IDs}"]
   resolved_conflicts_since_last: ["{IDs}"]
+  resolved_questions_since_last: ["{IDs}"]
   your_last_position_summary: "{from previous round participant_positions}"
 
 # CRITICAL: Participants have tools: [] - they CANNOT read files
@@ -951,15 +953,16 @@ synthesis: "{2-4 sentence summary of phase contributions}"
 proposed_artifacts:
   - type: "idea"       # dreamer phase
     title: "{title}"
-    status: "draft"
+    agreement: "draft"
     description: "..."
   - type: "risk"       # critic phase
     title: "{title}"
-    status: "identified"
+    agreement: "consensus"
     description: "..."
     severity: "{high|medium|low}"
   - type: "mitigation"  # critic phase
     title: "{title}"
+    agreement: "consensus"
     risk_id: "{RISK-NNN to mitigate}"
     description: "..."
 
@@ -1089,7 +1092,7 @@ For each `proposed_artifact` from facilitator:
 artifacts:
   ideas:
     IDEA-001:
-      status: "active"          # Lifecycle: active|amended|superseded|withdrawn
+      status: "active"          # Always active (immutable)
       agreement: "draft"        # From synthesis: consensus|draft|conflict
       created_round: {N}
       disney_phase: "dreamer"
@@ -1102,7 +1105,7 @@ artifacts:
       implementation_notes: null
       proposed_by: "{participant}"
       supported_by: ["{participant}"]
-      amendments: []
+      related_to: []
 ```
 
 **Note**: Map facilitator's `proposed_artifact.status` → `agreement` field.
@@ -1125,7 +1128,7 @@ artifacts:
       affected_ideas: ["{IDEA-NNN}"]
       mitigation_id: null       # linked when MIT-* created
       raised_by: "{participant}"
-      amendments: []
+      related_to: []
 ```
 
 **Artifact schema** (mitigations - add to `artifacts.mitigations`):
@@ -1144,7 +1147,7 @@ artifacts:
       effort: "{high|medium|low}"
       effectiveness: "{high|medium|low}"
       proposed_by: "{participant}"
-      amendments: []
+      related_to: []
 ```
 
 **Artifact schema** (open questions - add to `artifacts.open_questions`):
@@ -1227,7 +1230,13 @@ rounds:
       - "{decision 1}"
       - "{decision 2}"
     artifacts_created: ["{ID}", ...]
-    artifacts_amended: []    # IDs of modified artifacts
+    resolved_conflicts:      # Conflicts resolved this round
+      - conflict_id: "{CONF-NNN}"
+        resolution: "{how resolved}"
+        method: "{consensus|facilitator|user_decision}"
+    resolved_questions:      # Questions answered this round
+      - question_id: "{OQ-NNN}"
+        answer: "{the answer}"
     consensus_reached: {true|false}
     next_action: "{continue|phase|conclude}"
 ```

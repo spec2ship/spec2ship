@@ -103,7 +103,7 @@ artifacts:
     REQ-001:
       title: "User authentication"
       content: "..."
-      amendments: [...]
+      related_to: []
     REQ-002:
       title: "..."
 

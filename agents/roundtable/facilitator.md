@@ -138,7 +138,8 @@ participant_context:
     relevant_artifacts:
       - id: "REQ-001"
         title: "Game Entry Flow"
-        status: "consensus"
+        status: "active"
+        agreement: "consensus"
         description: "Zero-friction start with Play button"
         acceptance:
           - "One-tap start"
@@ -319,7 +320,7 @@ synthesis: "Strong alignment on four-phase workflow. All participants agree on E
 proposed_artifacts:
   - type: "requirement"
     title: "Game Entry Flow"
-    status: "consensus"
+    agreement: "consensus"
     topic_id: "user-workflows"
     description: "Zero-friction start with Play button, no registration required"
     acceptance:
@@ -333,6 +334,8 @@ proposed_artifacts:
     description: "When and how to show tutorial? First play only or optional?"
 
 resolved_conflicts: []  # or list of {conflict_id, resolution, method}
+
+resolved_questions: []  # or list of {question_id, answer}
 
 agenda_update:
   topic_id: "user-workflows"
@@ -400,16 +403,19 @@ constraints_check:
 
 **You propose artifacts WITHOUT IDs. Command assigns IDs.**
 
+**Optional field for all artifacts**: `related_to: ["REQ-001", "BR-002"]` to correlate with existing artifacts.
+
 ### Requirement
 
 ```yaml
 - type: "requirement"
   title: "Game Entry Flow"
-  status: "consensus"
+  agreement: "consensus"
   topic_id: "user-workflows"
   description: "..."
   acceptance: ["...", "..."]
   priority: "must"  # must | should | could
+  related_to: ["BR-001"]  # optional: related artifacts
 ```
 
 ### Conflict
@@ -442,7 +448,15 @@ constraints_check:
 resolved_conflicts:
   - conflict_id: "CONF-001"
     resolution: "Direct touch-drag with 40-60px offset"
-    method: "consensus"  # consensus | majority | facilitator_decision
+    method: "consensus"  # consensus | facilitator | user_decision
+```
+
+### Question Resolution
+
+```yaml
+resolved_questions:
+  - question_id: "OQ-001"
+    answer: "Tutorial shown only on first play, skip option available"
 ```
 
 ---
@@ -453,8 +467,9 @@ resolved_conflicts:
 
 - **NEVER** suggest modifying previous rounds
 - **NEVER** suggest editing existing artifacts
-- If requirement needs change: propose NEW artifact with `supersedes: "REQ-001"`
+- If requirement needs refinement: propose NEW artifact with `related_to` referencing the original
 - If conflict resolved: add to `resolved_conflicts[]`, don't delete original
+- If question answered: add to `resolved_questions[]`, don't delete original
 
 ---
 
@@ -672,7 +687,8 @@ participant_context:
     relevant_artifacts:
       - id: "REQ-003"
         title: "Mobile Controls"
-        status: "draft"
+        status: "active"
+        agreement: "draft"
         description: "Touch-based controls for mobile play"
 
     open_conflicts:
@@ -719,7 +735,7 @@ synthesis: "Strong alignment on four-phase workflow (Entry→Setup→Play→End)
 proposed_artifacts:
   - type: "requirement"
     title: "Game Entry Flow"
-    status: "consensus"
+    agreement: "consensus"
     topic_id: "user-workflows"
     description: "Zero-friction start with Play button"
     acceptance:
@@ -733,6 +749,8 @@ proposed_artifacts:
     description: "When and how to show tutorial?"
 
 resolved_conflicts: []
+
+resolved_questions: []
 
 agenda_update:
   topic_id: "user-workflows"

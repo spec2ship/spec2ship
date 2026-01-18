@@ -370,6 +370,7 @@ workflow_type: "specs"
 updates_since_last_round:
   new_artifacts: ["{IDs of artifacts created last round}"]
   resolved_conflicts: ["{IDs of conflicts resolved}"]
+  resolved_questions: ["{IDs of questions answered}"]
   agenda_changes:
     - topic_id: "{topic}"
       old_status: "{previous}"
@@ -636,6 +637,7 @@ exploration: "{facilitator's exploration prompt}"
 context_update:
   new_artifacts_since_last: ["{IDs}"]
   resolved_conflicts_since_last: ["{IDs}"]
+  resolved_questions_since_last: ["{IDs}"]
   your_last_position_summary: "{from previous round participant_positions}"
 
 # CRITICAL: Participants have tools: [] - they CANNOT read files
@@ -988,7 +990,7 @@ synthesis: "{2-4 sentence summary}"
 proposed_artifacts:
   - type: "requirement"
     title: "{title}"
-    status: "consensus"
+    agreement: "consensus"
     topic_id: "{topic}"
     description: "..."
     acceptance: [...]
@@ -1123,7 +1125,7 @@ For each `proposed_artifact` from facilitator:
 artifacts:
   requirements:
     REQ-001:
-      status: "active"    # Lifecycle: active|amended|superseded|withdrawn
+      status: "active"    # Always active (immutable)
       agreement: "consensus"  # From synthesis: consensus|draft|conflict
       created_round: {N}
       topic_id: "{topic}"
@@ -1137,7 +1139,7 @@ artifacts:
       proposed_by: "facilitator"
       supported_by:
         - "{participant}"
-      amendments: []      # For future modifications
+      related_to: []      # Optional: related artifact IDs
 ```
 
 **Note**: Map facilitator's `proposed_artifact.status` → `agreement` field.
@@ -1159,7 +1161,7 @@ artifacts:
         {when this rule applies}
       actions: |
         {what happens}
-      amendments: []
+      related_to: []
 ```
 
 **Artifact schema** (NFR - add to `artifacts.nfr`):
@@ -1178,7 +1180,7 @@ artifacts:
       target: "{measurable target}"
       minimum: "{minimum acceptable}"
       measurement: "{how to measure}"
-      amendments: []
+      related_to: []
 ```
 
 **Artifact schema** (exclusions - add to `artifacts.exclusions`):
@@ -1196,7 +1198,7 @@ artifacts:
       rationale: |
         {why out of scope}
       future_consideration: {true|false}
-      amendments: []
+      related_to: []
 ```
 
 **Artifact schema** (open questions - add to `artifacts.open_questions`):
@@ -1277,7 +1279,13 @@ rounds:
       - "{decision 1}"
       - "{decision 2}"
     artifacts_created: ["{ID}", ...]
-    artifacts_amended: []    # IDs of modified artifacts
+    resolved_conflicts:      # Conflicts resolved this round
+      - conflict_id: "{CONF-NNN}"
+        resolution: "{how resolved}"
+        method: "{consensus|facilitator|user_decision}"
+    resolved_questions:      # Questions answered this round
+      - question_id: "{OQ-NNN}"
+        answer: "{the answer}"
     consensus_reached: {true|false}
     next_action: "{continue|conclude|escalate}"
 ```
@@ -1312,12 +1320,9 @@ metrics:
       open_questions: {count}
       conflicts: {count}
     by_status:
-      active: {count}
-      amended: {count}
-      superseded: {count}
-      withdrawn: {count}
-      open: {count}        # For OQ, CONF
-      resolved: {count}    # For OQ, CONF
+      active: {count}      # Standard artifacts (always active)
+      open: {count}        # Resolution artifacts (OQ, CONF)
+      resolved: {count}    # Resolution artifacts (OQ, CONF)
   topics:
     total: 6
     closed: {count closed topics}

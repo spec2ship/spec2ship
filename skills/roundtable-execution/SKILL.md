@@ -504,7 +504,7 @@ synthesis: "{2-4 sentence summary of alignment and key points}"
 proposed_artifacts:
   - type: "{requirement|conflict|open_question|business_rule|...}"
     title: "{title}"
-    status: "{consensus|draft|conflict}"
+    agreement: "{consensus|draft|conflict}"
     topic_id: "{agenda topic}"
     description: "..."
     # ... type-specific fields

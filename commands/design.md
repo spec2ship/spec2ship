@@ -354,6 +354,7 @@ workflow_type: "design"
 updates_since_last_round:
   new_artifacts: ["{IDs of artifacts created last round}"]
   resolved_conflicts: ["{IDs of conflicts resolved}"]
+  resolved_questions: ["{IDs of questions answered}"]
   agenda_changes:
     - topic_id: "{topic}"
       old_status: "{previous}"
@@ -624,6 +625,7 @@ exploration: "{facilitator's exploration prompt}"
 context_update:
   new_artifacts_since_last: ["{IDs}"]
   resolved_conflicts_since_last: ["{IDs}"]
+  resolved_questions_since_last: ["{IDs}"]
   your_last_position_summary: "{from previous round participant_positions}"
 
 # CRITICAL: Participants have tools: [] - they CANNOT read files
@@ -958,7 +960,7 @@ synthesis: "{2-4 sentence summary}"
 proposed_artifacts:
   - type: "decision"
     title: "{title}"
-    status: "consensus"
+    agreement: "consensus"
     topic_id: "{topic}"
     description: "..."
     options: [...]
@@ -1078,7 +1080,7 @@ For each `proposed_artifact` from facilitator:
 artifacts:
   architecture_decisions:
     ARCH-001:
-      status: "active"    # Lifecycle: active|amended|superseded|withdrawn
+      status: "active"    # Always active (immutable)
       agreement: "consensus"  # From synthesis: consensus|draft|conflict
       created_round: {N}
       topic_id: "{topic}"
@@ -1101,7 +1103,7 @@ artifacts:
         negative: ["{trade-off accepted}"]
       proposed_by: "facilitator"
       supported_by: ["{participant}"]
-      amendments: []
+      related_to: []
 ```
 
 **Note**: Map facilitator's `proposed_artifact.status` → `agreement` field.
@@ -1124,7 +1126,7 @@ artifacts:
         requires: ["{interface required}"]
       dependencies: ["{dependency}"]
       technology: "{technology choice}"
-      amendments: []
+      related_to: []
 ```
 
 **Artifact schema** (interfaces - add to `artifacts.interfaces`):
@@ -1141,7 +1143,7 @@ artifacts:
       description: |
         {what this interface provides}
       endpoints: [...]
-      amendments: []
+      related_to: []
 ```
 
 **Artifact schema** (open questions - add to `artifacts.open_questions`):
@@ -1223,7 +1225,13 @@ rounds:
       - "{decision 1}"
       - "{decision 2}"
     artifacts_created: ["{ID}", ...]
-    artifacts_amended: []    # IDs of modified artifacts
+    resolved_conflicts:      # Conflicts resolved this round
+      - conflict_id: "{CONF-NNN}"
+        resolution: "{how resolved}"
+        method: "{consensus|facilitator|user_decision}"
+    resolved_questions:      # Questions answered this round
+      - question_id: "{OQ-NNN}"
+        answer: "{the answer}"
     consensus_reached: {true|false}
     next_action: "{continue|conclude|escalate}"
 ```

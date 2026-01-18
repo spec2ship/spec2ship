@@ -66,7 +66,7 @@ artifacts:
         - "Score updates on hit"
       proposed_by: "facilitator"
       supported_by: ["product-manager", "qa-lead"]
-      amendments: []
+      related_to: []             # Optional: related artifact IDs
   business_rules: {}
   nfr: {}
   exclusions: {}
@@ -102,6 +102,13 @@ rounds:
       product-manager: "Focus on casual gameplay..."
       qa-lead: "Consider edge cases..."
     artifacts_created: ["REQ-001", "REQ-002"]
+    resolved_conflicts:
+      - conflict_id: "CONF-001"
+        resolution: "Agreed on touch-drag approach"
+        method: "consensus"  # consensus | facilitator | user_decision
+    resolved_questions:
+      - question_id: "OQ-001"
+        answer: "Tutorial shown on first play only"
     consensus_reached: true
     next_action: "continue"
 
@@ -230,7 +237,7 @@ Each artifact has a **lifecycle status** and an **agreement level**.
 artifacts:
   requirements:
     REQ-001:
-      status: "active"           # Lifecycle: active|amended|superseded|withdrawn
+      status: "active"           # Always active (artifacts are immutable)
       agreement: "consensus"     # Agreement: consensus|draft|conflict
       created_round: 1
       topic_id: "user-workflows"
@@ -244,7 +251,7 @@ artifacts:
         - "<3 seconds to gameplay"
       proposed_by: "facilitator"
       supported_by: ["product-manager", "qa-lead"]
-      amendments: []
+      related_to: []             # Optional: related artifact IDs
 ```
 
 ### Business Rule (BR-*)
@@ -264,7 +271,7 @@ artifacts:
         Every game session
       actions: |
         Timer starts at 60s and counts down
-      amendments: []
+      related_to: []             # Optional: related artifact IDs
 ```
 
 ### NFR (NFR-*)
@@ -284,7 +291,7 @@ artifacts:
       target: "60 FPS"
       minimum: "30 FPS"
       measurement: "Browser DevTools performance panel"
-      amendments: []
+      related_to: []             # Optional: related artifact IDs
 ```
 
 ### Conflict (CONF-*)
@@ -341,7 +348,7 @@ artifacts:
       rationale: |
         MVP focus on single-player experience.
       future_consideration: true
-      amendments: []
+      related_to: []             # Optional: related artifact IDs
 ```
 
 ---
@@ -498,7 +505,7 @@ response: |
   proposed_artifacts:
     - type: "requirement"
       title: "Game Entry"
-      status: "consensus"
+      agreement: "consensus"
       description: "Zero-friction start"
       acceptance:
         - "One-tap start"

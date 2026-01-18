@@ -43,7 +43,7 @@ context:
   relevant_artifacts:
     - id: "REQ-001"
       title: "..."
-      status: "consensus"
+      agreement: "consensus"
       description: "..."
       acceptance: [...]
 

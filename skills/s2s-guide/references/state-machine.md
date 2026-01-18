@@ -21,37 +21,48 @@ State transitions in Spec2Ship.
 
 ## Artifact Lifecycle
 
+### Standard Artifacts (REQ, BR, NFR, EX, ARCH, COMP, INT, IDEA, RISK, MIT)
+
 ```
-     ┌────────┐
-     │ create │
-     └───┬────┘
-         │
-         ▼
-     ┌────────┐
-     │ active │◄───────────┐
-     └───┬────┘            │
-         │                 │
-    ┌────┴────┬───────┐    │
-    │         │       │    │
-    ▼         ▼       ▼    │
-┌───────┐┌──────────┐┌─────────┐
-│amended││superseded││withdrawn│
-└───┬───┘└──────────┘└─────────┘
-    │ (revert)
-    └──────────────────────┘
+┌────────┐
+│ create │
+└───┬────┘
+    │
+    ▼
+┌────────┐
+│ active │  (permanent)
+└────────┘
+```
+
+Standard artifacts are **immutable** once created:
+- `status`: always `active`
+- `agreement`: `consensus` | `draft` | `conflict`
+
+If a requirement needs refinement, create a **new artifact** with `related_to` referencing the original.
+
+### Resolution Artifacts (OQ, CONF)
+
+```
+┌──────┐         ┌──────────┐
+│ open │────────▶│ resolved │
+└──────┘         └──────────┘
 ```
 
 | From | To | Trigger |
 |------|-----|---------|
-| - | active | Artifact created |
-| active | amended | Modification in later round |
-| active | superseded | Replaced by new artifact |
-| active | withdrawn | Removed from scope |
-| amended | active | Revert to previous version |
+| open | resolved | Question answered or conflict resolved |
 
-**Rules**:
-- `superseded` and `withdrawn` are terminal states
-- `amended` preserves full history in amendments array
+Resolution tracking:
+```yaml
+resolved_conflicts:
+  - conflict_id: "CONF-001"
+    resolution: "Agreed on JWT approach"
+    method: consensus  # consensus | facilitator | user_decision
+
+resolved_questions:
+  - question_id: "OQ-001"
+    answer: "Use PostgreSQL for persistence"
+```
 
 ---
 
@@ -154,5 +165,5 @@ After synthesis, facilitator decides:
 
 When resuming, agent receives:
 1. `context_reconciliation` block
-2. Lists of artifacts_updated, artifacts_resolved
+2. Lists of artifacts_created, resolved_conflicts, resolved_questions
 3. Instruction to treat current context as authoritative

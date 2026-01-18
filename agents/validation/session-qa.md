@@ -124,28 +124,28 @@ missing_fields: []
 **Purpose**: Verify all artifacts have valid status values.
 
 **Valid States**:
-- Requirements/BR/NFR/EX: `active`, `amended`, `superseded`, `withdrawn`
-- Open Questions/Conflicts: `open`, `resolved`
+- Standard artifacts (REQ, BR, NFR, EX, ARCH, COMP, INT, IDEA, RISK, MIT): `active` only (immutable)
+- Resolution artifacts (OQ, CONF): `open`, `resolved`
 
 **Verification Steps**:
 
 ```bash
 SESSION_FILE=".s2s/sessions/SESSION_ID.yaml"
 
-# Check lifecycle artifacts (requirements, business_rules, nfr, exclusions)
-echo "=== Lifecycle Artifacts ==="
-for TYPE in requirements business_rules nfr exclusions; do
+# Check standard artifacts (always status=active)
+echo "=== Standard Artifacts ==="
+for TYPE in requirements business_rules nfr exclusions architecture components interfaces ideas risks mitigations; do
   yq ".artifacts.$TYPE | keys | .[]" "$SESSION_FILE" 2>/dev/null | while read ID; do
     STATUS=$(yq ".artifacts.$TYPE[\"$ID\"].status" "$SESSION_FILE" 2>/dev/null)
     case "$STATUS" in
-      active|amended|superseded|withdrawn) echo "OK: $ID = $STATUS" ;;
-      *) echo "INVALID: $ID = $STATUS (expected: active|amended|superseded|withdrawn)" ;;
+      active) echo "OK: $ID = $STATUS" ;;
+      *) echo "INVALID: $ID = $STATUS (expected: active)" ;;
     esac
   done
 done
 
-# Check issue artifacts (open_questions, conflicts)
-echo "=== Issue Artifacts ==="
+# Check resolution artifacts (open_questions, conflicts)
+echo "=== Resolution Artifacts ==="
 for TYPE in open_questions conflicts; do
   yq ".artifacts.$TYPE | keys | .[]" "$SESSION_FILE" 2>/dev/null | while read ID; do
     STATUS=$(yq ".artifacts.$TYPE[\"$ID\"].status" "$SESSION_FILE" 2>/dev/null)
@@ -164,7 +164,7 @@ status: pass|fail
 invalid_artifacts:
   - id: "REQ-001"
     status: "invalid_value"
-    expected: "active|amended|superseded|withdrawn"
+    expected: "active"
 ```
 
 ---
