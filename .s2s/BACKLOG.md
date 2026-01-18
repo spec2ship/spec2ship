@@ -1,6 +1,6 @@
 # Spec2Ship Development Backlog
 
-**Updated**: 2026-01-18T19:30:00Z
+**Updated**: 2026-01-18T17:45:00Z
 **Format**: Single markdown file for LLM consumption
 
 ---
@@ -344,6 +344,39 @@ This approach:
 - [ ] s2s:test command with subcommands
 - [ ] Automatic test environment setup
 - [ ] Test files not shipped with plugin
+
+---
+
+### TEST-002: Verify Progressive Disclosure for Diagnostic Mode
+
+**Status**: completed | **Created**: 2026-01-18 | **Completed**: 2026-01-18
+
+**Context**: Added `--diagnostic` flag to `roundtable.md` using a progressive disclosure pattern: the diagnostic instructions are in a separate file (`skills/roundtable-execution/references/diagnostic.md`) that is read on-demand only when the flag is passed.
+
+**Hypothesis**: Claude will read the file when instructed and follow the diagnostic instructions correctly.
+
+**Test Results** (2026-01-18):
+
+| Test | --diagnostic | Observer Invoked | diagnostic.md Read |
+|------|--------------|------------------|-------------------|
+| Without flag | NO | NO ✓ | NO |
+| With flag | YES | YES ✓ | YES ✓ |
+
+**Conclusion**: Progressive disclosure pattern works. The file is read on-demand only when the flag is present, and the session-observer agent is invoked correctly for per-round and end-session diagnostics.
+
+**Files Involved**:
+- `commands/roundtable.md` (modified to support --diagnostic)
+- `skills/roundtable-execution/references/diagnostic.md` (new file with instructions)
+
+**Acceptance Criteria**:
+- [x] Diagnostic mode triggers session-observer calls
+- [x] Per-round diagnostic output displayed
+- [x] End-session diagnostic report generated
+- [x] No errors from missing/unread instructions
+
+**Test Sessions**:
+- `20260118-222728-roundtable-test-diagnostic` (without --diagnostic)
+- `20260118-223027-roundtable-test-diagnostic-with-flag` (with --diagnostic)
 
 ---
 
@@ -769,6 +802,7 @@ _Unstructured ideas and observations for future consideration._
 
 | ID | Description | Completed | Notes |
 |----|-------------|-----------|-------|
+| TEST-002 | Progressive disclosure for diagnostic mode | 2026-01-18 | Pattern verified: on-demand file reading works |
 | EXT-003 | Spec2Ship Guide Skill (s2s-guide) | 2026-01-17 | Comprehensive guide for usage and extension |
 | WORK-002 | Roundtable Scope Awareness | 2026-01-17 | Facilitator workspace/component context, topic validation |
 | WORK-001 | Workspace Support - Core Structure (Phase 1) | 2026-01-17 | workspace.yaml, init scenarios A-F, component linking |
