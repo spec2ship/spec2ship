@@ -542,7 +542,7 @@ response:
         # For EACH artifact: save COMPLETE content
         - id: "ARCH-001"
           title: "{full title}"
-          status: "{status}"
+          state: "{state}"
           description: |
             {full description}
           options: [...]
@@ -643,7 +643,7 @@ context:
     # Copy ALL fields: id, title, state, description, options, rationale, consequences, etc.
     - id: "ARCH-001"
       title: "{copy full title}"
-      status: "{copy status}"
+      state: "{copy state}"
       description: |
         {copy FULL description - do NOT summarize}
       options: [...]  # copy full array
@@ -702,7 +702,7 @@ context:
     # Copy ALL fields: id, title, state, description, options, rationale, consequences, etc.
     - id: "ARCH-001"
       title: "{copy full title}"
-      status: "{copy status}"
+      state: "{copy state}"
       description: |
         {copy FULL description - do NOT summarize}
       options: [...]  # copy full array

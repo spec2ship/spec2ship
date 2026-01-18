@@ -529,7 +529,7 @@ response:
         # For EACH artifact: save COMPLETE content
         - id: "IDEA-001"
           title: "{full title}"
-          status: "{status}"
+          state: "{state}"
           description: |
             {full description}
         # ... all artifacts with full content
@@ -633,7 +633,7 @@ context:
     # Copy ALL fields: id, title, state, description, potential_value, severity, etc.
     - id: "IDEA-001"
       title: "{copy full title}"
-      status: "{copy status}"
+      state: "{copy state}"
       description: |
         {copy FULL description - do NOT summarize}
       potential_value: |
@@ -696,7 +696,7 @@ context:
     # Copy ALL fields: id, title, state, description, potential_value, severity, etc.
     - id: "IDEA-001"
       title: "{copy full title}"
-      status: "{copy status}"
+      state: "{copy state}"
       description: |
         {copy FULL description - do NOT summarize}
       potential_value: |

@@ -550,7 +550,7 @@ response:
         # For EACH artifact: save COMPLETE content
         - id: "REQ-001"
           title: "{full title}"
-          status: "{status}"
+          state: "{state}"
           description: |
             {full description}
           acceptance:
@@ -655,7 +655,7 @@ context:
     # Copy ALL fields: id, title, state, description, acceptance, priority, etc.
     - id: "REQ-001"
       title: "{copy full title}"
-      status: "{copy status}"
+      state: "{copy state}"
       description: |
         {copy FULL description - do NOT summarize}
       acceptance:
@@ -714,7 +714,7 @@ context:
     # Copy ALL fields: id, title, state, description, acceptance, priority, etc.
     - id: "REQ-001"
       title: "{copy full title}"
-      status: "{copy status}"
+      state: "{copy state}"
       description: |
         {copy FULL description - do NOT summarize}
       acceptance:
