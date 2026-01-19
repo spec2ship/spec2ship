@@ -456,33 +456,22 @@ commands/dev/
 
 ### TEST-003: Session Resilience Verification Suite
 
-**Status**: planned | **Created**: 2026-01-18 | **Priority**: High
+**Status**: in_progress | **Created**: 2026-01-18 | **Updated**: 2026-01-19 | **Priority**: High
 
-**Context**: Roundtable sessions can be interrupted at various points (during facilitator question, participant responses, synthesis, artifact processing, session file update). Need comprehensive verification that:
-1. Resume works correctly from any interruption point
-2. State consistency is maintained
-3. No artifacts are duplicated or lost
-4. All commands behave consistently
+**Context**: Roundtable sessions can be interrupted at various points. Need verification that resume works correctly.
 
 **Specification**: `.s2s/plans/20260118-session-resilience-verification.md`
 
-**Check Categories**:
-- **STR-*** (10 checks): Structural validation of session files
-- **RES-*** (7 checks): Resume capability verification
-- **TRANS-*** (5 checks): State transition compliance (ADR-0010)
-- **CTX-*** (5 checks): Context propagation to participants
-- **CONS-*** (6 checks): Command consistency (specs/design/brainstorm/roundtable)
-- **INST-*** (6 checks): Instruction quality (LLM patterns)
-- **EDGE-*** (7 checks): Edge cases and error scenarios
+**Architecture Note** (2026-01-19): Check categories split between two systems:
+- **Runtime validation** (session-qa agent): STR-*, STRAT-*, DIAG-* - already implemented
+- **Development testing** (dev-validator agent): INST-*, CONS-*, RES-*, EDGE-* - see QUAL-001
 
-**Tasks**:
-1. [ ] Create s2s-session-validator agent (STR-* checks)
-2. [ ] Create s2s-resume-tester agent (RES-* checks)
-3. [ ] Create s2s-instruction-analyzer agent (INST-* checks)
-4. [ ] Enhance /s2s:session:validate command with new categories
-5. [ ] Create /s2s:test command for automated scenarios
-6. [ ] Document edge cases and recovery patterns
-7. [ ] Align roundtable.md resume logic with inline commands
+**Remaining Tasks** (not covered by QUAL-001):
+1. [ ] Align roundtable.md resume logic with inline commands (specs/design/brainstorm)
+2. [ ] Add TRANS-* checks to session-qa (state transition validation)
+3. [ ] Add CTX-* checks to session-qa (context propagation validation)
+4. [ ] Enhance error-handling.md with mid-write recovery patterns
+5. [ ] Run manual end-to-end resume tests on real sessions
 
 **Identified Issues**:
 - roundtable.md delegates to skill but skill has less resume detail than inline commands
@@ -490,13 +479,11 @@ commands/dev/
 - error-handling.md lacks recovery for mid-write failures
 
 **Acceptance Criteria**:
-- [ ] All STR-* checks pass on valid session files
-- [ ] Resume works from all 7 critical interruption points
-- [ ] Commands are consistent (CONS-* checks pass)
-- [ ] Instructions follow guidelines (INST-* checks pass)
-- [ ] Edge cases handled gracefully (EDGE-* scenarios pass)
+- [ ] Resume works from all 7 critical interruption points (manual test)
+- [ ] roundtable.md has equivalent resume logic to inline commands
+- [ ] STR-*, TRANS-*, CTX-* checks available in session-qa
 
-**Related**: TEST-001, QUAL-001, QUAL-002
+**Related**: TEST-001, QUAL-001
 
 ---
 
