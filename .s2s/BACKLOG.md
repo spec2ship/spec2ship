@@ -418,7 +418,7 @@ github.com/spec2ship/
 
 ### QUAL-001: Development Tools Suite (/s2s:dev:*)
 
-**Status**: planned | **Created**: 2026-01-11 | **Updated**: 2026-01-19
+**Status**: in_progress | **Created**: 2026-01-11 | **Updated**: 2026-01-19
 
 **Context**: S2S development requires consistent adherence to patterns and ability to test resume/resilience. Development tools should be in the plugin but excluded from release.
 
