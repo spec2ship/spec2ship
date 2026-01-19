@@ -279,6 +279,45 @@ This approach:
 
 ---
 
+### DEBT-002: Separate Development Tools into Own Repository
+
+**Status**: deferred | **Created**: 2026-01-19 | **Trigger**: First stable production release
+
+**Context**: Development tools (`/s2s:dev:*`) are currently in the main plugin repo under `commands/dev/` and `agents/dev/`, excluded from the shipped plugin. This works for now but has risks:
+- Accidental inclusion in release
+- Bloats main repo with dev-only code
+- Contributors must understand exclusion rules
+
+**Decision**: Keep in main repo during active development (v0.x). When we reach first stable production release (v1.0), separate into dedicated repository.
+
+**Future Structure**:
+```
+github.com/spec2ship/
+├── spec2ship/              # Main plugin (SHIPPED)
+└── spec2ship-devkit/       # Development tools (NOT SHIPPED)
+    ├── .claude-plugin/
+    ├── commands/
+    │   ├── check.md        # /devkit:check
+    │   └── test.md         # /devkit:test
+    └── agents/
+```
+
+**Trigger Conditions**:
+- [ ] v1.0 release planned
+- [ ] Release workflow is stable and tested
+- [ ] At least 3 contributors actively using dev tools
+
+**Acceptance Criteria**:
+- [ ] Separate repository created
+- [ ] All dev tools migrated
+- [ ] CI/CD configured for devkit
+- [ ] Documentation updated
+- [ ] Main repo cleaned of dev/ folders
+
+**Related**: QUAL-001
+
+---
+
 ### EXT-001: Custom Agents in Project .claude/
 
 **Status**: draft | **Created**: 2026-01-11
@@ -297,19 +336,54 @@ This approach:
 
 ---
 
-### QUAL-001: Code Review Agent for S2S Development
+### QUAL-001: Development Tools Suite (/s2s:dev:*)
 
-**Status**: draft | **Created**: 2026-01-11
+**Status**: planned | **Created**: 2026-01-11 | **Updated**: 2026-01-19
 
-**Context**: S2S development requires consistent adherence to patterns. Create `.claude/agents/s2s-code-reviewer.md` that verifies:
-- Artifact types and states
-- Agent invocation patterns
-- Cross-component consistency
+**Context**: S2S development requires consistent adherence to patterns and ability to test resume/resilience. Development tools should be in the plugin but excluded from release.
+
+**Decision** (2026-01-19): Development tools go in `commands/dev/` and `agents/dev/` within the plugin repo. These folders are excluded from the shipped plugin. Documentation in `.claude/s2s-development.md` explains when/how to use them.
+
+**Structure**:
+```
+skills/dev-testing/
+├── SKILL.md                    # Skill entry point
+└── references/
+    ├── check-registry.md       # Master list of all checks
+    ├── inst-checks.md          # INST-* definitions
+    ├── cons-checks.md          # CONS-* definitions
+    ├── res-checks.md           # RES-* definitions
+    └── edge-scenarios.md       # EDGE-* scenarios
+
+agents/dev/
+└── dev-validator.md            # Unified agent
+
+commands/dev/
+├── check.md                    # /s2s:dev:check
+└── test.md                     # /s2s:dev:test
+```
+
+**Check Categories**:
+- **INST-*** (6 checks): Instruction quality (imperative voice, tool usage, ADR compliance)
+- **CONS-*** (6 checks): Consistency between commands
+- **RES-*** (7 checks): Resume capability verification
+- **EDGE-*** (7 checks): Edge cases and error scenarios
+
+**Tasks**:
+1. [x] Create `skills/dev-testing/` with SKILL.md and references
+2. [x] Create `agents/dev/dev-validator.md` unified agent
+3. [x] Create `commands/dev/check.md` and `test.md`
+4. [x] Document in `.claude/s2s-development.md`
+5. [ ] Add release exclusion in `.github/`
+6. [ ] Implement actual check logic in dev-validator agent
 
 **Acceptance Criteria**:
-- [ ] Code reviewer agent exists in .claude/
-- [ ] All checklist items verified
-- [ ] Not shipped with plugin
+- [ ] `/s2s:dev:check` runs INST-* and CONS-* checks
+- [ ] `/s2s:dev:test` runs RES-* and EDGE-* tests
+- [ ] Tools NOT included in shipped plugin
+- [ ] Documentation explains when to run each
+
+**Related**: TEST-001, TEST-003, DEBT-002
 
 ---
 
@@ -377,6 +451,52 @@ This approach:
 **Test Sessions**:
 - `20260118-222728-roundtable-test-diagnostic` (without --diagnostic)
 - `20260118-223027-roundtable-test-diagnostic-with-flag` (with --diagnostic)
+
+---
+
+### TEST-003: Session Resilience Verification Suite
+
+**Status**: planned | **Created**: 2026-01-18 | **Priority**: High
+
+**Context**: Roundtable sessions can be interrupted at various points (during facilitator question, participant responses, synthesis, artifact processing, session file update). Need comprehensive verification that:
+1. Resume works correctly from any interruption point
+2. State consistency is maintained
+3. No artifacts are duplicated or lost
+4. All commands behave consistently
+
+**Specification**: `.s2s/plans/20260118-session-resilience-verification.md`
+
+**Check Categories**:
+- **STR-*** (10 checks): Structural validation of session files
+- **RES-*** (7 checks): Resume capability verification
+- **TRANS-*** (5 checks): State transition compliance (ADR-0010)
+- **CTX-*** (5 checks): Context propagation to participants
+- **CONS-*** (6 checks): Command consistency (specs/design/brainstorm/roundtable)
+- **INST-*** (6 checks): Instruction quality (LLM patterns)
+- **EDGE-*** (7 checks): Edge cases and error scenarios
+
+**Tasks**:
+1. [ ] Create s2s-session-validator agent (STR-* checks)
+2. [ ] Create s2s-resume-tester agent (RES-* checks)
+3. [ ] Create s2s-instruction-analyzer agent (INST-* checks)
+4. [ ] Enhance /s2s:session:validate command with new categories
+5. [ ] Create /s2s:test command for automated scenarios
+6. [ ] Document edge cases and recovery patterns
+7. [ ] Align roundtable.md resume logic with inline commands
+
+**Identified Issues**:
+- roundtable.md delegates to skill but skill has less resume detail than inline commands
+- Verbose dumps not validated for completeness
+- error-handling.md lacks recovery for mid-write failures
+
+**Acceptance Criteria**:
+- [ ] All STR-* checks pass on valid session files
+- [ ] Resume works from all 7 critical interruption points
+- [ ] Commands are consistent (CONS-* checks pass)
+- [ ] Instructions follow guidelines (INST-* checks pass)
+- [ ] Edge cases handled gracefully (EDGE-* scenarios pass)
+
+**Related**: TEST-001, QUAL-001, QUAL-002
 
 ---
 

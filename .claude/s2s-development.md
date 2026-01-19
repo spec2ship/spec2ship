@@ -544,6 +544,126 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/project/config.yaml`
 
 ---
 
+## Development Tools (/s2s:dev:*)
+
+Development-only tools for verifying s2s plugin quality. These are in `commands/dev/` and `agents/dev/` and are **NOT shipped** with the plugin.
+
+### Available Commands
+
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| `/s2s:dev:check` | Verify instructions follow patterns | After modifying commands/agents |
+| `/s2s:dev:test` | Run integration tests | After significant refactoring |
+
+### Check Categories
+
+**INST-* (Instruction Quality)**:
+- Imperative voice in commands
+- Explicit tool usage ("YOU MUST use X tool NOW")
+- No ambiguity in steps
+- Template/inline alignment
+- Config from config.yaml, no hardcoded values
+- ADR compliance (state field usage per ADR-0010)
+
+**CONS-* (Consistency)**:
+- Session ID format consistency across commands
+- Snapshot file structure consistency
+- Resume logic equivalence
+- Verbose dump format consistency
+- Error handling patterns
+- Diagnostic mode consistency
+
+**RES-* (Resume Capability)**:
+- agent_id persistence
+- last_round tracking
+- context reconstruction for facilitator
+- participant context propagation
+
+**EDGE-* (Edge Cases)**:
+- Empty session resume
+- Mid-round interruption
+- Partial participant failure
+- Max rounds reached
+- YAML special characters
+
+### When to Run
+
+| Scenario | Command |
+|----------|---------|
+| Modified a command file | `/s2s:dev:check --instructions` |
+| Modified multiple commands | `/s2s:dev:check --consistency` |
+| Changed resume logic | `/s2s:dev:test --resume` |
+| Major refactoring | `/s2s:dev:test --all` |
+| Pre-release validation | `/s2s:dev:check && /s2s:dev:test` |
+
+### Structure
+
+```
+skills/dev-testing/
+├── SKILL.md                    # Entry point, skill metadata
+└── references/
+    ├── check-registry.md       # Master list of all checks
+    ├── inst-checks.md          # INST-* definitions
+    ├── cons-checks.md          # CONS-* definitions
+    ├── res-checks.md           # RES-* definitions
+    └── edge-scenarios.md       # EDGE-* scenarios
+
+agents/dev/
+└── dev-validator.md            # Unified agent (reads from skill)
+
+commands/dev/
+├── check.md                    # /s2s:dev:check - INST-*, CONS-*
+└── test.md                     # /s2s:dev:test - RES-*, EDGE-*
+```
+
+### Architecture
+
+Check/test definitions are in **skill references** (easy to extend), while the **agent** handles execution logic. Commands orchestrate and display results.
+
+```
+/s2s:dev:check
+    └── dev-validator agent
+            └── reads skills/dev-testing/references/inst-checks.md
+            └── reads skills/dev-testing/references/cons-checks.md
+            └── executes checks, returns results
+
+/s2s:dev:test
+    └── dev-validator agent
+            └── reads skills/dev-testing/references/res-checks.md
+            └── reads skills/dev-testing/references/edge-scenarios.md
+            └── executes tests, returns results
+```
+
+### Adding New Checks
+
+**Read `skills/dev-testing/references/extension-guide.md`** for complete instructions.
+
+The guide includes:
+- Category selection criteria
+- Template for each check type (INST, CONS, RES, EDGE)
+- Step-by-step process with examples
+- Evidence schema patterns
+
+Quick process:
+1. Add entry to `check-registry.md`
+2. Add full definition using template from `extension-guide.md`
+3. Update count in `SKILL.md`
+4. Test with `/s2s:dev:check --all` or `/s2s:dev:test --all`
+
+### Release Exclusion
+
+These folders are excluded from the shipped plugin via `.github/release.yml`:
+- `commands/dev/`
+- `agents/dev/`
+
+**Future**: When v1.0 is released, these will move to a separate `spec2ship-devkit` repository (see DEBT-002).
+
+### Specification
+
+Full details: `.s2s/plans/20260118-session-resilience-verification.md`
+
+---
+
 ## External References
 
 ### Patterns We Follow
