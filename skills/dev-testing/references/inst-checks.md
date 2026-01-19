@@ -355,3 +355,310 @@ issues:
     issue: "Referencing deprecated agreement field"
     suggestion: "Use artifact.state only"
 ```
+
+---
+
+## INST-007: Frontmatter Completeness
+
+| Property | Value |
+|----------|-------|
+| **Severity** | high |
+| **Target** | commands/*.md, agents/**/*.md, skills/*/SKILL.md |
+| **Reference** | .claude/CLAUDE.md → "Component Guidelines" |
+
+### Purpose
+
+Each component type has required frontmatter fields. Missing fields cause malfunctions or unexpected behavior.
+
+### Required Fields by Type
+
+| Component | Required | Optional |
+|-----------|----------|----------|
+| Commands | description, allowed-tools | argument-hint |
+| Agents | name, description | model, color, tools |
+| Skills | name, description, version | - |
+
+### Good Patterns
+
+**Command:**
+```yaml
+---
+description: "Creates implementation plans from requirements"
+allowed-tools: ["Read", "Write", "Glob", "Grep", "Bash", "Task", "AskUserQuestion"]
+argument-hint: "<topic or --help>"
+---
+```
+
+**Agent:**
+```yaml
+---
+name: roundtable-facilitator
+description: "Orchestrates roundtable discussions"
+model: sonnet
+tools: ["Read", "Write", "Glob", "Grep"]
+---
+```
+
+**Skill:**
+```yaml
+---
+name: arc42-templates
+description: "This skill should be used when the user asks to..."
+version: 0.1.0
+---
+```
+
+### Bad Patterns
+
+```yaml
+---
+description: "Does something"
+# Missing allowed-tools for command!
+---
+```
+
+```yaml
+---
+name: my-agent
+# Missing description!
+---
+```
+
+### Verification
+
+1. Glob for all component files
+2. Extract frontmatter (between `---` markers)
+3. Parse YAML and check for required fields by type
+4. Flag missing required fields
+
+### Evidence Schema
+
+```yaml
+check: INST-007
+status: pass | fail
+files_checked: 25
+issues:
+  - file: "commands/example.md"
+    type: "command"
+    missing: ["allowed-tools"]
+  - file: "skills/example/SKILL.md"
+    type: "skill"
+    missing: ["version"]
+```
+
+---
+
+## INST-008: Subagent Spawning Prohibition
+
+| Property | Value |
+|----------|-------|
+| **Severity** | critical |
+| **Target** | agents/**/*.md |
+| **Reference** | .claude/CLAUDE.md → "Key Reminders" #2 |
+
+### Purpose
+
+Agents cannot spawn other subagents. This is an architectural constraint. Orchestration must happen in commands, not agents.
+
+### Anti-Patterns to Detect
+
+```markdown
+# In an agent file - ALL of these are WRONG:
+
+**Use the roundtable-facilitator agent** with...
+Task(subagent_type="s2s:roundtable:facilitator", ...)
+Launch the technical-lead agent to...
+Invoke the session-qa agent...
+```
+
+### Why This Matters
+
+1. Agents run as subagents of Claude Code
+2. Claude Code's Task tool is only available to the main agent
+3. Subagents cannot invoke Task - it will silently fail or error
+4. Orchestration belongs in commands
+
+### Valid Patterns
+
+Agents CAN mention other agents in documentation/explanations:
+```markdown
+Note: The facilitator agent will synthesize responses from participants.
+```
+
+But they CANNOT invoke them:
+```markdown
+**Use the facilitator agent** to synthesize...  # WRONG
+```
+
+### Verification
+
+1. Read all agent files in `agents/`
+2. Search for invocation patterns:
+   - `**Use the * agent**`
+   - `Task(subagent_type=`
+   - `Launch the * agent`
+   - `Invoke the * agent`
+3. Distinguish documentation mentions from invocation attempts
+4. Flag any invocation patterns
+
+### Evidence Schema
+
+```yaml
+check: INST-008
+status: pass | fail
+files_checked: 12
+issues:
+  - file: "agents/roundtable/facilitator.md"
+    line: 234
+    text: "**Use the session-qa agent** to validate"
+    issue: "Agent attempting to spawn subagent"
+    fix: "Move orchestration to command file"
+```
+
+---
+
+## INST-009: Skill Third Person Voice
+
+| Property | Value |
+|----------|-------|
+| **Severity** | medium |
+| **Target** | skills/*/SKILL.md |
+| **Reference** | .claude/CLAUDE.md → "Component Guidelines" |
+
+### Purpose
+
+Skills use third person description ("This skill...") not first/second person. This is required for consistent trigger phrase detection.
+
+### Good Patterns
+
+```markdown
+---
+description: "This skill should be used when the user asks to..."
+---
+
+# My Skill
+
+This skill provides patterns for...
+```
+
+### Bad Patterns
+
+```markdown
+---
+description: "You should use this skill when..."  # Second person
+---
+
+# My Skill
+
+I provide patterns for...  # First person
+Use this skill when you...  # Second person imperative
+```
+
+### Verification
+
+1. Read all SKILL.md files
+2. Check description field for third person
+3. Check first paragraph of body for third person
+4. Flag first/second person usage
+
+### Pattern Detection
+
+| Pattern | Voice | Status |
+|---------|-------|--------|
+| "This skill should be used" | Third | OK |
+| "This skill provides" | Third | OK |
+| "You should use this" | Second | FLAG |
+| "Use this skill when" | Second (imperative) | FLAG |
+| "I provide" | First | FLAG |
+
+### Evidence Schema
+
+```yaml
+check: INST-009
+status: pass | fail | warn
+files_checked: 15
+issues:
+  - file: "skills/example/SKILL.md"
+    location: "description"
+    text: "You should use this skill when..."
+    issue: "Second person in description"
+    suggestion: "This skill should be used when..."
+```
+
+---
+
+## INST-010: Skill Progressive Disclosure
+
+| Property | Value |
+|----------|-------|
+| **Severity** | medium |
+| **Target** | skills/*/SKILL.md |
+| **Reference** | .claude/s2s-development.md → "Adding New Skills" → "Progressive Disclosure" |
+
+### Purpose
+
+SKILL.md should be concise (overview + triggers). Detailed content belongs in `references/` folder. This prevents token bloat when skills are loaded.
+
+### Guidelines
+
+| Metric | Threshold | Action |
+|--------|-----------|--------|
+| SKILL.md words | < 1500 | OK |
+| SKILL.md words | 1500-2000 | WARN |
+| SKILL.md words | > 2000 | FAIL |
+
+> Note: Guideline says "under 2,000 words" (s2s-development.md line 261)
+
+### Good Pattern
+
+```
+skills/my-skill/
+├── SKILL.md           # ~500 words: overview, triggers, references table
+└── references/
+    ├── detailed-guide.md
+    ├── patterns.md
+    └── examples.md
+```
+
+SKILL.md contains:
+- Frontmatter
+- Brief description
+- When to use (triggers)
+- References table pointing to detailed files
+
+### Bad Pattern
+
+```
+skills/my-skill/
+└── SKILL.md           # 3000+ words: everything inline
+```
+
+All content crammed into SKILL.md without references/ folder.
+
+### Verification
+
+1. For each skill, count words in SKILL.md
+2. Check if references/ folder exists and has content
+3. Flag oversized SKILL.md files
+4. Suggest extraction to references/
+
+### Evidence Schema
+
+```yaml
+check: INST-010
+status: pass | warn | fail
+files_checked: 15
+issues:
+  - file: "skills/example/SKILL.md"
+    word_count: 2400
+    threshold: 2000
+    has_references: false
+    issue: "SKILL.md exceeds 2000 words, no references folder"
+    suggestion: "Extract detailed content to references/"
+  - file: "skills/other/SKILL.md"
+    word_count: 1700
+    threshold: 2000
+    has_references: true
+    issue: "SKILL.md in warning zone (1500-2000)"
+    suggestion: "Consider moving more content to references/"
+```

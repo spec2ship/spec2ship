@@ -373,6 +373,31 @@ Commands write to `.s2s/` ONLY. Public documentation in `docs/` is created ONLY 
 
 See also: `skills/madr-decisions/SKILL.md` for ADR-specific rules.
 
+### Plugin File Locations (CRITICAL)
+
+The above rules apply to **user project** files. For **plugin internal** files, different rules apply:
+
+| Location | Purpose | Accessed by | Example |
+|----------|---------|-------------|---------|
+| `docs/` | Human documentation (GitHub readers) | Humans only | Architecture docs, README |
+| `skills/*/references/` | LLM reference material | LLM during skill execution | Detailed guides, patterns |
+| `templates/` | Files to copy to user project | LLM via `${CLAUDE_PLUGIN_ROOT}` | CONTEXT.md, config.yaml |
+| `commands/` | Slash command instructions | LLM when command invoked | specs.md, plan.md |
+| `agents/` | Agent system prompts | LLM when agent spawned | facilitator.md |
+
+**Key Rule**: Documentation that the LLM needs to READ during skill/command execution goes in `skills/*/references/` or inline, **NOT** in `docs/`.
+
+| Anti-Pattern | Problem | Correct Approach |
+|--------------|---------|------------------|
+| Skill references `docs/workflow.md` | User can't access plugin files; LLM path unclear | Put in `skills/*/references/workflow.md` |
+| Telling user "see docs/X.md" | User can't browse plugin internals | LLM reads reference, synthesizes answer |
+| Creating new docs/ files for LLM | Wrong location; docs/ is for humans | Use skill references or inline content |
+
+**When to use each:**
+- **docs/**: Only for humans reading GitHub (architecture decisions, contributing guide)
+- **skills/references/**: LLM needs to read it to answer user questions or execute skill
+- **templates/**: Content that gets COPIED to user's project
+
 ---
 
 ## Session File Management

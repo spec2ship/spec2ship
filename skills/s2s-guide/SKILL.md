@@ -45,6 +45,20 @@ Spec2Ship guides software development through structured phases:
 - **Need creative exploration?** → `/s2s:brainstorm "topic"`
 - **Need ad-hoc technical discussion?** → `/s2s:roundtable "topic"`
 
+### Artifact Flow
+
+Ideas flow through artifacts with full traceability:
+
+```
+brainstorm → ideas.md (IDEA-*) → BACKLOG.md (FEAT-*) → plans/
+                                       ↑
+specs → requirements.md (REQ-*)  ──────┘
+                                       ↑
+design → architecture.md (COMP-*) ─────┘
+```
+
+For complete details, read `references/workflow-guide.md`.
+
 ## Commands Quick Reference
 
 ### Workflow Commands
@@ -160,6 +174,7 @@ Task(subagent_type="general-purpose", prompt="You are a facilitator...")
 
 | File | Content |
 |------|---------|
+| `references/workflow-guide.md` | **Artifact flow, entry points, traceability** |
 | `references/workflows.md` | Detailed workflow explanations |
 | `references/commands.md` | Complete command reference |
 | `references/glossary.md` | Terminology and artifact types |

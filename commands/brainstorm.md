@@ -1536,7 +1536,50 @@ Pair risks with mitigations.
 *Session: {session-id}*
 ```
 
-### Step 3.6: Output Summary
+### Step 3.6: Update ideas.md
+
+**YOU MUST use Read/Write/Edit tools NOW** to update `.s2s/ideas.md` with ideas from this session.
+
+**Check if ideas.md exists**:
+- Use Glob to check if `.s2s/ideas.md` exists
+- If NOT exists, read template from `${CLAUDE_PLUGIN_ROOT}/templates/project/ideas.md` and create it
+
+**Extract ideas from session artifacts**:
+- Read `artifacts.ideas` from session file
+- For each IDEA-* artifact with `state: "draft"` or `state: "approved"`
+
+**For each idea, add to ideas.md**:
+- Under `## Active` section
+- Use this format:
+
+```markdown
+### IDEA-{NNN}: {artifact.title}
+
+**Status**: draft | **Created**: {date}
+**Origin**: brainstorm:{session-id}
+
+**Problem**: {artifact.description}
+
+**Solution outline**: {artifact.potential_value or implementation_notes}
+
+**Validation**:
+- Dreamer: Explored in dreamer phase
+- Realist: {artifact.feasibility or "Assessed in realist phase"}
+- Critic: {count of related RISK-* artifacts} risks identified
+
+**Next**: Consider for /s2s:specs | Needs more research
+```
+
+**ID Assignment**:
+1. Read existing `.s2s/ideas.md`
+2. Find highest existing IDEA-* number
+3. Assign new IDs starting from next available
+4. Maintain mapping: session IDEA-001 → file IDEA-{next}
+
+**Update session file**:
+- Add `ideas_exported: [list of new IDEA-* IDs]` to session file
+
+### Step 3.7: Output Summary
 
     Brainstorm Complete!
     ════════════════════
@@ -1563,7 +1606,10 @@ Pair risks with mitigations.
     - {risk 1}
     - {risk 2}
 
-    Session folder: .s2s/sessions/{session-id}/
+    Output files:
+    ─────────────
+    Ideas: .s2s/ideas.md ({count} ideas added)
+    Session: .s2s/sessions/{session-id}/
     Summary: .s2s/sessions/{session-id}-summary.md
 
     Next steps:

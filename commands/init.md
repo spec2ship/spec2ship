@@ -642,6 +642,20 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/project/BACKLOG.md`
 
 **Write**: Save the modified content to `.s2s/BACKLOG.md`
 
+### 5.6b Generate ideas.md
+
+**Read template from plugin**:
+
+Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/project/ideas.md`
+
+**Replace placeholders**:
+- `{project-name}` → `{Detected.project.name or Context.name}`
+- `{date}` → `{current ISO date}`
+
+**Write**: Save the modified content to `.s2s/ideas.md`
+
+**Note**: ideas.md starts empty but will be populated by `/s2s:brainstorm` sessions or manual entry.
+
 ### 5.7 Generate README.md
 
 > **Purpose**: README.md contains S2S documentation for humans (paths, commands, how-to).
@@ -727,7 +741,8 @@ Created:
 - .s2s/config.yaml
 - .s2s/CONTEXT.md (semantic context, loaded in Claude's memory)
 - .s2s/README.md (documentation for humans, NOT loaded in memory)
-- .s2s/BACKLOG.md
+- .s2s/BACKLOG.md (work items tracking)
+- .s2s/ideas.md (brainstorm ideas)
 - .s2s/sessions/
 - .s2s/plans/
 - .s2s/decisions/

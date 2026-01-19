@@ -29,12 +29,12 @@ This skill is automatically loaded when:
 
 | Category | Purpose | Count | Severity Range |
 |----------|---------|-------|----------------|
-| INST-* | Instruction quality | 6 | medium-high |
-| CONS-* | Cross-command consistency | 6 | medium-high |
+| INST-* | Instruction quality | 10 | medium-critical |
+| CONS-* | Cross-command consistency | 7 | medium-high |
 | RES-* | Resume capability | 7 | high-critical |
 | EDGE-* | Edge case handling | 7 | medium-high |
 
-Total: **26 checks**
+Total: **31 checks**
 
 ## References
 

@@ -376,3 +376,77 @@ comparison:
     roundtable.md: "via diagnostic.md reference"
 differences: []
 ```
+
+---
+
+## CONS-007: Plugin File Locations
+
+| Property | Value |
+|----------|-------|
+| **Severity** | medium |
+| **Comparison** | All skills |
+
+### Purpose
+
+Skills should reference LLM-readable documentation from their own `references/` folder, NOT from plugin `docs/`. The `docs/` folder is for humans reading GitHub, not for LLM consumption during skill execution.
+
+### Reference
+
+See: `.claude/s2s-development.md` → "Plugin File Locations (CRITICAL)"
+
+### Key Rules
+
+| Location | Purpose | Referenced by |
+|----------|---------|---------------|
+| `docs/` | Human documentation (GitHub) | Humans only |
+| `skills/*/references/` | LLM reference material | Skills, commands |
+| `templates/` | Files to copy to user project | Commands via `${CLAUDE_PLUGIN_ROOT}` |
+
+### Anti-Patterns to Detect
+
+| Pattern | Problem | Correct |
+|---------|---------|---------|
+| `see docs/X.md` in skill | User can't access plugin files | `references/X.md` |
+| `docs/` in SKILL.md references table | Wrong location | `references/` |
+| Skill tells user to "read docs/Y" | User can't browse plugin | LLM reads and synthesizes |
+
+### Exception
+
+References to USER project `docs/` are valid. The check should distinguish:
+- `docs/specifications/requirements.md` → USER project (OK)
+- `docs/workflow-guide.md` (in skill) → PLUGIN docs (WRONG)
+
+Context clues:
+- In a validator agent → likely USER project docs (OK)
+- In a skill SKILL.md or references → likely PLUGIN docs (CHECK)
+
+### Verification
+
+1. Grep for `docs/` in `skills/**/SKILL.md`
+2. For each match, analyze context:
+   - If describing USER project structure → OK
+   - If referencing plugin internal file → FLAG
+3. Check reference tables in skills for `docs/` entries
+4. Verify referenced files exist in correct location
+
+### Evidence Schema
+
+```yaml
+check: CONS-007
+status: pass | fail | warn
+files_checked:
+  - skills/s2s-guide/SKILL.md
+  - skills/madr-decisions/SKILL.md
+  # ... all skill files
+issues:
+  - file: "skills/example/SKILL.md"
+    line: 45
+    text: "see docs/workflow.md"
+    issue: "References plugin docs/ instead of references/"
+    suggestion: "Move to skills/example/references/workflow.md"
+false_positives:
+  - file: "skills/madr-decisions/SKILL.md"
+    line: 229
+    text: "docs/decisions/"
+    reason: "Refers to USER project structure, not plugin"
+```

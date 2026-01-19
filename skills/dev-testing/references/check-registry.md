@@ -16,6 +16,10 @@ Verify that command/agent files follow s2s patterns and guidelines.
 | INST-004 | Template Alignment | medium | commands | inst-checks.md |
 | INST-005 | Config Not Hardcoded | high | commands | inst-checks.md |
 | INST-006 | ADR Compliance | high | commands, agents | inst-checks.md |
+| INST-007 | Frontmatter Completeness | high | commands, agents, skills | inst-checks.md |
+| INST-008 | Subagent Spawning Prohibition | critical | agents | inst-checks.md |
+| INST-009 | Skill Third Person Voice | medium | skills | inst-checks.md |
+| INST-010 | Skill Progressive Disclosure | medium | skills | inst-checks.md |
 
 **Invoked by**: `/s2s:dev:check --instructions` or `/s2s:dev:check --all`
 
@@ -33,6 +37,7 @@ Verify consistency across the 4 workflow commands (specs, design, brainstorm, ro
 | CONS-004 | Verbose Dump Format | medium | All 4 commands | cons-checks.md |
 | CONS-005 | Error Handling | high | All 4 commands | cons-checks.md |
 | CONS-006 | Diagnostic Mode | medium | All 4 commands | cons-checks.md |
+| CONS-007 | Plugin File Locations | medium | All skills | cons-checks.md |
 
 **Invoked by**: `/s2s:dev:check --consistency` or `/s2s:dev:check --all`
 

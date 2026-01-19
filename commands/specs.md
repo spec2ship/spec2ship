@@ -106,6 +106,72 @@ If CONTEXT.md contains placeholder text like "{Project description}":
     Error: Project context not defined.
     Run /s2s:init first to set up the project and gather context.
 
+### Smart Source Detection (no flags needed)
+
+**Detect available sources** for requirements input:
+
+1. **Check for recent brainstorm sessions**:
+   Use Bash to find brainstorm sessions from the last 7 days:
+   ```bash
+   find .s2s/sessions -name "*.yaml" -mtime -7 2>/dev/null | xargs grep -l 'workflow_type: brainstorm' 2>/dev/null
+   ```
+
+2. **Check for ideas.md with active ideas**:
+   - Read `.s2s/ideas.md` if exists
+   - Count ideas under `## Active` section (not `## Parked`, `## Promoted`, `## Rejected`)
+   - Look for `**Status**: draft` or `**Status**: validated`
+
+3. **Check for BACKLOG items**:
+   - Read `.s2s/BACKLOG.md` if exists
+   - Count items under `## Planned` section with status `planned`
+
+**IF sources found**:
+
+Display sources and ask user:
+
+```
+Available Input Sources
+═══════════════════════
+
+{IF recent brainstorm sessions found}
+Recent Brainstorm Sessions:
+- {session-id}: "{topic}" ({N} ideas, {date})
+{/IF}
+
+{IF active ideas in ideas.md}
+Active Ideas (.s2s/ideas.md):
+- {count} draft/validated ideas available
+{/IF}
+
+{IF planned BACKLOG items}
+Planned Backlog Items (.s2s/BACKLOG.md):
+- {count} features planned for implementation
+{/IF}
+
+These sources can inform requirements gathering.
+```
+
+Ask using AskUserQuestion:
+- "Would you like to use these as input for requirements?"
+  - Options:
+    - "Yes, use all available sources (recommended)" - load all sources into context
+    - "Select specific sources" - let user choose
+    - "Start fresh" - ignore and start from CONTEXT.md only
+
+**IF user selects "Select specific sources"**:
+Present checkboxes for:
+- Each brainstorm session
+- ideas.md
+- BACKLOG.md
+
+**Store selected sources** as `input_sources` for use in Phase 1 session setup.
+
+**IF ID passed in arguments** (e.g., "specs IDEA-001"):
+- Parse the ID from $ARGUMENTS
+- **IF IDEA-*** pattern: Read `.s2s/ideas.md`, find that idea, use as primary input
+- **IF FEAT-*** pattern: Read `.s2s/BACKLOG.md`, find that item, use as primary input
+- Display: "Using {ID}: {title} as primary input for requirements"
+
 ### Check for existing requirements
 
 If `.s2s/requirements.md` exists and has content:
@@ -198,6 +264,26 @@ scope:
     - "{extracted}"
   out:
     - "{extracted}"
+
+# Input sources detected by smart source detection
+input_sources:
+  brainstorm_sessions:
+    # IF brainstorm sessions were selected, list session IDs and key ideas
+    - session_id: "{session-id}"
+      topic: "{topic}"
+      ideas: ["{IDEA-* titles from session}"]
+  ideas:
+    # IF ideas.md was selected, list active ideas
+    - id: "IDEA-001"
+      title: "{title}"
+      status: "{draft|validated}"
+      problem: "{problem description}"
+  backlog:
+    # IF BACKLOG.md was selected, list planned items
+    - id: "FEAT-001"
+      title: "{title}"
+      context: "{description}"
+  primary_id: "{IF specific ID was passed, e.g., IDEA-001}"
 ```
 
 **YOU MUST use Write tool NOW** to create `config-snapshot.yaml`:
@@ -391,6 +477,13 @@ project_context:
   tech_stack: ["{tech}"]
   constraints: ["{constraint}"]
 
+# Input sources (from context-snapshot.yaml - detected by smart source detection)
+input_sources:
+  brainstorm_sessions: [{session_id, topic, ideas}]
+  ideas: [{id, title, status, problem}]
+  backlog: [{id, title, context}]
+  primary_id: "{if specific ID was passed}"
+
 # Current full state for reference
 session_state:
   artifacts:
@@ -456,6 +549,13 @@ project_context:
   domain: "{domain}"
   tech_stack: ["{tech}"]
   constraints: ["{constraint}"]
+
+# Input sources (from context-snapshot.yaml - detected by smart source detection)
+input_sources:
+  brainstorm_sessions: [{session_id, topic, ideas}]  # Recent brainstorm sessions if selected
+  ideas: [{id, title, status, problem}]              # Active ideas from ideas.md if selected
+  backlog: [{id, title, context}]                    # Planned items from BACKLOG.md if selected
+  primary_id: "{IDEA-001 or FEAT-001 if specific ID was passed}"
 
 # Current session state (from session file)
 session_state:
