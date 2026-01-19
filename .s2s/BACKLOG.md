@@ -1,6 +1,6 @@
 # Spec2Ship Development Backlog
 
-**Updated**: 2026-01-18T17:45:00Z
+**Updated**: 2026-01-19T14:30:00Z
 **Format**: Single markdown file for LLM consumption
 
 ---
@@ -444,8 +444,8 @@ commands/dev/
 ```
 
 **Check Categories**:
-- **INST-*** (6 checks): Instruction quality (imperative voice, tool usage, ADR compliance)
-- **CONS-*** (6 checks): Consistency between commands
+- **INST-*** (10 checks): Instruction quality (imperative voice, tool usage, ADR compliance, frontmatter, subagent prohibition, skill voice, progressive disclosure)
+- **CONS-*** (7 checks): Consistency between commands (including plugin file locations)
 - **RES-*** (7 checks): Resume capability verification
 - **EDGE-*** (7 checks): Edge cases and error scenarios
 
@@ -464,6 +464,38 @@ commands/dev/
 - [ ] Documentation explains when to run each
 
 **Related**: TEST-001, TEST-003, DEBT-002
+
+---
+
+### DEBT-003: Reduce roundtable-execution/SKILL.md Word Count
+
+**Status**: planned | **Created**: 2026-01-19 | **Priority**: Low
+
+**Context**: `skills/roundtable-execution/SKILL.md` has 2492 words, exceeding the 2000 word limit defined in INST-010 (Progressive Disclosure).
+
+**Check Violation**: INST-010 - "SKILL.md should be under 2000 words with details in references/"
+
+**Analysis**:
+- Already has `references/` folder with agenda files, session-schema, error-handling, diagnostic
+- Core execution steps must stay inline (used by specs/design/brainstorm commands)
+- Extractable sections:
+  - "Verbose Dump File Format" (~200 words) → `references/verbose-format.md`
+  - "Definition of Done Checklist" (~150 words) → `references/dod-checklist.md`
+  - Workspace scope handling (~300 words) → `references/workspace-scope.md`
+
+**Risk**: High - this skill is actively referenced by workflow commands. Changes could break execution.
+
+**Tasks**:
+1. [ ] Extract "Verbose Dump File Format" to references/verbose-format.md
+2. [ ] Extract "Definition of Done Checklist" to references/dod-checklist.md
+3. [ ] Evaluate workspace scope extraction
+4. [ ] Test all workflow commands after changes
+5. [ ] Verify word count under 2000
+
+**Acceptance Criteria**:
+- [ ] SKILL.md under 2000 words
+- [ ] All workflow commands still work correctly
+- [ ] No information lost (just relocated)
 
 ---
 
