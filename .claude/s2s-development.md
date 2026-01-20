@@ -398,6 +398,26 @@ The above rules apply to **user project** files. For **plugin internal** files, 
 - **skills/references/**: LLM needs to read it to answer user questions or execute skill
 - **templates/**: Content that gets COPIED to user's project
 
+### Path References in Commands/Agents (CRITICAL)
+
+When a command or agent needs to READ a file from the plugin (skill, reference, template), it MUST use `${CLAUDE_PLUGIN_ROOT}`:
+
+| Context | Wrong | Correct |
+|---------|-------|---------|
+| Command reads skill reference | `Read skills/roundtable-execution/references/diagnostic.md` | `Read the file at ${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/diagnostic.md` |
+| Command reads template | `Read templates/project/config.yaml` | `Read the file at ${CLAUDE_PLUGIN_ROOT}/templates/project/config.yaml` |
+| Agent reads check definitions | `Read skills/dev-testing/references/check-registry.md` | `Read the file at ${CLAUDE_PLUGIN_ROOT}/skills/dev-testing/references/check-registry.md` |
+
+**Why this matters**:
+1. Commands/agents execute in the **user's project directory**, not the plugin directory
+2. Relative paths like `skills/...` resolve to the user's project, where those files don't exist
+3. `${CLAUDE_PLUGIN_ROOT}` is expanded at runtime to the plugin's installation path
+4. Without it, Claude will search and fail to find the file, then improvise behavior
+
+**Exception**: Skill internal references (within SKILL.md referring to its own `references/` folder) can use relative paths because skills are loaded as a unit with their references.
+
+**Verified**: 2026-01-21 - Fixed roundtable.md, specs.md, design.md diagnostic/agenda references
+
 ---
 
 ## Session File Management
@@ -661,7 +681,7 @@ Check/test definitions are in **skill references** (easy to extend), while the *
 
 ### Adding New Checks
 
-**Read `skills/dev-testing/references/extension-guide.md`** for complete instructions.
+**Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/dev-testing/references/extension-guide.md`** for complete instructions.
 
 The guide includes:
 - Category selection criteria
