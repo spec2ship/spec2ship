@@ -639,6 +639,7 @@ Next steps:
 | `references/workspace-scope.md` | Workspace/component scope handling |
 | `references/verbose-dump-format.md` | Verbose dump file naming and content |
 | `references/definition-of-done.md` | Step validation checklist |
+| `references/diagnostic.md` | Diagnostic mode (triggered by commands with `--diagnostic`) |
 
 ---
 
