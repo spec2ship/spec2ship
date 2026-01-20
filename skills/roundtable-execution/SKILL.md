@@ -152,112 +152,14 @@ workflow: "{workflow_type}"
 topics: [...]  # Full topic definitions with done_when criteria
 ```
 
-### Step 1.3b: Load Workspace Scope (if applicable)
+### Step 1.3b-1.4: Workspace Scope (if applicable)
 
-**IF project.type == "workspace"**:
+**IF project.type == "standalone"**: Skip to Step 1.5.
 
-Read `.s2s/workspace.yaml` and update config-snapshot.yaml:
-```yaml
-workspace_scope:
-  decision_principle: "{from workspace.yaml: roundtable_scope.workspace_level.decision_principle}"
-  indicators: ["{from workspace.yaml: roundtable_scope.workspace_level.indicators}"]
-  defer_indicators: ["{from workspace.yaml: roundtable_scope.workspace_level.defer_indicators}"]
-```
-
-**IF project.type == "component"**:
-
-Read parent workspace.yaml at `{workspace_path}/.s2s/workspace.yaml` and update config-snapshot.yaml:
-```yaml
-workspace_scope:
-  decision_principle: "{from parent workspace.yaml: roundtable_scope.component_level.decision_principle}"
-  escalate_indicators: ["{from parent workspace.yaml: roundtable_scope.component_level.escalate_indicators}"]
-  inherits_context_from: "workspace"
-```
-
-### Step 1.3c: Context Loading Strategy (ADR-0009)
-
-**Workspace context is handled via @ cascade in CLAUDE.md files:**
-
-```
-CLAUDE.md → @.s2s/CONTEXT.md → @../.s2s/CONTEXT.md (workspace)
-```
-
-- **Component sessions**: Workspace context is already in memory (loaded at session start)
-- **Workspace sessions**: Only workspace CONTEXT.md is in memory (components listed as text)
-- **No runtime aggregation needed** for workspace context
-
-**Path resolution**: All @ paths are relative to the file containing them (not CWD).
-This is verified Claude Code behavior - sibling references work correctly.
-
-**IF project.type == "workspace"** (cross-component discussions):
-
-1. Read cross_cutting decisions from workspace.yaml and add to context-snapshot:
-```yaml
-cross_cutting_decisions:
-  - id: "{from workspace.yaml: cross_cutting[].id}"
-    decision: "{ADR reference}"
-    affects: ["{component ids}"]
-```
-
-2. **On-demand sibling loading**: When topic involves specific components:
-   - Read component list from workspace CONTEXT.md or workspace.yaml
-   - For each relevant component, read `{component-path}/.s2s/CONTEXT.md`
-   - Include in facilitator's context for that round
-   - This keeps memory low (~1K tokens) for normal discussions
-   - Only loads siblings (~300-500 tokens each) when cross-component context needed
-
-**Example**: Topic "API contract between frontend and backend"
-- Load `./frontend/.s2s/CONTEXT.md` (relevant component)
-- Load `./backend/.s2s/CONTEXT.md` (relevant component)
-- Skip `./mobile/.s2s/CONTEXT.md` (not involved in this topic)
-
-### Step 1.4: Topic Validation
-
-**IF project.type == "workspace"**:
-
-Check if topic appears component-specific:
-1. Compare topic against `workspace_scope.defer_indicators`
-2. If any indicator matches:
-   ```
-   ⚠️ SCOPE NOTICE
-   ─────────────────────────────────────────
-   This topic appears component-specific:
-   Topic: "{topic}"
-   Matched indicator: "{matched indicator}"
-
-   Workspace-level discussions focus on:
-   {workspace_scope.decision_principle}
-
-   Options:
-   1. Continue here (treat as cross-component pattern)
-   2. Run from component folder instead
-   ```
-   Use AskUserQuestion to let user decide.
-
-**IF project.type == "component"**:
-
-Check if topic should escalate to workspace:
-1. Compare topic against `workspace_scope.escalate_indicators`
-2. If any indicator matches:
-   ```
-   ⚠️ SCOPE NOTICE
-   ─────────────────────────────────────────
-   This topic may affect other components:
-   Topic: "{topic}"
-   Matched indicator: "{matched indicator}"
-
-   Component discussions focus on:
-   {workspace_scope.decision_principle}
-
-   Options:
-   1. Continue here (internal to this component)
-   2. Run from workspace folder instead
-   ```
-   Use AskUserQuestion to let user decide.
-
-**IF project.type == "standalone"**:
-
-No topic validation needed. All topics are appropriate.
+**IF project.type == "workspace" OR "component"**: See `references/workspace-scope.md` for:
+- Step 1.3b: Load workspace scope from workspace.yaml
+- Step 1.3c: Context loading strategy (ADR-0009)
+- Step 1.4: Topic validation and scope notices
 
 ### Step 1.5: Create Session Index File
 
@@ -717,85 +619,18 @@ Next steps:
 
 ---
 
-## Verbose Dump File Format
-
-When `--verbose` flag is set, write dump files to `rounds/` subfolder.
-
-### Naming Convention
-
-```
-{NNN}-{PP}-{actor}.yaml
-
-NNN = 3-digit round number (001, 002, ...)
-PP = 2-digit phase (01=question, 02=responses, 03=synthesis)
-actor = facilitator, product-manager, etc.
-```
-
-### Dump File Content
-
-```yaml
-round: {N}
-phase: {P}
-actor: "{actor-id}"
-
-timing:
-  started_at: "{ISO timestamp}"
-  completed_at: "{ISO timestamp}"
-  duration_ms: {calculated}
-
-tokens:
-  input: {estimated}
-  output: {estimated}
-
-prompt: |
-  {exact prompt sent}
-
-response: |
-  {exact response received}
-
-result:
-  valid: true
-  warnings: []
-  artifacts_created: [...]  # Only in synthesis
-```
-
----
-
-## Definition of Done Checklist
-
-### After Step 2.2 (Facilitator Question):
-- [ ] roundtable-facilitator agent was invoked with `action: "question"` input
-- [ ] Facilitator returned valid YAML with `action: "question"`
-- [ ] Decision includes focus_type and topic_id
-- [ ] Context files list is present
-- [ ] Dump file written (if verbose)
-
-### After Step 2.3 (Participant Responses):
-- [ ] ALL participant agents launched in SINGLE message (parallel execution)
-- [ ] ALL participants returned valid YAML with `participant: "{id}"`
-- [ ] Each response has position, rationale, confidence, concerns, suggestions
-- [ ] Dump files written (if verbose)
-
-### After Step 2.4 (Facilitator Synthesis):
-- [ ] roundtable-facilitator agent was invoked with `action: "synthesis"` input
-- [ ] Synthesis includes proposed_artifacts and constraints_check
-- [ ] next is one of: continue, conclude, escalate
-- [ ] Dump file written (if verbose)
-
-### After Step 2.5 (Process Artifacts):
-- [ ] New artifact files written
-- [ ] Session file updated with new IDs
-- [ ] Resolved conflicts updated
-
----
-
 ## Reference Files
 
-- `references/session-schema.md` - Full YAML schema
-- `references/agenda-specs.md` - Specs workflow agenda with DoD
-- `references/agenda-design.md` - Design workflow agenda with DoD
-- `references/agenda-brainstorm.md` - Brainstorm workflow (phase-based)
-- `references/error-handling.md` - Error recovery patterns
+| File | Content |
+|------|---------|
+| `references/session-schema.md` | Full YAML schema |
+| `references/agenda-specs.md` | Specs workflow agenda with DoD |
+| `references/agenda-design.md` | Design workflow agenda with DoD |
+| `references/agenda-brainstorm.md` | Brainstorm workflow (phase-based) |
+| `references/error-handling.md` | Error recovery patterns |
+| `references/workspace-scope.md` | Workspace/component scope handling |
+| `references/verbose-dump-format.md` | Verbose dump file naming and content |
+| `references/definition-of-done.md` | Step validation checklist |
 
 ---
 
