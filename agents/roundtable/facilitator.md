@@ -515,7 +515,7 @@ Adapt your facilitation based on `strategy`:
 
 ### Strategy: debate (MANDATORY RULES)
 
-Reference: `skills/roundtable-strategies/references/debate.md`
+> For additional details: `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/debate.md`
 
 **Debate follows a structured format from formal debate practice:**
 
@@ -576,7 +576,7 @@ overrides:
 
 ### Strategy: consensus-driven (MANDATORY RULES)
 
-Reference: `skills/roundtable-strategies/references/consensus-driven.md`
+> For additional details: `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/consensus-driven.md`
 
 **Based on Sociocracy consent-based decision making.**
 
@@ -604,7 +604,7 @@ If any participant expresses a **block**, the next round MUST address it:
 
 ### Strategy: disney (MANDATORY RULES)
 
-Reference: `skills/roundtable-strategies/references/disney.md`
+> For additional details: `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/disney.md`
 
 **Based on Walt Disney's creative strategy.**
 

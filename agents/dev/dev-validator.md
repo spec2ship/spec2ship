@@ -22,20 +22,23 @@ The command invokes you with: **"Use the dev-validator agent with this input:"**
 ```yaml
 mode: "check" | "test"
 categories:
+  - "ENV"     # Environment checks (auto via bash)
   - "INST"    # Instruction quality
   - "CONS"    # Consistency
+  - "VAL-RT"  # Session validation (auto via yaml parsing)
   - "RES"     # Resume capability
   - "EDGE"    # Edge cases
-test_dir: ".s2s-test"  # Only for test mode
+test_dir: ".s2s-test"       # Only for test mode
+session_path: ".s2s/sessions/{id}.yaml"  # For VAL-RT-* checks
 ```
 
 ## Execution Protocol
 
 ### Phase 1: Load Check Definitions
 
-1. Read `skills/dev-testing/references/check-registry.md`
+1. Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/dev-testing/references/check-registry.md`
 2. Filter checks by requested categories
-3. For each category, read the corresponding definition file:
+3. For each category, read the corresponding definition file from `${CLAUDE_PLUGIN_ROOT}/skills/dev-testing/references/`:
    - INST → `inst-checks.md`
    - CONS → `cons-checks.md`
    - RES → `res-checks.md`
@@ -62,6 +65,42 @@ For each check in the filtered list:
 ## Check Mode Execution
 
 When `mode: "check"`:
+
+### ENV-* Checks (Fully Automated)
+
+**These checks execute bash commands directly.** No parsing needed.
+
+**YOU MUST use Bash tool** to run each check:
+
+```bash
+# ENV-001: S2S Directory
+test -d .s2s && echo "PASS" || echo "FAIL"
+
+# ENV-002: CONTEXT.md Populated (no placeholder)
+! grep -q "Project description" .s2s/CONTEXT.md 2>/dev/null && echo "PASS" || echo "FAIL"
+
+# ENV-003: Config Exists
+test -f .s2s/config.yaml && echo "PASS" || echo "FAIL"
+
+# ENV-004: Roundtable Config
+grep -q "^roundtable:" .s2s/config.yaml 2>/dev/null && echo "PASS" || echo "FAIL"
+
+# ENV-005: No Active Sessions
+! grep -l 'status: active' .s2s/sessions/*.yaml 2>/dev/null && echo "PASS" || echo "FAIL"
+
+# ENV-006: Participant Agents (>= 10)
+AGENT_COUNT=$(ls agents/roundtable/*.md 2>/dev/null | wc -l)
+[ "$AGENT_COUNT" -ge 10 ] && echo "PASS: $AGENT_COUNT agents" || echo "FAIL: only $AGENT_COUNT agents"
+
+# ENV-007: Agenda Files (check plugin files exist)
+# Note: This check only works in s2s repo, skip in other projects
+test -f skills/roundtable-execution/references/agenda-specs.md && echo "PASS" || echo "SKIP: Not in s2s repo"
+```
+
+For each check, record:
+- `status`: pass | fail
+- `output`: command output
+- `notes`: any additional context
 
 ### INST-* Checks
 
@@ -101,6 +140,59 @@ mkdir -p {test_dir}/sessions
 ```
 
 Create minimal test fixtures as needed.
+
+### VAL-RT-* Checks (Session Validation)
+
+**Requires**: `session_path` in input YAML.
+
+**YOU MUST use Read tool** to read the session file, then verify:
+
+**VAL-RT-001: Session File Structure**
+```bash
+SESSION="{session_path}"
+for field in id workflow_type topic status timing participants agent_state artifacts rounds metrics; do
+  grep -q "^${field}:" "$SESSION" && echo "PASS: $field" || echo "FAIL: $field missing"
+done
+```
+
+**VAL-RT-002: Artifact Embedding**
+```bash
+# Extract artifact IDs from artifacts_created arrays and verify each exists in artifacts section
+awk '/artifacts_created:/{found=1; next} found && /^      - /{gsub(/^      - /, ""); print} found && /^    [^ ]/{found=0}' "$SESSION" | while read art; do
+  grep -q "^    ${art}:" "$SESSION" && echo "PASS: $art" || echo "FAIL: $art not in artifacts"
+done
+```
+
+**VAL-RT-003: Agenda/Phase Consistency**
+```bash
+# For phased sessions (brainstorm, disney): verify current_phase matches active phase
+CURRENT=$(grep "current_phase:" "$SESSION" 2>/dev/null | awk '{print $2}' | tr -d '"')
+if [ -z "$CURRENT" ]; then
+  echo "SKIP: No current_phase (not a phased session)"
+else
+  ACTIVE=$(grep -B1 'status: "active"' "$SESSION" | grep "name:" | awk '{print $2}' | tr -d '"')
+  [ "$CURRENT" = "$ACTIVE" ] && echo "PASS: $CURRENT" || echo "FAIL: current=$CURRENT, active=$ACTIVE"
+fi
+```
+
+**VAL-RT-004: Metrics Consistency**
+```bash
+# Count rounds using "- number:" pattern (under rounds: section)
+ROUNDS_COUNT=$(awk '/^rounds:/{start=1} start && /^  - number:/{count++} END{print count+0}' "$SESSION")
+METRIC=$(grep "rounds_completed:" "$SESSION" | awk '{print $2}')
+[ "$ROUNDS_COUNT" = "$METRIC" ] && echo "PASS" || echo "FAIL: $ROUNDS_COUNT vs $METRIC"
+```
+
+**VAL-RT-005: Verbose Dumps**
+```bash
+SESSION_DIR=$(dirname "$SESSION")/$(basename "$SESSION" .yaml)
+if [ -d "$SESSION_DIR/rounds" ]; then
+  COUNT=$(ls "$SESSION_DIR/rounds/"*.yaml 2>/dev/null | wc -l)
+  echo "PASS: $COUNT verbose files"
+else
+  echo "SKIP: No rounds/ directory (--verbose not used)"
+fi
+```
 
 ### RES-* Tests
 
