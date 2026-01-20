@@ -297,7 +297,7 @@ context_files: ["context-snapshot.yaml", ...]
 
 **Parse response**: Extract `decision`, `context_files`, `question`, `exploration`, `participants`
 
-**IF --verbose**: Write dump file `rounds/{NNN}-01-facilitator-question.yaml`
+**IF --verbose**: Write dump file `rounds/{NNN}-01-facilitator-question.yaml` (see `references/verbose-dump-format.md` for naming and content format)
 
 ### Step 2.3: Participant Responses (PARALLEL)
 
@@ -563,6 +563,10 @@ If `next == "escalate"`:
 **HARD LIMIT**: If `round_number >= max_rounds`:
 - Force conclude
 - Note in session: "Reached maximum rounds limit"
+
+### Step Validation
+
+After each major step (2.2, 2.3, 2.4, 2.5), verify correct execution using the checklist in `references/definition-of-done.md`.
 
 ---
 
