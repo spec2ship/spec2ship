@@ -32,17 +32,19 @@ If NOT s2s repo:
 ### Parse Arguments
 
 Extract from $ARGUMENTS:
+- **--env**: Run ENV-* checks only (environment verification)
 - **--instructions**: Run INST-* checks only
 - **--consistency**: Run CONS-* checks only
-- **--all** (default if no flag): Run all checks (INST-* + CONS-*)
+- **--all** (default if no flag): Run all checks (ENV-* + INST-* + CONS-*)
 
 Determine categories to run:
 
 | Flag | Categories |
 |------|------------|
+| --env | ["ENV"] |
 | --instructions | ["INST"] |
 | --consistency | ["CONS"] |
-| --all (or none) | ["INST", "CONS"] |
+| --all (or none) | ["ENV", "INST", "CONS"] |
 
 ### Display Header
 
@@ -64,6 +66,7 @@ Determine categories to run:
 ```yaml
 mode: "check"
 categories:
+  - "ENV"     # Include if --env or --all
   - "INST"    # Include if --instructions or --all
   - "CONS"    # Include if --consistency or --all
 ```

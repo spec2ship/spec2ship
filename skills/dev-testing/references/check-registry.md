@@ -4,6 +4,42 @@ Master list of all development checks and tests. Each check has a unique ID, sev
 
 ---
 
+## ENV-* (Environment)
+
+Verify s2s project environment is correctly configured. These are **fully automatable** via bash commands.
+
+| ID | Name | Severity | Command | Definition |
+|----|------|----------|---------|------------|
+| ENV-001 | S2S Directory | critical | `test -d .s2s` | roundtable-tests.md |
+| ENV-002 | CONTEXT.md Populated | high | `! grep -q "Project description" .s2s/CONTEXT.md` | roundtable-tests.md |
+| ENV-003 | Config Exists | critical | `test -f .s2s/config.yaml` | roundtable-tests.md |
+| ENV-004 | Roundtable Config | high | `grep -q "^roundtable:" .s2s/config.yaml` | roundtable-tests.md |
+| ENV-005 | No Active Sessions | medium | `! grep -l 'status: active' .s2s/sessions/*.yaml 2>/dev/null` | roundtable-tests.md |
+| ENV-006 | Participant Agents | high | `ls agents/roundtable/*.md \| wc -l` >= 10 | roundtable-tests.md |
+| ENV-007 | Agenda Files | medium | `test -f skills/roundtable-execution/references/agenda-specs.md` | roundtable-tests.md |
+
+**Invoked by**: `/s2s:dev:check --env` or `/s2s:dev:check --all`
+
+---
+
+## VAL-RT-* (Session Validation)
+
+Verify session file structure and consistency. **Automatable** via YAML parsing.
+
+| ID | Name | Severity | Check | Definition |
+|----|------|----------|-------|------------|
+| VAL-RT-001 | Session File Structure | critical | Required fields present | roundtable-tests.md |
+| VAL-RT-002 | Artifact Embedding | high | artifacts_created exist in artifacts.* | roundtable-tests.md |
+| VAL-RT-003 | Agenda/Phase Consistency | high | current_phase matches phases[].status | roundtable-tests.md |
+| VAL-RT-004 | Metrics Consistency | medium | rounds_completed == len(rounds[]) | roundtable-tests.md |
+| VAL-RT-005 | Verbose Dumps | medium | rounds/*.yaml files exist | roundtable-tests.md |
+
+**Invoked by**: `/s2s:dev:test --validate` or `/s2s:dev:test --all`
+
+**Note**: VAL-RT-* checks require a session file path as input.
+
+---
+
 ## INST-* (Instruction Quality)
 
 Verify that command/agent files follow s2s patterns and guidelines.
@@ -59,6 +95,8 @@ Verify that sessions can be correctly resumed from any interruption point.
 
 **Invoked by**: `/s2s:dev:test --resume` or `/s2s:dev:test --all`
 
+**Additional tests**: See `roundtable-tests.md` for RES-RT-* test cases (TECH-002 baseline)
+
 ---
 
 ## EDGE-* (Edge Cases)
@@ -76,6 +114,8 @@ Verify handling of edge cases and error scenarios.
 | EDGE-007 | YAML Special Characters | medium | Quotes, colons, pipes | edge-scenarios.md |
 
 **Invoked by**: `/s2s:dev:test --edge` or `/s2s:dev:test --all`
+
+**Additional tests**: See `roundtable-tests.md` for EDGE-RT-*, VAL-RT-*, DIAG-RT-* test cases (TECH-002 baseline)
 
 ---
 

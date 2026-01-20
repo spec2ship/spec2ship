@@ -45,6 +45,7 @@ Total: **31 checks**
 | `cons-checks.md` | CONS-* check definitions |
 | `res-checks.md` | RES-* check definitions |
 | `edge-scenarios.md` | EDGE-* scenario definitions |
+| `roundtable-tests.md` | Test baseline for TECH-002 refactoring |
 | `extension-guide.md` | How to add new checks (templates included) |
 
 ## Integration
