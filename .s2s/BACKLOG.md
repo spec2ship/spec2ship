@@ -24,35 +24,52 @@
 
 ### QUAL-001: Development tools suite (/s2s:dev:*)
 
-**Status**: in_progress | **Created**: 2026-01-11 | **Updated**: 2026-01-19
+**Status**: in_progress | **Created**: 2026-01-11 | **Updated**: 2026-01-20
 
 **Context**: S2S development requires consistent adherence to patterns and ability to test resume/resilience. Development tools are in the plugin but excluded from release.
 
 **Structure**:
 ```
-skills/dev-testing/          # Check definitions
+skills/dev-testing/          # Check definitions + test specs
+├── SKILL.md                 # Overview
+├── references/
+│   ├── check-registry.md    # INST-*, CONS-*, RES-*, EDGE-* definitions
+│   └── roundtable-tests.md  # Roundtable-specific test cases (TECH-002)
 agents/dev/dev-validator.md  # Unified agent
 commands/dev/check.md        # /s2s:dev:check
 commands/dev/test.md         # /s2s:dev:test
 ```
 
-**Check categories**:
+**Check categories** (from check-registry.md):
+- ENV-* (7): Environment verification ✓ implemented
+- VAL-RT-* (5): Session validation ✓ implemented
 - INST-* (10): Instruction quality
 - CONS-* (7): Consistency between commands
 - RES-* (7): Resume capability
 - EDGE-* (7): Edge cases
+
+**Roundtable test categories** (from roundtable-tests.md):
+- ENV-* (7): Environment checks - `auto`
+- VAL-RT-* (5): Session validation - `auto`
+- RES-RT-* (7): Resume tests - `semi`
+- DIAG-RT-* (3): Diagnostic tests - `manual`
+- EDGE-RT-* (7): Edge cases - mixed
+- REG-* (5): Regression tests - `semi`
 
 **Tasks**:
 - [x] Create dev-testing skill with check definitions
 - [x] Create dev-validator agent
 - [x] Create check.md and test.md commands
 - [x] Document in s2s-development.md
+- [x] Create roundtable-tests.md with test specifications
+- [x] Implement ENV-* checks in dev-validator (7 checks, all tested)
+- [x] Implement VAL-RT-* checks in dev-validator (5 checks, all tested)
 - [ ] Add release exclusion in .github/
-- [ ] Implement actual check logic in dev-validator
+- [ ] Implement RES-RT-* state checks in dev-validator (priority 2)
 
 **Acceptance criteria**:
-- [ ] `/s2s:dev:check` runs INST-* and CONS-* checks
-- [ ] `/s2s:dev:test` runs RES-* and EDGE-* tests
+- [~] `/s2s:dev:check` runs INST-*, CONS-*, ENV-* checks (ENV-* done)
+- [~] `/s2s:dev:test` runs RES-*, EDGE-*, VAL-RT-* tests (VAL-RT-* done)
 - [ ] Tools NOT included in shipped plugin
 
 ---
@@ -70,17 +87,80 @@ commands/dev/test.md         # /s2s:dev:test
 - [ ] Add TRANS-* checks to session-qa (state transitions)
 - [ ] Add CTX-* checks to session-qa (context propagation)
 - [ ] Enhance error-handling.md with mid-write recovery
-- [ ] Run manual end-to-end resume tests
-- [ ] Create `skills/dev-testing/references/roundtable-tests.md` (for TECH-002)
+- [ ] Run manual end-to-end resume tests (partial: environment verified)
+- [x] Create `skills/dev-testing/references/roundtable-tests.md` (for TECH-002)
 
 **Acceptance criteria**:
 - [ ] Resume works from all 7 critical interruption points
 - [ ] STR-*, TRANS-*, CTX-* checks in session-qa
-- [ ] Baseline tests documented for TECH-002
+- [x] Baseline tests documented for TECH-002
 
 ---
 
 ## Planned
+
+### BUG-001: Agent resume fails across Claude sessions
+
+**Status**: planned | **Created**: 2026-01-20 | **Priority**: low
+
+**Context**: When resuming a roundtable session after restarting Claude, the command attempts to resume saved `agent_id` but fails because agent transcripts are session-scoped (not persisted across Claude restarts).
+
+**Error observed**:
+```
+resuming aaf0f99
+Error: No transcript found for agent ID: aaf0f99
+```
+
+**Root cause**: Agent IDs and transcripts exist only within a single Claude CLI session. When Claude is restarted, the transcripts are lost but the session file still contains the old agent_id.
+
+**Possible solutions**:
+- [ ] Detect if transcript exists before attempting resume (official method TBD)
+- [ ] Clear agent_id on session load if Claude session is new
+- [ ] Accept the error and continue with fresh agent (current behavior after error)
+
+**Tasks**:
+- [ ] Research official method to check transcript existence
+- [ ] Implement pre-check before resume attempt
+- [ ] Update session resume logic in workflow commands
+
+**Acceptance criteria**:
+- [ ] No failed resume attempts when Claude is restarted
+- [ ] Session continues smoothly with fresh agents
+
+---
+
+### BUG-002: Consensus threshold 0.67 rejects exact 2/3 majority
+
+**Status**: planned | **Created**: 2026-01-20 | **Priority**: medium
+
+**Context**: The threshold for 2/3 majority consensus is set to 0.67 in config files, but 2/3 = 0.6666... which means exact 2/3 votes fail the `>=0.67` check when participants are divisible by 3.
+
+**Affected files**:
+- `templates/project/config.yaml:38,55` (threshold: 0.67)
+- `.s2s/config.yaml:32,49` (threshold: 0.67)
+
+**Note**: Skill references already use 0.6 (`skills/roundtable-strategies/references/standard.md`, `disney.md`).
+
+**Impact**: With 3, 6, or 9 participants, a 2/3 vote (0.6666...) does NOT pass threshold 0.67.
+
+| Participants | Votes for 2/3 | Proportion | Passes 0.67? |
+|--------------|---------------|------------|--------------|
+| 3 | 2 | 0.6666 | NO |
+| 6 | 4 | 0.6666 | NO |
+| 9 | 6 | 0.6666 | NO |
+
+**Fix**: Change threshold from 0.67 to 0.6 for consistency with skill references.
+
+**Tasks**:
+- [ ] Update `templates/project/config.yaml` threshold values to 0.6
+- [ ] Update `.s2s/config.yaml` threshold values to 0.6
+- [ ] Update comment from "2/3 majority" to "60% (ensures 2/3 passes)"
+
+**Acceptance criteria**:
+- [ ] All threshold values aligned to 0.6
+- [ ] Exact 2/3 votes pass consensus check
+
+---
 
 ### FEAT-001: Decision propagation (workspace)
 
@@ -155,10 +235,10 @@ commands/dev/test.md         # /s2s:dev:test
 | 4 | roundtable.md alignment | Phase 3 | - |
 | 5 | Skill cleanup | Phase 0 | DEBT-001 |
 
-**Phase 0: Test baseline**
-- [ ] Create `skills/dev-testing/references/roundtable-tests.md` with test cases
-- [ ] Document acceptance criteria for specs, design, brainstorm, roundtable
-- [ ] Run baseline tests and document current behavior
+**Phase 0: Test baseline** ✅
+- [x] Create `skills/dev-testing/references/roundtable-tests.md` with test cases
+- [x] Document acceptance criteria for specs, design, brainstorm, roundtable
+- [x] Run baseline tests and document current behavior
 
 **Phase 1: Output extraction** (~450 lines saved)
 - [ ] Create `skills/output-specs/SKILL.md` with SRS pseudo-code
@@ -186,11 +266,11 @@ commands/dev/test.md         # /s2s:dev:test
 - [ ] Simplify workflow commands to wrappers
 - [ ] Test: identical behavior via roundtable.md
 
-**Phase 5: Skill cleanup** (linked to DEBT-001)
-- [ ] Decide skill role: documentation only
-- [ ] Slim SKILL.md to overview + references
-- [ ] Move verbose content to references/
-- [ ] Target: under 2000 words
+**Phase 5: Skill cleanup** (linked to DEBT-001) ✅
+- [x] Decide skill role: execution reference with extracted details
+- [x] Slim SKILL.md to overview + references (2492 → 1912 words)
+- [x] Move verbose content to references/ (verbose-dump-format.md, definition-of-done.md, workspace-scope.md)
+- [x] Target: under 2000 words (achieved: 1912)
 
 **Acceptance criteria**:
 - [ ] Commands reduced to ~600-800 lines each
@@ -202,31 +282,6 @@ commands/dev/test.md         # /s2s:dev:test
 - ~40% reduction in command lines
 - Centralized execution logic
 - Easier maintenance
-
----
-
-### DEBT-001: Reduce roundtable-execution word count
-
-**Status**: planned | **Created**: 2026-01-19 | **Updated**: 2026-01-20 | **Part of**: TECH-002 Phase 5
-
-**Context**: `skills/roundtable-execution/SKILL.md` has 2492 words, exceeding the 2000 word limit (INST-010).
-
-**Risk**: High - actively referenced by workflow commands.
-
-**Note**: This task is now part of TECH-002 Phase 5 (Skill cleanup). The approach will be decided as part of that phase, considering the broader command unification goals.
-
-**Tasks**:
-- [ ] Extract "Verbose Dump File Format" to references/
-- [ ] Extract "Definition of Done Checklist" to references/
-- [ ] Evaluate workspace scope extraction
-- [ ] Decide skill role: documentation vs execution reference
-- [ ] Test all workflow commands after changes
-- [ ] Verify word count under 2000
-
-**Acceptance criteria**:
-- [ ] SKILL.md under 2000 words
-- [ ] All workflow commands still work
-- [ ] Skill role clearly defined
 
 ---
 
