@@ -163,7 +163,7 @@ topics: [...]  # Full topic definitions with done_when criteria
 
 ### Step 1.5: Create Session Index File
 
-Write `.s2s/sessions/{session-id}.yaml`:
+Write `.s2s/sessions/{session-id}.yaml` (for full schema details, see `references/session-schema.md`):
 ```yaml
 id: "{session-id}"
 topic: "{topic}"
@@ -563,6 +563,10 @@ If `next == "escalate"`:
 **HARD LIMIT**: If `round_number >= max_rounds`:
 - Force conclude
 - Note in session: "Reached maximum rounds limit"
+
+### Error Handling
+
+If Task calls fail or session file writes fail, see `references/error-handling.md` for recovery patterns.
 
 ### Step Validation
 
