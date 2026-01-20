@@ -416,6 +416,24 @@ When a command or agent needs to READ a file from the plugin (skill, reference, 
 
 **Exception**: Skill internal references (within SKILL.md referring to its own `references/` folder) can use relative paths because skills are loaded as a unit with their references.
 
+### Skill Reference Triggers (IMPORTANT)
+
+Reference files listed in a skill's reference table are **NOT automatically loaded**. Claude knows they exist but doesn't read them until triggered.
+
+**Wrong** - just listing in reference table:
+```markdown
+## Reference Files
+| File | Content |
+| `references/verbose-dump-format.md` | Dump file format |
+```
+
+**Correct** - explicit trigger in SKILL.md body:
+```markdown
+**IF --verbose**: Write dump file (see `references/verbose-dump-format.md` for format)
+```
+
+**Key insight**: Reference files need explicit "when to read" triggers where the functionality is described, not just a table at the end.
+
 **Verified**: 2026-01-21 - Fixed roundtable.md, specs.md, design.md diagnostic/agenda references
 
 ---
