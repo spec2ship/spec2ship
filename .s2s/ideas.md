@@ -1,6 +1,6 @@
 # Spec2Ship Ideas
 
-**Updated**: 2026-01-19
+**Updated**: 2026-01-20
 **Format**: Structured ideas from analysis and brainstorming
 
 ---
@@ -142,22 +142,6 @@
 - Suggest next step: "No requirements? Run /s2s:specs"
 
 **Next**: Could be integrated into existing commands
-
----
-
-### IDEA-008: Reduce code duplication in workflow commands
-
-**Status**: draft | **Created**: 2026-01-11
-**Origin**: manual
-
-**Problem**: specs.md, design.md, brainstorm.md have ~60% code duplication.
-
-**Solution outline**:
-- Extract common roundtable logic to shared skill
-- Workflow commands configure and invoke common logic
-- Already partially done with `roundtable-execution` skill
-
-**Next**: Measure actual duplication, evaluate refactoring cost
 
 ---
 
@@ -381,6 +365,25 @@
 ## Promoted
 
 <!-- Ideas that became work items - kept for traceability -->
+
+### IDEA-008: Reduce code duplication in workflow commands
+
+**Status**: promoted | **Created**: 2026-01-11 | **Promoted**: 2026-01-20
+**Origin**: manual
+**Promoted to**: [TECH-002](BACKLOG.md#tech-002-roundtable-command-unification) | [ADR-0011](decisions/0011-roundtable-command-unification.md)
+
+**Problem**: specs.md, design.md, brainstorm.md have ~60% code duplication (~1600+ lines each).
+
+**Solution outline**:
+- Extract output generation to on-demand skills
+- Use session-qa agent for validation
+- Uniformize Phase 2 (Round Execution) across commands
+- Align roundtable.md to have same capabilities
+- Slim roundtable-execution skill to reference only
+
+**Analysis completed**: Full comparison of skill vs commands documented in ADR-0011.
+
+**Implementation**: See TECH-002 in BACKLOG.md for 6-phase plan.
 
 ---
 

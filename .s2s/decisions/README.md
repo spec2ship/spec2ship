@@ -16,6 +16,7 @@ This directory contains internal ADRs for Spec2Ship development.
 | [0008](0008-validation-simplification.md) | Validation Simplification | accepted |
 | [0009](0009-workspace-context-cascade.md) | Workspace Context Cascade | accepted |
 | [0010](0010-artifact-state-model.md) | Artifact State Model for LLM-Driven Roundtables | accepted |
+| [0011](0011-roundtable-command-unification.md) | Roundtable Command Unification | proposed |
 
 ## Status Legend
 

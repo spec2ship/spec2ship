@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-01-19
+**Updated**: 2026-01-20
 **Format**: Work items for active development
 
 ---
@@ -59,9 +59,11 @@ commands/dev/test.md         # /s2s:dev:test
 
 ### TEST-003: Session resilience verification
 
-**Status**: in_progress | **Created**: 2026-01-18 | **Updated**: 2026-01-19
+**Status**: in_progress | **Created**: 2026-01-18 | **Updated**: 2026-01-20 | **Linked to**: TECH-002 Phase 0
 
 **Context**: Roundtable sessions can be interrupted at various points. Need verification that resume works correctly.
+
+**Note**: This task is foundational for TECH-002. Test cases created here become the baseline for validating refactoring does not cause regression.
 
 **Tasks**:
 - [ ] Align roundtable.md resume logic with inline commands
@@ -69,10 +71,12 @@ commands/dev/test.md         # /s2s:dev:test
 - [ ] Add CTX-* checks to session-qa (context propagation)
 - [ ] Enhance error-handling.md with mid-write recovery
 - [ ] Run manual end-to-end resume tests
+- [ ] Create `skills/dev-testing/references/roundtable-tests.md` (for TECH-002)
 
 **Acceptance criteria**:
 - [ ] Resume works from all 7 critical interruption points
 - [ ] STR-*, TRANS-*, CTX-* checks in session-qa
+- [ ] Baseline tests documented for TECH-002
 
 ---
 
@@ -131,24 +135,98 @@ commands/dev/test.md         # /s2s:dev:test
 
 ---
 
+### TECH-002: Roundtable command unification
+
+**Status**: planned | **Created**: 2026-01-20 | **Origin**: IDEA-008
+**ADR**: [0011-roundtable-command-unification](decisions/0011-roundtable-command-unification.md)
+
+**Context**: specs.md, design.md, brainstorm.md have ~60% code duplication (~1600+ lines each). They claim to follow `roundtable-execution` skill but implement everything inline (and better). roundtable.md is underpowered in comparison.
+
+**Goal**: Unify execution logic, reduce duplication, align roundtable.md capabilities.
+
+**Phases**:
+
+| Phase | Description | Depends on | Links to |
+|-------|-------------|------------|----------|
+| 0 | Test baseline | - | TEST-003 |
+| 1 | Output extraction | Phase 0 | IDEA-010 |
+| 2 | Validation in agent | Phase 0 | session-qa |
+| 3 | Phase 2 uniformization | Phase 1, 2 | - |
+| 4 | roundtable.md alignment | Phase 3 | - |
+| 5 | Skill cleanup | Phase 0 | DEBT-001 |
+
+**Phase 0: Test baseline**
+- [ ] Create `skills/dev-testing/references/roundtable-tests.md` with test cases
+- [ ] Document acceptance criteria for specs, design, brainstorm, roundtable
+- [ ] Run baseline tests and document current behavior
+
+**Phase 1: Output extraction** (~450 lines saved)
+- [ ] Create `skills/output-specs/SKILL.md` with SRS pseudo-code
+- [ ] Create `skills/output-design/SKILL.md` with architecture + ADR pseudo-code
+- [ ] Create `skills/output-brainstorm/SKILL.md` with ideas.md pseudo-code
+- [ ] Modify commands to `Read` skill instead of inline
+- [ ] Test: output identical to current
+
+**Phase 2: Validation consolidation** (~120 lines simplified)
+- [ ] Verify session-qa can perform Step 2.6b checks
+- [ ] Modify commands to call `Task(session-qa)` for validation
+- [ ] Remove inline validation from commands
+- [ ] Test: same warnings produced
+
+**Phase 3: Phase 2 uniformization**
+- [ ] Map ALL differences between commands in Phase 2
+- [ ] Classify: necessary (workflow-specific) vs accidental
+- [ ] Eliminate accidental divergences
+- [ ] Parameterize necessary differences
+- [ ] Test: all workflows function correctly
+
+**Phase 4: roundtable.md alignment**
+- [ ] Add resume/validation/diagnostic to roundtable.md
+- [ ] Verify `--workflow-type specs/design/brainstorm` produces correct output
+- [ ] Simplify workflow commands to wrappers
+- [ ] Test: identical behavior via roundtable.md
+
+**Phase 5: Skill cleanup** (linked to DEBT-001)
+- [ ] Decide skill role: documentation only
+- [ ] Slim SKILL.md to overview + references
+- [ ] Move verbose content to references/
+- [ ] Target: under 2000 words
+
+**Acceptance criteria**:
+- [ ] Commands reduced to ~600-800 lines each
+- [ ] roundtable.md can execute all workflows
+- [ ] No behavioral regression (all tests pass)
+- [ ] roundtable-execution skill under 2000 words
+
+**Estimated impact**:
+- ~40% reduction in command lines
+- Centralized execution logic
+- Easier maintenance
+
+---
+
 ### DEBT-001: Reduce roundtable-execution word count
 
-**Status**: planned | **Created**: 2026-01-19 | **Priority**: Low
+**Status**: planned | **Created**: 2026-01-19 | **Updated**: 2026-01-20 | **Part of**: TECH-002 Phase 5
 
 **Context**: `skills/roundtable-execution/SKILL.md` has 2492 words, exceeding the 2000 word limit (INST-010).
 
 **Risk**: High - actively referenced by workflow commands.
 
+**Note**: This task is now part of TECH-002 Phase 5 (Skill cleanup). The approach will be decided as part of that phase, considering the broader command unification goals.
+
 **Tasks**:
 - [ ] Extract "Verbose Dump File Format" to references/
 - [ ] Extract "Definition of Done Checklist" to references/
 - [ ] Evaluate workspace scope extraction
+- [ ] Decide skill role: documentation vs execution reference
 - [ ] Test all workflow commands after changes
 - [ ] Verify word count under 2000
 
 **Acceptance criteria**:
 - [ ] SKILL.md under 2000 words
 - [ ] All workflow commands still work
+- [ ] Skill role clearly defined
 
 ---
 
