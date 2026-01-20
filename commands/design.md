@@ -233,7 +233,7 @@ participants:
 
 **YOU MUST use Write tool NOW** to create `agenda.yaml`:
 
-Read `skills/roundtable-execution/references/agenda-design.md` and extract topics YAML.
+Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/agenda-design.md` and extract topics YAML.
 
 ### Step 1.4: Create Session File
 

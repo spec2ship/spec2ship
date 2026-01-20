@@ -313,10 +313,10 @@ participants:
 
 **YOU MUST use Write tool NOW** to create `agenda.yaml`:
 
-Read `skills/roundtable-execution/references/agenda-specs.md` and extract topics YAML, then write:
+Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/agenda-specs.md` and extract topics YAML, then write:
 ```yaml
 # Captured: {ISO timestamp}
-source: "skills/roundtable-execution/references/agenda-specs.md"
+source: "${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/agenda-specs.md"
 workflow: "specs"
 
 topics:

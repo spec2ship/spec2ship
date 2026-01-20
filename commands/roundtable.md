@@ -161,7 +161,7 @@ If --strategy not provided:
 
 ## Get strategy configuration
 
-Load strategy phases from `skills/roundtable-strategies/references/{strategy}.md`:
+Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/{strategy}.md` and load strategy phases:
 - **standard**: phases: ["discussion"]
 - **disney**: phases: ["dreamer", "realist", "critic"]
 - **debate**: phases: ["opening", "rebuttal", "closing"]
@@ -360,6 +360,6 @@ Pass these values to the skill execution:
 
 **DIAGNOSTIC MODE (IF diagnostic_flag == true):**
 
-Read `skills/roundtable-execution/references/diagnostic.md` and follow the instructions:
+Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/diagnostic.md` and follow the instructions:
 - **After each round synthesis**: Execute "Per-Round Diagnostic" section
 - **Before session completion**: Execute "End-Session Diagnostic Report" section
