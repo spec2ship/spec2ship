@@ -163,8 +163,9 @@
 
 ### IDEA-010: Unified export command
 
-**Status**: draft | **Created**: 2026-01-15 | **Updated**: 2026-01-19
+**Status**: partially-addressed | **Created**: 2026-01-15 | **Updated**: 2026-01-21
 **Origin**: manual
+**Related**: TECH-002 Phase 1, ADR-0012
 
 **Problem**: With PATH-001, all output goes to `.s2s/`. Need a way to export/publish to project `docs/` for public documentation.
 
@@ -174,16 +175,18 @@
 - Format conversion: `--format ieee830`, `--format arc42`
 - First export asks for target path, stores in config
 
-**Implementation notes** (added 2026-01-19):
-- Currently specs.md and design.md have output format pseudo-code inline
-- When implementing export with format conversion, consider:
-  1. Create `skills/output-formats/` with format templates (srs, ieee830, arc42, c4)
-  2. Each format = pseudo-code that LLM interprets to generate output
-  3. Export command reads source (.s2s/requirements.md), applies format template, writes to docs/
-  4. Alternative: export just copies + reformats headers (simpler, less flexible)
-- Decision needed: transform at export time vs transform at generation time
+**Update (2026-01-21)**: Output format generation addressed by TECH-002 Phase 1:
+- Created `skills/output-generation/` with SKILL.md + references/ (ADR-0012)
+- Decision made: **transform at generation time** (not at export time)
+- Formats are pseudo-code that LLM interprets during roundtable completion
+- Current formats: specs-srs.md, design-arc42.md, brainstorm.md
 
-**Next**: Define export behavior, evaluate format template approach
+**Remaining scope for /s2s:export**:
+- Copy from `.s2s/` to `docs/` (or configured target)
+- Optional: convert format at export time (e.g., SRS to IEEE 830)
+- This is now a simpler "copy + optional reformat" command
+
+**Next**: Evaluate if dedicated export command still needed, or if simple copy suffices
 
 ---
 

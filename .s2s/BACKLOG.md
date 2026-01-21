@@ -248,7 +248,13 @@ Error: No transcript found for agent ID: aaf0f99
 - [x] Modify commands to `Read` skill instead of inline
 - [x] Update roundtable-execution PHASE 3 to use output-generation
 - [x] Document in ADR-0012 and s2s-development.md
-- [ ] Test: output identical to current
+- [x] Format consolidation review (2026-01-21):
+  - Fixed naming convention in verbose-dump-format.md
+  - Added `timestamp:`, `key_decisions:` to session-schema.md rounds[]
+  - Added `metrics_consistency` to verification checklist
+  - Added workflow-specific fields table
+  - Added "Authoritative Format References" to s2s-development.md
+- [ ] **NEXT**: Test output identical to current (run /s2s:specs, /s2s:design, /s2s:brainstorm)
 
 **Line count after Phase 1**:
 - specs.md: 1739 → 1631 (-108)
@@ -291,6 +297,11 @@ Error: No transcript found for agent ID: aaf0f99
 - ~40% reduction in command lines
 - Centralized execution logic
 - Easier maintenance
+
+**Current state** (2026-01-21):
+- Branch: `feature/TECH-002-roundtable-unification`
+- Ready to push: 4 commits (output-generation skill, command refactor, format fixes, docs)
+- Next action: Test Phase 1 output, then push
 
 ---
 
