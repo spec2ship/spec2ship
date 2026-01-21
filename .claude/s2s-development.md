@@ -607,6 +607,63 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/project/config.yaml`
 
 ---
 
+## Output Generation Skill Pattern
+
+### Templates vs Pseudo-Code (ADR-0012)
+
+Two different patterns for generating files:
+
+| Aspect | Templates (`templates/`) | Output Generation (`skills/output-generation/`) |
+|--------|-------------------------|------------------------------------------------|
+| **Content** | Static structure | Dynamic pseudo-code |
+| **Placeholders** | Simple: `{name}` | Loops: `{for each artifact...}` |
+| **Process** | Read → Replace → Write | Read → Interpret → Generate |
+| **Used by** | `/s2s:init` | `/s2s:specs`, `/s2s:design`, `/s2s:brainstorm` |
+
+### Output Generation Structure
+
+```
+skills/output-generation/
+  ├── SKILL.md                   # Common logic (dispatch, merge, CONTEXT.md)
+  └── references/
+      ├── specs-srs.md           # SRS format pseudo-code
+      ├── design-arc42.md        # Architecture + ADR pseudo-code
+      └── brainstorm.md          # Summary + ideas pseudo-code
+```
+
+### How Commands Use It
+
+```markdown
+Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/output-generation/SKILL.md`
+and follow the instructions for workflow_type="specs"
+```
+
+The SKILL.md handles:
+1. Format selection (based on workflow_type)
+2. Merge vs override mode
+3. CONTEXT.md update (specs/design only)
+4. Dispatches to correct reference for format-specific pseudo-code
+
+### Adding New Formats
+
+1. Create `references/{workflow}-{format}.md` with pseudo-code template
+2. Update SKILL.md format table
+3. No changes to commands needed
+
+**Example**: To add `specs-user-stories.md`:
+- Add reference file with user story format
+- Add to SKILL.md format table
+- Commands can use `--format user-stories` (future)
+
+### Why This Pattern
+
+1. **DRY**: Common logic in SKILL.md, not duplicated across commands
+2. **Progressive disclosure**: SKILL.md (~200 words) + reference (~150 words) loaded on-demand
+3. **Extensibility**: New formats without touching commands
+4. **Consistency**: Same pattern as `roundtable-strategies`
+
+---
+
 ## Development Tools (/s2s:dev:*)
 
 Development-only tools for verifying s2s plugin quality. These are in `commands/dev/` and `agents/dev/` and are **NOT shipped** with the plugin.

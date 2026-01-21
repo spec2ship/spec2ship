@@ -593,37 +593,15 @@ Extract:
 - Unresolved conflicts
 - Agenda final status
 
-### Step 3.4: Generate Output
+### Step 3.4-3.5: Generate Output
 
-Based on workflow_type, generate appropriate output document:
-- **specs**: `.s2s/requirements.md`
-- **design**: `.s2s/architecture.md` + `.s2s/decisions/`
-- **brainstorm**: `.s2s/sessions/{session-id}-summary.md`
+Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/output-generation/SKILL.md` and follow the instructions for the current workflow_type.
 
-### Step 3.5: Display Completion
-
-```
-═══════════════════════════════════════════════════════════════
-ROUNDTABLE COMPLETE
-═══════════════════════════════════════════════════════════════
-
-Session: {session-id}
-Rounds: {total_rounds}
-Duration: {duration}
-
-Artifacts Created:
-  Requirements: {count}
-  Business Rules: {count}
-  Conflicts Resolved: {count}
-  Open Questions: {count}
-
-Output: {output file path}
-
-Next steps:
-  /s2s:design   - Design architecture (if specs)
-  /s2s:plan     - Generate implementation plans
-═══════════════════════════════════════════════════════════════
-```
+The output-generation skill handles:
+- Format-specific document generation (SRS, arc42, summary)
+- Merge vs override mode
+- CONTEXT.md update (for specs/design)
+- Output summary display
 
 ---
 

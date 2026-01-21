@@ -217,8 +217,10 @@ Error: No transcript found for agent ID: aaf0f99
 
 ### TECH-002: Roundtable command unification
 
-**Status**: planned | **Created**: 2026-01-20 | **Origin**: IDEA-008
-**ADR**: [0011-roundtable-command-unification](decisions/0011-roundtable-command-unification.md)
+**Status**: in_progress | **Created**: 2026-01-20 | **Updated**: 2026-01-21 | **Origin**: IDEA-008
+**ADRs**:
+- [0011-roundtable-command-unification](decisions/0011-roundtable-command-unification.md)
+- [0012-output-generation-skill](decisions/0012-output-generation-skill.md)
 
 **Context**: specs.md, design.md, brainstorm.md have ~60% code duplication (~1600+ lines each). They claim to follow `roundtable-execution` skill but implement everything inline (and better). roundtable.md is underpowered in comparison.
 
@@ -229,7 +231,7 @@ Error: No transcript found for agent ID: aaf0f99
 | Phase | Description | Depends on | Links to |
 |-------|-------------|------------|----------|
 | 0 | Test baseline | - | TEST-003 |
-| 1 | Output extraction | Phase 0 | IDEA-010 |
+| 1 | Output extraction | Phase 0 | ADR-0012 |
 | 2 | Validation in agent | Phase 0 | session-qa |
 | 3 | Phase 2 uniformization | Phase 1, 2 | - |
 | 4 | roundtable.md alignment | Phase 3 | - |
@@ -240,12 +242,19 @@ Error: No transcript found for agent ID: aaf0f99
 - [x] Document acceptance criteria for specs, design, brainstorm, roundtable
 - [x] Run baseline tests and document current behavior
 
-**Phase 1: Output extraction** (~450 lines saved)
-- [ ] Create `skills/output-specs/SKILL.md` with SRS pseudo-code
-- [ ] Create `skills/output-design/SKILL.md` with architecture + ADR pseudo-code
-- [ ] Create `skills/output-brainstorm/SKILL.md` with ideas.md pseudo-code
-- [ ] Modify commands to `Read` skill instead of inline
+**Phase 1: Output extraction** ✅ (~370 lines saved)
+- [x] Create unified `skills/output-generation/` with SKILL.md + references/
+- [x] Reference files: specs-srs.md, design-arc42.md, brainstorm.md
+- [x] Modify commands to `Read` skill instead of inline
+- [x] Update roundtable-execution PHASE 3 to use output-generation
+- [x] Document in ADR-0012 and s2s-development.md
 - [ ] Test: output identical to current
+
+**Line count after Phase 1**:
+- specs.md: 1739 → 1631 (-108)
+- design.md: 1627 → 1504 (-123)
+- brainstorm.md: 1624 → 1485 (-139)
+- Total: 4990 → 4620 (-370)
 
 **Phase 2: Validation consolidation** (~120 lines simplified)
 - [ ] Verify session-qa can perform Step 2.6b checks
