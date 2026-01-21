@@ -19,11 +19,14 @@ This document serves as **TEST SPECIFICATION** and **REGRESSION BASELINE** for T
 ```
 roundtable-tests.md (THIS FILE)
 │
-├── Test cases (ENV-*, VAL-RT-*, RES-RT-*, etc.)
+├── Test cases (ENV-*, VAL-RT-*, CTX-*, RES-RT-*, etc.)
 │   │
 │   ├── ✅ IMPLEMENTED ──────► Run via /s2s:dev:check or /s2s:dev:test
 │   │   ├── ENV-* (7)        → /s2s:dev:check --env
 │   │   └── VAL-RT-* (5)     → /s2s:dev:test --validate
+│   │
+│   ├── pending (auto) ──────► Ready to implement
+│   │   └── CTX-* (5)        → Context propagation (verbose dumps)
 │   │
 │   ├── semi ────────────────► Manual setup, then automated check
 │   │   └── RES-RT-* state checks
@@ -327,7 +330,171 @@ test -f .s2s/ideas.md         # brainstorm (updated)
 
 ### RES-RT-007: Context reconstruction
 
-**Automation**: `manual` - Requires observing participant responses for quality.
+**Automation**: `semi` - Check verbose dumps for context completeness (see CTX-* checks).
+
+**NOTE**: With BUG-003 fix, SKILL.md now uses inline `context` instead of `context_files`.
+
+---
+
+## Context propagation checks (CTX-*)
+
+**Status**: Pending implementation | **Requires**: `--verbose` flag on session
+
+**Purpose**: Verify that context flows correctly from facilitator to participants.
+
+These checks can only run on sessions created with `--verbose` flag, as they examine the verbose dump files.
+
+### CTX-001: Facilitator returns participant_context
+
+**Automation**: `auto` (on verbose dumps)
+
+**Check**: Facilitator question dump contains `participant_context.shared` block.
+
+```bash
+DUMP=".s2s/sessions/{id}/rounds/001-01-facilitator-question.yaml"
+
+# Check participant_context exists in response
+grep -q "participant_context:" $DUMP && echo "PASS" || echo "FAIL: Missing participant_context"
+
+# Check shared sub-block exists
+grep -q "shared:" $DUMP && echo "PASS" || echo "FAIL: Missing shared block"
+
+# Check required keys in shared
+for key in project_summary relevant_artifacts open_conflicts open_questions recent_rounds; do
+  grep -q "${key}:" $DUMP && echo "PASS: $key" || echo "FAIL: Missing $key"
+done
+```
+
+**FAIL indicates**: Facilitator not building participant_context (bug in facilitator.md or command)
+
+---
+
+### CTX-002: Participant receives context (not context_files)
+
+**Automation**: `auto` (on verbose dumps)
+
+**Check**: Participant dump contains `input.context` block, NOT `input.context_files`.
+
+```bash
+DUMP=".s2s/sessions/{id}/rounds/001-02-product-manager.yaml"
+
+# Should NOT have context_files
+if grep -q "context_files:" $DUMP; then
+  echo "FAIL: Using deprecated context_files pattern"
+else
+  echo "PASS: No context_files"
+fi
+
+# Should have context block with required keys
+grep -q "context:" $DUMP && echo "PASS: context block present" || echo "FAIL: Missing context"
+
+# Check context has required keys
+for key in project_summary relevant_artifacts; do
+  grep -A30 "input:" $DUMP | grep -q "${key}:" && echo "PASS: $key" || echo "WARN: Missing $key in input.context"
+done
+```
+
+**FAIL indicates**: Command not passing inline context to participants (BUG-003 regression)
+
+---
+
+### CTX-003: Context content is complete (not truncated)
+
+**Automation**: `semi` (requires content inspection)
+
+**Check**: Verify context contains actual content, not placeholders or truncated text.
+
+```bash
+DUMP=".s2s/sessions/{id}/rounds/001-02-product-manager.yaml"
+
+# project_summary should have content (at least 50 chars)
+PROJECT_SUMMARY_LEN=$(grep -A5 "project_summary:" $DUMP | wc -c)
+[ "$PROJECT_SUMMARY_LEN" -gt 50 ] && echo "PASS: project_summary has content" || echo "WARN: project_summary may be truncated"
+
+# relevant_artifacts should have artifact details if round > 1
+ROUND=$(grep "^round:" $DUMP | awk '{print $2}')
+if [ "$ROUND" -gt 1 ]; then
+  grep -q "id:" $DUMP && echo "PASS: artifacts have IDs" || echo "WARN: No artifact IDs found"
+fi
+```
+
+**WARN indicates**: Context may be insufficient for quality participant responses
+
+---
+
+### CTX-004: Exploration prompt passed to participants
+
+**Automation**: `auto` (on verbose dumps)
+
+**Check**: Participant dump contains `exploration` field in input.
+
+```bash
+DUMP=".s2s/sessions/{id}/rounds/001-02-product-manager.yaml"
+
+grep -q "exploration:" $DUMP && echo "PASS" || echo "FAIL: Missing exploration prompt"
+```
+
+**FAIL indicates**: Facilitator's exploration prompt not forwarded to participants
+
+---
+
+### CTX-005: Context consistency across participants
+
+**Automation**: `auto` (on verbose dumps)
+
+**Check**: All participants in same round receive identical shared context.
+
+```bash
+ROUND="001"
+SESSION_DIR=".s2s/sessions/{id}/rounds"
+
+# Extract project_summary from each participant dump
+for f in $SESSION_DIR/${ROUND}-02-*.yaml; do
+  echo "=== $(basename $f) ==="
+  grep -A3 "project_summary:" $f | head -4
+done
+
+# Visual inspection: all should match
+# For automation: hash comparison
+HASH1=$(grep -A3 "project_summary:" $SESSION_DIR/${ROUND}-02-product-manager.yaml | md5)
+HASH2=$(grep -A3 "project_summary:" $SESSION_DIR/${ROUND}-02-qa-lead.yaml | md5)
+[ "$HASH1" = "$HASH2" ] && echo "PASS: Consistent context" || echo "FAIL: Inconsistent context"
+```
+
+**FAIL indicates**: Command building different context for different participants (blind voting violation)
+
+---
+
+### How to run CTX-* checks
+
+**Prerequisite**: Session must have been run with `--verbose` flag.
+
+```bash
+# 1. Run a session with verbose
+/s2s:specs "test topic" --new --verbose
+
+# 2. After completion (or interruption), run context checks
+# (Manual for now - to be added to /s2s:dev:test)
+
+SESSION_ID="20260121-specs-test"
+SESSION_DIR=".s2s/sessions/$SESSION_ID"
+
+# CTX-001: Facilitator context
+grep -q "participant_context:" $SESSION_DIR/rounds/001-01-facilitator-question.yaml
+
+# CTX-002: No context_files
+! grep -q "context_files:" $SESSION_DIR/rounds/001-02-*.yaml
+
+# CTX-003: Content present
+grep -A5 "project_summary:" $SESSION_DIR/rounds/001-02-product-manager.yaml
+
+# CTX-004: Exploration present
+grep "exploration:" $SESSION_DIR/rounds/001-02-*.yaml
+
+# CTX-005: Consistency (visual)
+diff <(grep -A3 "project_summary:" $SESSION_DIR/rounds/001-02-product-manager.yaml) \
+     <(grep -A3 "project_summary:" $SESSION_DIR/rounds/001-02-qa-lead.yaml)
+```
 
 ---
 
@@ -480,6 +647,7 @@ done
 | Category | Count | Status | Notes |
 |----------|-------|--------|-------|
 | RES-RT-* state | 7 | `semi` | After manual interruption |
+| CTX-* | 5 | `auto` | Verbose dump context checks (BUG-003 related) |
 | REG-002, REG-003 | 2 | `semi` | Schema and file checks |
 | EDGE-RT-006 | 1 | `auto` | YAML parsing |
 
@@ -489,7 +657,6 @@ done
 |----------|-------|-------|
 | DIAG-RT-* | 3 | Requires runtime observation |
 | EDGE-RT-002-005 | 4 | Requires specific conditions |
-| RES-RT-007 | 1 | Requires quality judgment |
 
 ---
 
@@ -586,7 +753,8 @@ Examined: `20260118-roundtable-artifact-state-model.yaml`
 - **ADR-0011**: Roundtable command unification
 - **TECH-002**: Implementation plan in BACKLOG.md
 - **TEST-003**: Session resilience verification
-- **check-registry.md**: Master list of all checks (ENV-*, VAL-RT-*, INST-*, CONS-*, RES-*, EDGE-*)
+- **BUG-003**: Context propagation fix (context_files → inline context)
+- **check-registry.md**: Master list of all checks (ENV-*, VAL-RT-*, CTX-*, INST-*, CONS-*, RES-*, EDGE-*)
 - **QUAL-001**: Dev tools implementation - ENV-* and VAL-RT-* now automated
 - **dev-validator.md**: Agent that executes automated checks
 - **test.md**: `/s2s:dev:test` command

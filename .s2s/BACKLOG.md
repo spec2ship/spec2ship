@@ -85,14 +85,15 @@ commands/dev/test.md         # /s2s:dev:test
 **Tasks**:
 - [ ] Align roundtable.md resume logic with inline commands
 - [ ] Add TRANS-* checks to session-qa (state transitions)
-- [~] Add CTX-* checks to session-qa (context propagation) - BUG-003 fixed SKILL.md context format
+- [x] Define CTX-* checks in roundtable-tests.md (5 checks defined)
+- [ ] Implement CTX-* in dev-validator (verbose dump analysis)
 - [ ] Enhance error-handling.md with mid-write recovery
 - [ ] Run manual end-to-end resume tests (partial: environment verified)
 - [x] Create `skills/dev-testing/references/roundtable-tests.md` (for TECH-002)
 
 **Acceptance criteria**:
 - [ ] Resume works from all 7 critical interruption points
-- [~] STR-*, TRANS-*, CTX-* checks in session-qa (CTX format fixed via BUG-003)
+- [~] STR-*, TRANS-*, CTX-* checks in session-qa (CTX defined, implementation pending)
 - [x] Baseline tests documented for TECH-002
 
 ---

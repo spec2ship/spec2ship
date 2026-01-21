@@ -40,6 +40,26 @@ Verify session file structure and consistency. **Automatable** via YAML parsing.
 
 ---
 
+## CTX-* (Context Propagation)
+
+Verify that context flows correctly from facilitator to participants. **Automatable** on verbose dumps.
+
+| ID | Name | Severity | Check | Definition |
+|----|------|----------|-------|------------|
+| CTX-001 | Facilitator Returns Context | critical | participant_context in question dump | roundtable-tests.md |
+| CTX-002 | No context_files Pattern | critical | No deprecated context_files | roundtable-tests.md |
+| CTX-003 | Context Content Complete | high | project_summary, relevant_artifacts present | roundtable-tests.md |
+| CTX-004 | Exploration Prompt Passed | medium | exploration field in participant input | roundtable-tests.md |
+| CTX-005 | Context Consistency | high | All participants get same shared context | roundtable-tests.md |
+
+**Invoked by**: `/s2s:dev:test --context` or `/s2s:dev:test --all`
+
+**Prerequisite**: Session must have been run with `--verbose` flag.
+
+**Related**: BUG-003 (context_files → inline context fix)
+
+---
+
 ## INST-* (Instruction Quality)
 
 Verify that command/agent files follow s2s patterns and guidelines.
@@ -133,16 +153,19 @@ Verify handling of edge cases and error scenarios.
 
 **Check commands**:
 ```bash
+/s2s:dev:check --env             # ENV-* only
 /s2s:dev:check --instructions    # INST-* only
 /s2s:dev:check --consistency     # CONS-* only
-/s2s:dev:check --all             # INST-* + CONS-*
+/s2s:dev:check --all             # ENV-* + INST-* + CONS-*
 ```
 
 **Test commands**:
 ```bash
+/s2s:dev:test --validate         # VAL-RT-* only
+/s2s:dev:test --context          # CTX-* only (requires --verbose session)
 /s2s:dev:test --resume           # RES-* only
 /s2s:dev:test --edge             # EDGE-* only
-/s2s:dev:test --all              # RES-* + EDGE-*
+/s2s:dev:test --all              # VAL-RT-* + CTX-* + RES-* + EDGE-*
 ```
 
 **Full validation**:
