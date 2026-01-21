@@ -460,6 +460,21 @@ Session file MUST be written after EACH round, not batched at the end:
 - If conflict resolved, add to new round's `resolved[]`
 - Previous round data is READ-ONLY
 
+### Authoritative Format References
+
+When modifying session/dump formats, consult these authoritative sources:
+
+| Format | Authoritative Source | Notes |
+|--------|---------------------|-------|
+| Session file schema | `skills/roundtable-execution/references/session-schema.md` | Full session.yaml structure |
+| rounds[] array | `skills/roundtable-execution/SKILL.md` Step 2.6 | Per-round fields |
+| Verbose dump files | `skills/roundtable-execution/references/verbose-dump-format.md` | Structured YAML format |
+| Artifact schemas (specs) | `skills/roundtable-execution/references/session-schema.md` | REQ-*, BR-*, NFR-*, etc. |
+| Artifact schemas (design/brainstorm) | Inline in `commands/design.md`, `commands/brainstorm.md` | ARCH-*, IDEA-*, etc. (see TECH-003) |
+| Output documents | `skills/output-generation/references/*.md` | requirements.md, architecture.md, etc. |
+
+**Key principle**: Commands are authoritative for EXECUTION, skills/references are authoritative for FORMAT DEFINITIONS.
+
 ---
 
 ## Config Priority

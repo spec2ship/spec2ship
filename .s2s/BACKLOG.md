@@ -313,6 +313,33 @@ Error: No transcript found for agent ID: aaf0f99
 
 ---
 
+### TECH-003: Centralize artifact schemas in session-schema.md
+
+**Status**: planned | **Created**: 2026-01-21 | **Priority**: low | **Origin**: TECH-002 review
+
+**Context**: During TECH-002 format consolidation review, found that `session-schema.md` only contains schemas for specs workflow artifacts (REQ-*, BR-*, NFR-*, EX-*, CONF-*, OQ-*). Schemas for design (ARCH-*, COMP-*) and brainstorm (IDEA-*, RISK-*, MIT-*) are defined inline in their respective commands.
+
+**Current state**:
+- specs artifacts: defined in `session-schema.md` ✓
+- design artifacts: defined inline in `design.md`
+- brainstorm artifacts: defined inline in `brainstorm.md`
+
+**Tasks**:
+- [ ] Add ARCH-* schema to session-schema.md
+- [ ] Add COMP-* schema to session-schema.md
+- [ ] Add IDEA-* schema to session-schema.md
+- [ ] Add RISK-* schema to session-schema.md
+- [ ] Add MIT-* schema to session-schema.md
+- [ ] Update commands to reference centralized schemas
+
+**Acceptance criteria**:
+- [ ] All artifact schemas in single reference file
+- [ ] Commands reference schemas instead of defining inline
+
+**Note**: Low priority - current inline definitions work, centralization is for maintainability.
+
+---
+
 ## Completed
 
 | ID | Description | Completed |
