@@ -362,7 +362,7 @@ Pass these values to the skill execution:
 
 **TOKEN TRACKING MODE (IF tokens_flag == true):**
 
-Read `skills/roundtable-execution/references/token-estimation.md` and follow the instructions:
+Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-estimation.md` and follow the instructions:
 - **Before round 1**: Execute "Session Start" section
 - **At start of each round**: Execute "Per-Round Init" section
 - **After facilitator question**: Execute "Capture T1" section
