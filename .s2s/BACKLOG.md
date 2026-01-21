@@ -189,6 +189,46 @@ Error: No transcript found for agent ID: aaf0f99
 
 ---
 
+### BUG-004: Verbose dumps not written incrementally during round
+
+**Status**: planned | **Created**: 2026-01-22 | **Priority**: medium
+
+**Context**: Verbose dump files (`rounds/{NNN}-01-*.yaml`, `rounds/{NNN}-02-*.yaml`, `rounds/{NNN}-03-*.yaml`) are not written immediately after each phase. The command waits until the round completes before writing to disk.
+
+**Root cause**: Instructions for verbose dump writes do NOT include "NOW" or "IMMEDIATELY":
+- specs.md:619 - "IF verbose_flag == true: Write dump..." (no NOW)
+- specs.md:871 - "IF verbose_flag == true: Write dump for each..." (no NOW)
+- specs.md:1124 - "IF verbose_flag == true: Write dump..." (no NOW)
+
+Compare with session file writes which use "YOU MUST use Edit tool **NOW**".
+
+**Impact**:
+- If execution interrupted mid-round, verbose dumps for completed phases may be lost
+- No incremental visibility into round progress
+- Resume cannot recover partial round data from disk
+
+**Affected files**:
+- `commands/specs.md` (~lines 619, 871, 1124)
+- `commands/design.md` (equivalent lines)
+- `commands/brainstorm.md` (equivalent lines)
+- `skills/roundtable-execution/SKILL.md` (lines 342, 420, 520)
+
+**Fix**: Add "YOU MUST use Write tool NOW" to verbose dump instructions for each phase.
+
+**Tasks**:
+- [ ] Update specs.md verbose write instructions with "NOW"
+- [ ] Update design.md verbose write instructions with "NOW"
+- [ ] Update brainstorm.md verbose write instructions with "NOW"
+- [ ] Update roundtable-execution/SKILL.md verbose write instructions with "NOW"
+
+**Acceptance criteria**:
+- [ ] Verbose dumps written immediately after each phase (2.2, 2.3, 2.4)
+- [ ] Partial round data recoverable if interrupted
+
+**Related**: TEST-003 (session resilience)
+
+---
+
 ### FEAT-001: Decision propagation (workspace)
 
 **Status**: planned | **Created**: 2026-01-17 | **Depends on**: REQ-051
