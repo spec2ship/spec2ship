@@ -95,12 +95,16 @@ agenda:
 # Per ADR-0010: artifacts_transitioned provides audit trail for state changes
 rounds:
   - round: 1
+    timestamp: "2026-01-07T13:10:00Z"
     topic_id: "user-workflows"
     facilitator_question: "What are the primary user workflows?"
     synthesis_summary: "Identified 2 key workflows..."
     participant_positions:
       product-manager: "Focus on casual gameplay..."
       qa-lead: "Consider edge cases..."
+    key_decisions:
+      - "Four-phase workflow adopted"
+      - "Zero-friction entry required"
     artifacts_created: ["REQ-001", "REQ-002"]
     artifacts_transitioned:          # ADR-0010: round-level audit trail
       - id: "REQ-001"
@@ -381,107 +385,91 @@ artifacts:
 
 ## Verbose Dump Files (rounds/ folder)
 
-Only created when `--verbose` flag is used.
+Only created when `--verbose` flag is used. Uses **structured YAML format** (not text blobs).
+
+See `references/verbose-dump-format.md` for complete format specification.
 
 ### Naming Convention
 
 ```
-{round}-{phase}-{actor}.yaml
+Facilitator: {NNN}-{PP}-facilitator-{action}.yaml
+Participant: {NNN}-02-{participant-id}.yaml
 
-Examples:
-001-01-facilitator-question.yaml
-001-02-product-manager.yaml
-001-02-business-analyst.yaml
-001-02-qa-lead.yaml
-001-03-facilitator-synthesis.yaml
+NNN = 3-digit round number (001, 002, ...)
+PP = 2-digit phase (01=question, 02=responses, 03=synthesis)
+action = question | synthesis (for facilitator files)
 ```
 
-- `{round}`: 3-digit round number (001, 002, ...)
-- `{phase}`: 2-digit phase (01=question, 02=responses, 03=synthesis)
-- `{actor}`: facilitator, product-manager, etc.
+**Examples**:
+- `001-01-facilitator-question.yaml` - Facilitator question
+- `001-02-product-manager.yaml` - Participant response
+- `001-03-facilitator-synthesis.yaml` - Facilitator synthesis
 
-### Facilitator Question Dump
+**Note**: YAML `actor` field is just `facilitator` or `{participant-id}`, not `facilitator-question`.
+
+### Facilitator Question Dump (example)
 
 ```yaml
 round: 1
 phase: 1
 actor: "facilitator"
+action: "question"
+started_at: "2026-01-07T13:05:00Z"
+completed_at: "2026-01-07T13:05:12Z"
 
-timing:
-  started_at: "2026-01-07T13:05:00Z"
-  completed_at: "2026-01-07T13:05:12Z"
-  duration_ms: 12345
-
-tokens:
-  input: 2500
-  output: 400
-
-prompt: |
-  You are the Roundtable Facilitator.
-
-  === SESSION STATE ===
-  Round: 1
-  Session folder: .s2s/sessions/20260107-requirements-elfgiftrush/
-
-  === ARTIFACT SUMMARY ===
-  (none yet - first round)
-
-  === AGENDA STATUS ===
-  [open] user-workflows (CRITICAL)
-  [open] functional-requirements (CRITICAL)
-
-  === YOUR TASK ===
-  1. Decide focus for this round
-  2. Select context files for participants
-  3. Generate question + exploration prompt
-
-response: |
+# STRUCTURED input (YAML object)
+input:
   action: "question"
+  round: 1
+  topic: "Requirements definition for ElfGiftRush"
+  strategy: "consensus-driven"
+  workflow_type: "specs"
+  agenda:
+    - id: "user-workflows"
+      status: "open"
+      priority: "critical"
+
+# STRUCTURED response (YAML object)
+response:
   decision:
     focus_type: "agenda"
     topic_id: "user-workflows"
     rationale: "Starting with critical topic"
-  context_files:
-    - "context-snapshot.yaml"
   question: "What are the primary user workflows?"
   exploration: "Are there other workflows we should consider?"
+  participant_context:
+    shared:
+      project_summary: "Holiday-themed arcade game..."
+      relevant_artifacts: []
   participants: "all"
 
 result:
-  valid: true
-  warnings: []
+  status: "closed"
+
+tokens:
+  input_estimate: 2500
+  output_estimate: 400
 ```
 
-### Participant Response Dump
+### Participant Response Dump (example)
 
 ```yaml
 round: 1
 phase: 2
 actor: "product-manager"
+action: "response"
+started_at: "2026-01-07T13:05:15Z"
+completed_at: "2026-01-07T13:05:28Z"
 
-timing:
-  started_at: "2026-01-07T13:05:15Z"
-  completed_at: "2026-01-07T13:05:28Z"
-  duration_ms: 13123
+input:
+  round: 1
+  question: "What are the primary user workflows?"
+  exploration: "Are there other workflows we should consider?"
+  context:
+    project_summary: "Holiday-themed arcade game..."
 
-tokens:
-  input: 1800
-  output: 450
-
-prompt: |
-  You are the Product Manager in a roundtable discussion.
-
-  === CONTEXT FILES ===
-  Read these files (DO NOT read other session files):
-  - .s2s/sessions/20260107-.../context-snapshot.yaml
-
-  === QUESTION ===
-  What are the primary user workflows?
-
-  === EXPLORATION ===
-  Are there other workflows we should consider?
-
-response: |
+response:
+  participant: "product-manager"
   position: "Four-phase workflow with zero-friction entry"
   rationale:
     - "Casual players expect instant start"
@@ -493,55 +481,43 @@ response: |
     - "Onboarding hint on first play"
 
 result:
-  valid: true
-  warnings: []
+  status: "closed"
+
+tokens:
+  input_estimate: 1800
+  output_estimate: 450
 ```
 
-### Facilitator Synthesis Dump
+### Facilitator Synthesis Dump (example)
 
 ```yaml
 round: 1
 phase: 3
 actor: "facilitator"
+action: "synthesis"
+started_at: "2026-01-07T13:06:00Z"
+completed_at: "2026-01-07T13:06:25Z"
 
-timing:
-  started_at: "2026-01-07T13:06:00Z"
-  completed_at: "2026-01-07T13:06:25Z"
-  duration_ms: 25678
-
-tokens:
-  input: 3500
-  output: 800
-
-prompt: |
-  === ROUND 1 RESPONSES ===
-  **Product Manager** (0.85): Four-phase workflow...
-  **Business Analyst** (0.80): Same four phases...
-  **QA Lead** (0.85): Four-phase with testing focus...
-
-  === ARTIFACT SUMMARY ===
-  (none yet)
-
-  === YOUR TASK ===
-  Synthesize and propose artifacts.
-
-response: |
+input:
   action: "synthesis"
+  round: 1
+  question_asked: "What are the primary user workflows?"
+  responses:
+    product-manager:
+      position: "Four-phase workflow..."
+      confidence: 0.85
+    business-analyst:
+      position: "Same four phases..."
+      confidence: 0.80
+
+response:
   synthesis: "Strong alignment on four-phase workflow..."
   proposed_artifacts:
     - type: "requirement"
       title: "Game Entry"
-      state: "approved"  # ADR-0010: single state field
+      state: "approved"
       description: "Zero-friction start"
-      acceptance:
-        - "One-tap start"
-    - type: "conflict"
-      title: "Mobile Input Method"
-      state: "in_progress"
-      positions:
-        product-manager: "Virtual joystick"
-        qa-lead: "Touch-drag"
-  artifacts_transitioned:  # ADR-0010: audit trail
+  artifacts_transitioned:
     - id: "REQ-001"
       from: "draft"
       to: "approved"
@@ -549,13 +525,20 @@ response: |
   agenda_update:
     topic_id: "user-workflows"
     new_status: "partial"
-    coverage_added: ["Core workflow phases"]
   next: "continue"
 
 result:
-  valid: true
-  warnings: []
-  artifacts_created: ["REQ-001", "CONF-001"]
+  artifacts_proposed: 1
+  status: "closed"
+
+tokens:
+  input_estimate: 3500
+  output_estimate: 800
+
+verification:
+  expected_artifacts:
+    - map: "artifacts.requirements"
+      expected_keys: ["REQ-001"]
 ```
 
 ---

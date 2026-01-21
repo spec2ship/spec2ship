@@ -474,20 +474,64 @@ For each `resolved_conflict`:
 
 ### Step 2.6: Update Session File
 
-Append round to `rounds[]`:
+Append round to `rounds[]` with full audit trail (per ADR-0010 and session-schema.md):
+
 ```yaml
-- number: {round_number + 1}
-  focus:
-    type: "{focus_type}"
-    topic_id: "{topic_id}"
-  artifacts_created: ["{new artifact IDs}"]
-  conflicts_resolved: ["{resolved conflict IDs}"]
-  next: "{next action}"
+rounds:
+  - round: {N}
+    timestamp: "{ISO timestamp}"
+    topic_id: "{focus topic_id}"
+
+    # Facilitator question (for audit)
+    facilitator_question: |
+      {the question asked}
+
+    # Synthesis summary (for audit)
+    synthesis_summary: |
+      {2-4 sentence synthesis from facilitator}
+
+    # Participant positions (condensed for audit)
+    participant_positions:
+      {participant-id}: |
+        {1-2 sentence position summary}
+      # ... all participants
+
+    # Key outcomes
+    key_decisions:
+      - "{decision 1}"
+      - "{decision 2}"
+    artifacts_created: ["{ID}", ...]
+    artifacts_transitioned:          # ADR-0010: round-level audit trail
+      - id: "{ID}"
+        from: "{previous_state}"
+        to: "{new_state}"
+        reason: "{reason for transition}"
+    resolved_conflicts:
+      - conflict_id: "{CONF-NNN}"
+        resolution: "{how resolved}"
+        method: "{consensus|facilitator|user_decision}"
+    resolved_questions:
+      - question_id: "{OQ-NNN}"
+        answer: "{the answer}"
+    consensus_reached: {true|false}
+    next_action: "{continue|conclude|escalate}"
 ```
 
 Update `agenda[]` status based on `agenda_update`.
 
-Update `metrics`.
+Update `metrics`:
+```yaml
+metrics:
+  rounds_completed: {N}
+  artifacts:
+    total: {count all keys in artifacts.*}
+    by_type: {type: count, ...}
+    by_state: {state: count, ...}
+  topics:
+    total: {count}
+    closed: {count closed}
+  consensus_rate: {consensus_reached rounds / total rounds}
+```
 
 ### Step 2.7: Display Round Recap
 
