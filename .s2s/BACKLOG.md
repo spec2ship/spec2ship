@@ -229,6 +229,69 @@ Compare with session file writes which use "YOU MUST use Edit tool **NOW**".
 
 ---
 
+### BUG-005: Participant verbose dumps missing full context
+
+**Status**: planned | **Created**: 2026-01-22 | **Priority**: high
+
+**Context**: Despite BUG-003 fix (SKILL.md now specifies inline `context`), the actual verbose dump files for participants (`{NNN}-02-{participant}.yaml`) only contain `input.question` but NOT the full `input.context` block with project_summary, relevant_artifacts, etc.
+
+**Observed behavior**:
+```yaml
+# Current dump (incomplete)
+input:
+  question: "What are the key requirements?"
+  # Missing: context block with project_summary, relevant_artifacts, etc.
+```
+
+**Expected behavior** (per verbose-dump-format.md):
+```yaml
+input:
+  question: "What are the key requirements?"
+  exploration: "Are there edge cases?"
+  context:
+    project_summary: |
+      {full project summary}
+    relevant_artifacts: [...]
+    open_conflicts: [...]
+    open_questions: [...]
+    recent_rounds: [...]
+```
+
+**Root cause** (confirmed 2026-01-22):
+The command dump template at specs.md:884-886 uses ambiguous placeholder:
+```yaml
+input:
+  question: "{the question}"
+  context: {... context sent ...}   # <-- This placeholder is not expanded
+```
+
+The executor doesn't know what to put in `{... context sent ...}`.
+Fix: Replace placeholder with explicit template matching verbose-dump-format.md.
+
+**Impact**:
+- CTX-* checks will fail (CTX-002, CTX-003)
+- Cannot verify context propagation from dumps
+- Resume from scratch cannot reconstruct what participants received
+
+**Affected files** (to investigate):
+- `commands/specs.md` (~line 871 participant dump section)
+- `commands/design.md` (equivalent section)
+- `commands/brainstorm.md` (equivalent section)
+
+**Tasks**:
+- [ ] Verify specs.md participant dump template includes full context
+- [ ] Verify design.md participant dump template includes full context
+- [ ] Verify brainstorm.md participant dump template includes full context
+- [ ] Test with --verbose and verify dump content
+
+**Acceptance criteria**:
+- [ ] Participant dumps include full `input.context` block
+- [ ] CTX-002 and CTX-003 checks pass on new sessions
+
+**Related**: BUG-003, BUG-004, TEST-003, CTX-*
+
+---
+
 ### FEAT-001: Decision propagation (workspace)
 
 **Status**: planned | **Created**: 2026-01-17 | **Depends on**: REQ-051
