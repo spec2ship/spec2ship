@@ -1,7 +1,7 @@
 ---
 description: Start or resume a roundtable discussion with AI expert participants. Use for technical decisions, architecture reviews, or requirements refinement.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Bash(grep:*), Read, Write, Edit, Glob, Task, AskUserQuestion
-argument-hint: "topic" [--strategy standard|disney|debate|consensus-driven|six-hats] [--participants list] [--workflow-type specs|design|brainstorm] [--output-type adr|requirements|architecture|summary] [--verbose] [--interactive] [--diagnostic] [--pro list] [--con list] [--new] [--session <id>]
+argument-hint: "topic" [--strategy standard|disney|debate|consensus-driven|six-hats] [--participants list] [--workflow-type specs|design|brainstorm] [--output-type adr|requirements|architecture|summary] [--verbose] [--interactive] [--diagnostic] [--tokens] [--pro list] [--con list] [--new] [--session <id>]
 skills: roundtable-execution, roundtable-strategies
 ---
 
@@ -44,10 +44,11 @@ Extract from $ARGUMENTS:
 - **--output-type**: Optional (adr|requirements|architecture|summary). Default: based on workflow
 - **--verbose**: Optional. Include full participant responses in session file
 - **--interactive**: Optional. Ask user after each round
+- **--tokens**: Optional. Enable token tracking and display per-round breakdown
 - **--new**: Optional. Force create new session (skip auto-detect)
 - **--session**: Optional. Resume specific session by ID
 
-**Boolean flags**: `--verbose`, `--interactive`, and `--diagnostic` → parse as `true` if present, `false` if absent.
+**Boolean flags**: `--verbose`, `--interactive`, `--diagnostic`, and `--tokens` → parse as `true` if present, `false` if absent.
 
 **IF --diagnostic is true**: Force `verbose_flag = true` (diagnostic mode requires verbose dumps for analysis).
 
@@ -319,6 +320,7 @@ Pass these values to the skill execution:
 - **verbose**: {verbose_flag}
 - **interactive**: {interactive_flag}
 - **diagnostic**: {diagnostic_flag}
+- **tokens**: {tokens_flag}
 
 ## Execute roundtable
 
@@ -357,6 +359,17 @@ Pass these values to the skill execution:
 - **Write session file per-round**: After Step 3.3, IMMEDIATELY write to session file using Write/Edit tool
 - **Display recap ALWAYS**: After Step 3.4, show round summary to terminal (not just interactive mode)
 - **If verbose=true**: Include full `responses[]` in session file round data
+
+**TOKEN TRACKING MODE (IF tokens_flag == true):**
+
+Read `skills/roundtable-execution/references/token-estimation.md` and follow the instructions:
+- **Before round 1**: Execute "Session Start" section
+- **At start of each round**: Execute "Per-Round Init" section
+- **After facilitator question**: Execute "Capture T1" section
+- **After participants**: Execute "Capture T2" section
+- **After synthesis**: Execute "Capture T3" section
+- **After each round**: Execute "Round Recap" section
+- **Before session completion**: Execute "Session Complete" section
 
 **DIAGNOSTIC MODE (IF diagnostic_flag == true):**
 
