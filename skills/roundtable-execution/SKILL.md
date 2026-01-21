@@ -244,6 +244,10 @@ AGENDA STATUS:
 ARTIFACTS: {count} requirements, {count} conflicts, {count} open questions
 ```
 
+**IF tokens_flag AND round_number == 0**: Read `references/token-estimation.md` → Execute "Session Start" section
+
+**IF tokens_flag**: Read `references/token-estimation.md` → Execute "Per-Round Init" section
+
 ### Step 2.2: Facilitator Question
 
 **Use the roundtable-facilitator agent** with this input:
@@ -341,6 +345,8 @@ participant_context:
 
 **IF --verbose**: Write dump file `rounds/{NNN}-01-facilitator-question.yaml` (see `references/verbose-dump-format.md` for naming and content format)
 
+**IF tokens_flag**: Read `references/token-estimation.md` → Execute "Capture T1" section
+
 ### Step 2.3: Participant Responses (PARALLEL)
 
 **Launch ALL participant agents in SINGLE message** for blind voting.
@@ -418,6 +424,8 @@ references:
 **Store responses** in `participant_responses[]`
 
 **IF --verbose**: Write dump files `rounds/{NNN}-02-{participant-id}.yaml` for each
+
+**IF tokens_flag**: Read `references/token-estimation.md` → Execute "Capture T2" section
 
 ### Step 2.4: Facilitator Synthesis
 
@@ -518,6 +526,8 @@ escalation_reason: null
 **Parse response**: Extract `synthesis`, `proposed_artifacts`, `resolved_conflicts`, `agenda_update`, `next`, `next_focus`
 
 **IF --verbose**: Write dump file `rounds/{NNN}-03-facilitator-synthesis.yaml`
+
+**IF tokens_flag**: Read `references/token-estimation.md` → Execute "Capture T3" section, then "Round Recap" section
 
 ### Step 2.5: Process Artifacts
 
@@ -686,6 +696,8 @@ After each major step (2.2, 2.3, 2.4, 2.5), verify correct execution using the c
 
 ## PHASE 3: Completion
 
+**IF tokens_flag**: Read `references/token-estimation.md` → Execute "Session Complete" section
+
 ### Step 3.1: Update Session Status
 
 ```yaml
@@ -728,6 +740,7 @@ The output-generation skill handles:
 | `references/verbose-dump-format.md` | Verbose dump file naming and content |
 | `references/definition-of-done.md` | Step validation checklist |
 | `references/diagnostic.md` | Diagnostic mode (triggered by commands with `--diagnostic`) |
+| `references/token-estimation.md` | Token tracking mode (triggered by commands with `--tokens`) |
 
 ---
 
