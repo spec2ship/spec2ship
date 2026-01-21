@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-01-20
+**Updated**: 2026-01-21
 **Format**: Work items for active development
 
 ---
@@ -76,7 +76,7 @@ commands/dev/test.md         # /s2s:dev:test
 
 ### TEST-003: Session resilience verification
 
-**Status**: in_progress | **Created**: 2026-01-18 | **Updated**: 2026-01-20 | **Linked to**: TECH-002 Phase 0
+**Status**: in_progress | **Created**: 2026-01-18 | **Updated**: 2026-01-21 | **Linked to**: TECH-002 Phase 0, BUG-003
 
 **Context**: Roundtable sessions can be interrupted at various points. Need verification that resume works correctly.
 
@@ -85,14 +85,14 @@ commands/dev/test.md         # /s2s:dev:test
 **Tasks**:
 - [ ] Align roundtable.md resume logic with inline commands
 - [ ] Add TRANS-* checks to session-qa (state transitions)
-- [ ] Add CTX-* checks to session-qa (context propagation)
+- [~] Add CTX-* checks to session-qa (context propagation) - BUG-003 fixed SKILL.md context format
 - [ ] Enhance error-handling.md with mid-write recovery
 - [ ] Run manual end-to-end resume tests (partial: environment verified)
 - [x] Create `skills/dev-testing/references/roundtable-tests.md` (for TECH-002)
 
 **Acceptance criteria**:
 - [ ] Resume works from all 7 critical interruption points
-- [ ] STR-*, TRANS-*, CTX-* checks in session-qa
+- [~] STR-*, TRANS-*, CTX-* checks in session-qa (CTX format fixed via BUG-003)
 - [x] Baseline tests documented for TECH-002
 
 ---
@@ -159,6 +159,32 @@ Error: No transcript found for agent ID: aaf0f99
 **Acceptance criteria**:
 - [ ] All threshold values aligned to 0.6
 - [ ] Exact 2/3 votes pass consensus check
+
+---
+
+### BUG-003: SKILL.md uses context_files instead of inline context
+
+**Status**: completed | **Created**: 2026-01-21 | **Completed**: 2026-01-21 | **Priority**: critical
+
+**Context**: SKILL.md Step 2.2 and 2.3 used `context_files` pattern (file paths) instead of inline `context`. Participants have `tools: []` and cannot read files, so this broke context propagation.
+
+**Root cause**: SKILL.md had outdated instructions from an earlier design. The specs.md, design.md, brainstorm.md commands had correct inline context passing, but roundtable.md relies on SKILL.md.
+
+**Impact**:
+- Participants received file paths they couldn't read
+- Context not propagated correctly in roundtable.md sessions
+- Session resume from scratch would fail to provide adequate context
+
+**Fix applied** (2026-01-21):
+1. Step 2.2: Changed facilitator response from `context_files` to `participant_context` block
+2. Step 2.2: Added `project_context` and `session_state` to facilitator input
+3. Step 2.3: Changed participant input from `context_files` to inline `context` block
+4. Added explicit comments about participants having NO tools
+
+**Files modified**:
+- `skills/roundtable-execution/SKILL.md`
+
+**Related**: TEST-003 (context propagation checks)
 
 ---
 

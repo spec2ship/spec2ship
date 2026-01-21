@@ -266,6 +266,28 @@ escalation_config:
 # Consensus rules for current strategy (ADR-0010)
 consensus: "{from config-snapshot.yaml: consensus}"
 
+# Project context (from context-snapshot.yaml)
+project_context:
+  name: "{project name}"
+  description: "{project description}"
+  domain: "{domain}"
+  tech_stack: ["{tech}"]
+  constraints: ["{constraint}"]
+
+# Current session state (from session file - FULL content for context building)
+# Facilitator uses this to build participant_context
+session_state:
+  artifacts:
+    requirements: [{id, title, state, description, acceptance, ...}]
+    conflicts: [{id, title, state, positions, ...}]
+    open_questions: [{id, title, state, description, ...}]
+    # ... all artifact types with FULL content
+  rounds:
+    - round: {N}
+      focus: "{topic_id}"
+      synthesis: "{synthesis text}"
+    # ... previous rounds
+
 agenda:
   - id: "{topic_id}"
     title: "{topic title}"
@@ -276,10 +298,10 @@ agenda:
       min_requirements: {N}
   # ... more topics from agenda.yaml
 
-open_conflicts: []  # list of {id, description, rounds_persisted}
-open_questions: []  # list of {id, description, blocking_topic}
-artifacts_count: {count from session file}
-previous_synthesis: "{synthesis from last round or null}"
+participants:
+  - "{participant-1}"
+  - "{participant-2}"
+  # ... configured participants
 ```
 
 The facilitator will return:
@@ -292,10 +314,30 @@ decision:
 question: "{the question for participants}"
 exploration: "{exploration prompt}"
 participants: "all"  # or list of specific participants
-context_files: ["context-snapshot.yaml", ...]
+
+# PARTICIPANT CONTEXT - Ready to use by command
+# Command passes this directly to participants (they have NO tools)
+participant_context:
+  shared:
+    project_summary: |
+      {Condensed project info from context-snapshot.yaml}
+    relevant_artifacts:
+      - id: "{ID}"
+        title: "{title}"
+        state: "{state}"
+        description: |
+          {FULL description - not truncated}
+        # ... all fields of each artifact
+    open_conflicts: [...]    # Full content, not just IDs
+    open_questions: [...]    # Full content, not just IDs
+    recent_rounds:
+      - round: {N}
+        synthesis: |
+          {FULL synthesis text}
+  overrides: null  # or per-participant directives for debate/six-hats
 ```
 
-**Parse response**: Extract `decision`, `context_files`, `question`, `exploration`, `participants`
+**Parse response**: Extract `decision`, `participant_context`, `question`, `exploration`, `participants`
 
 **IF --verbose**: Write dump file `rounds/{NNN}-01-facilitator-question.yaml` (see `references/verbose-dump-format.md` for naming and content format)
 
@@ -315,9 +357,33 @@ question: "{facilitator's question}"
 
 exploration: "{facilitator's exploration prompt}"
 
-context_files:
-  - "{session_folder}/context-snapshot.yaml"
-  # ... other files from facilitator's context_files
+# CRITICAL: Participants have tools: [] - they CANNOT read files
+# ALL context MUST be provided inline
+# Copy VERBATIM from participant_context.shared - do NOT summarize
+context:
+  project_summary: |
+    {COPY from participant_context.shared.project_summary}
+
+  relevant_artifacts:
+    # For EACH artifact: copy ALL fields (id, title, state, description, etc.)
+    - id: "{ID}"
+      title: "{title}"
+      state: "{state}"
+      description: |
+        {FULL description - do NOT truncate}
+      # ... copy ALL other fields present
+
+  open_conflicts:
+    # Copy from participant_context.shared.open_conflicts with ALL fields
+
+  open_questions:
+    # Copy from participant_context.shared.open_questions with ALL fields
+
+  recent_rounds:
+    # Copy from participant_context.shared.recent_rounds with FULL synthesis
+    - round: {N}
+      synthesis: |
+        {FULL synthesis text - do NOT truncate}
 ```
 
 Each participant will return:
