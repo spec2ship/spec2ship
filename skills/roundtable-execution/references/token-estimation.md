@@ -5,6 +5,37 @@ Only read this file when `--tokens` flag is passed.
 
 ---
 
+## Script Location (execute ONCE at session start)
+
+**Determine script path before any token tracking:**
+
+```bash
+# Find the token tracking script
+if [ -n "${CLAUDE_PLUGIN_ROOT}" ]; then
+  S2S_SCRIPT="${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/s2s-round-baseline.sh"
+else
+  # Fallback: search in common locations
+  S2S_SCRIPT=$(find ~/.claude/plugins -name "s2s-round-baseline.sh" 2>/dev/null | head -1)
+  if [ -z "$S2S_SCRIPT" ]; then
+    # Try local dev paths
+    for dir in ~/Work /c/Users/*/Work /Users/*/Work; do
+      found=$(find "$dir" -path "*/spec2ship/skills/roundtable-execution/scripts/s2s-round-baseline.sh" 2>/dev/null | head -1)
+      [ -n "$found" ] && S2S_SCRIPT="$found" && break
+    done 2>/dev/null
+  fi
+fi
+export S2S_SCRIPT
+echo "S2S_SCRIPT=$S2S_SCRIPT"
+```
+
+**IF** `$S2S_SCRIPT` is empty or file not found:
+- Display warning: "Token tracking script not found. Skipping token tracking."
+- Skip all token tracking steps below and proceed with roundtable normally.
+
+**IF** script found: Continue with token tracking.
+
+---
+
 ## Session Start (before first round)
 
 **Execute this ONCE at the beginning of the roundtable session.**
@@ -12,7 +43,7 @@ Only read this file when `--tokens` flag is passed.
 Run the following bash command:
 
 ```bash
-eval $(bash "${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/s2s-round-baseline.sh" init "{session-id}" {rounds_completed})
+eval $(bash "$S2S_SCRIPT" init "{session-id}" {rounds_completed})
 ```
 
 Substitute:
@@ -45,7 +76,7 @@ Substitute:
 For rounds after the first, re-initialize to get fresh estimate:
 
 ```bash
-eval $(bash "${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/s2s-round-baseline.sh" init "{session-id}" {rounds_completed})
+eval $(bash "$S2S_SCRIPT" init "{session-id}" {rounds_completed})
 ```
 
 **Display token estimate** (same format as Session Start).
@@ -57,7 +88,7 @@ eval $(bash "${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/s2s-round
 **Execute IMMEDIATELY after receiving facilitator's question response.**
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/s2s-round-baseline.sh" capture T1
+bash "$S2S_SCRIPT" capture T1
 ```
 
 ---
@@ -67,7 +98,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/s2s-round-baseli
 **Execute IMMEDIATELY after ALL participant responses are received.**
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/s2s-round-baseline.sh" capture T2
+bash "$S2S_SCRIPT" capture T2
 ```
 
 ---
@@ -77,7 +108,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/s2s-round-baseli
 **Execute IMMEDIATELY after receiving facilitator's synthesis response.**
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/s2s-round-baseline.sh" capture T3
+bash "$S2S_SCRIPT" capture T3
 ```
 
 ---
@@ -89,7 +120,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/s2s-round-baseli
 Run the following bash command:
 
 ```bash
-eval $(bash "${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/s2s-round-baseline.sh" recap "{session-id}" {participant_count})
+eval $(bash "$S2S_SCRIPT" recap "{session-id}" {participant_count})
 ```
 
 Substitute:
@@ -125,7 +156,7 @@ Substitute:
 First, get final session summary:
 
 ```bash
-eval $(bash "${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/s2s-round-baseline.sh" summary)
+eval $(bash "$S2S_SCRIPT" summary)
 ```
 
 **Display SESSION SUMMARY box:**
@@ -143,7 +174,7 @@ eval $(bash "${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/s2s-round
 Then cleanup:
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/s2s-round-baseline.sh" cleanup
+bash "$S2S_SCRIPT" cleanup
 ```
 
 This removes the temporary cache file.
