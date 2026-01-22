@@ -529,6 +529,8 @@ escalation_reason: null
 
 **IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-estimation.md` → Execute "Capture T3" section, then "Round Recap" section
 
+**IF diagnostic_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/diagnostic.md` → Execute "Per-Round Diagnostic" section
+
 ### Step 2.5: Process Artifacts
 
 For each `proposed_artifact`:
@@ -696,6 +698,8 @@ After each major step (2.2, 2.3, 2.4, 2.5), verify correct execution using the c
 
 ## PHASE 3: Completion
 
+**IF diagnostic_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/diagnostic.md` → Execute "End-Session Diagnostic Report" section
+
 **IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-estimation.md` → Execute "Session Complete" section
 
 ### Step 3.1: Update Session Status
@@ -739,9 +743,9 @@ The output-generation skill handles:
 | `references/workspace-scope.md` | Workspace/component scope handling |
 | `references/verbose-dump-format.md` | Verbose dump file naming and content |
 | `references/definition-of-done.md` | Step validation checklist |
-| `references/diagnostic.md` | Diagnostic mode (triggered by commands with `--diagnostic`) |
-| `references/token-estimation.md` | Token tracking mode (triggered by commands with `--tokens`) |
+| `references/diagnostic.md` | Diagnostic mode (hooks at Step 2.4 and PHASE 3) |
+| `references/token-estimation.md` | Token tracking mode (hooks at Steps 2.1-2.4 and PHASE 3) |
 
 ---
 
-*Referenced by: specs.md, design.md, brainstorm.md*
+*Referenced by: specs.md, design.md, brainstorm.md, roundtable.md*

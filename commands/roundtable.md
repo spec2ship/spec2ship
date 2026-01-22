@@ -359,9 +359,3 @@ Pass these values to the skill execution:
 - **Write session file per-round**: After Step 3.3, IMMEDIATELY write to session file using Write/Edit tool
 - **Display recap ALWAYS**: After Step 3.4, show round summary to terminal (not just interactive mode)
 - **If verbose=true**: Include full `responses[]` in session file round data
-
-**DIAGNOSTIC MODE (IF diagnostic_flag == true):**
-
-Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/diagnostic.md` and follow the instructions:
-- **After each round synthesis**: Execute "Per-Round Diagnostic" section
-- **Before session completion**: Execute "End-Session Diagnostic Report" section
