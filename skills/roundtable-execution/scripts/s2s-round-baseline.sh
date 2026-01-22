@@ -78,7 +78,7 @@ find_jsonl_file() {
         cwd_encoded="${drive_letter}--${rest_path}"
     else
         # Unix: /home/user/project -> -home-user-project
-        cwd_encoded=$(echo "$raw_cwd" | tr '/' '-' | sed 's/^-//; s/_/-/g')
+        cwd_encoded=$(echo "$raw_cwd" | tr '/' '-' | sed 's/_/-/g')
     fi
 
     local jsonl_dir="$HOME/.claude/projects/${cwd_encoded}"
