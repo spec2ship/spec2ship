@@ -71,9 +71,12 @@ find_jsonl_file() {
     local raw_cwd=$(pwd)
     local cwd_encoded
 
-    if [[ "$raw_cwd" =~ ^/([a-zA-Z])/ ]]; then
+    # Check if Windows Git Bash path: /c/Users/... or /d/Work/...
+    local drive_letter=$(echo "$raw_cwd" | sed -n 's|^/\([a-zA-Z]\)/.*|\1|p')
+
+    if [[ -n "$drive_letter" ]]; then
         # Git Bash on Windows: /c/Users/... -> C--Users-...
-        local drive_letter=$(echo "${BASH_REMATCH[1]}" | tr '[:lower:]' '[:upper:]')
+        drive_letter=$(echo "$drive_letter" | tr '[:lower:]' '[:upper:]')
         local rest_path=$(echo "$raw_cwd" | sed 's|^/[a-zA-Z]/||; s|/|-|g; s|_|-|g')
         cwd_encoded="${drive_letter}--${rest_path}"
     else
