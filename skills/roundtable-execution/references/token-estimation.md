@@ -14,15 +14,13 @@ Only read this file when `--tokens` flag is passed.
 if [ -n "${CLAUDE_PLUGIN_ROOT}" ]; then
   S2S_SCRIPT="${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/s2s-round-baseline.sh"
 else
-  # Fallback: search in common locations
-  S2S_SCRIPT=$(find ~/.claude/plugins -name "s2s-round-baseline.sh" 2>/dev/null | head -1)
-  if [ -z "$S2S_SCRIPT" ]; then
-    # Try local dev paths
-    for dir in ~/Work /c/Users/*/Work /Users/*/Work; do
-      found=$(find "$dir" -path "*/spec2ship/skills/roundtable-execution/scripts/s2s-round-baseline.sh" 2>/dev/null | head -1)
-      [ -n "$found" ] && S2S_SCRIPT="$found" && break
-    done 2>/dev/null
-  fi
+  # Fallback: search in Claude plugins directory
+  S2S_SCRIPT=$(find "$HOME/.claude/plugins" -name "s2s-round-baseline.sh" 2>/dev/null | head -1)
+fi
+
+# Verify script exists
+if [ ! -f "$S2S_SCRIPT" ]; then
+  S2S_SCRIPT=""
 fi
 export S2S_SCRIPT
 echo "S2S_SCRIPT=$S2S_SCRIPT"
