@@ -436,6 +436,35 @@ Reference files listed in a skill's reference table are **NOT automatically load
 
 **Verified**: 2026-01-21 - Fixed roundtable.md, specs.md, design.md diagnostic/agenda references
 
+### Optional Feature Hooks Pattern
+
+Optional features (like `--diagnostic`, `--tokens`, `--verbose`) should be activated via **hooks in the skill**, not in commands.
+
+**Why hooks in SKILL.md (not in commands):**
+- Single source of truth for execution flow
+- Reusable across all commands that include the skill
+- Hooks are placed at exact execution points (after synthesis, before completion, etc.)
+
+**Pattern:**
+```markdown
+**IF {flag}**: Read `${CLAUDE_PLUGIN_ROOT}/skills/.../references/{feature}.md` → Execute "{section}" section
+```
+
+**Command responsibility:**
+- Parse the flag (e.g., `--diagnostic`)
+- Pass it to skill via parameters (e.g., `diagnostic: {diagnostic_flag}`)
+- Do NOT duplicate activation logic
+
+**Example** (roundtable-execution SKILL.md):
+```markdown
+### Step 2.4: Facilitator Synthesis
+...
+**IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/.../token-estimation.md` → Execute "Capture T3" section
+**IF diagnostic_flag**: Read `${CLAUDE_PLUGIN_ROOT}/.../diagnostic.md` → Execute "Per-Round Diagnostic" section
+```
+
+**Verified**: 2026-01-22 - Aligned --tokens and --diagnostic in roundtable-execution SKILL.md
+
 ---
 
 ## Session File Management
