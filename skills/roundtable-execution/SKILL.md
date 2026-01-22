@@ -244,9 +244,9 @@ AGENDA STATUS:
 ARTIFACTS: {count} requirements, {count} conflicts, {count} open questions
 ```
 
-**IF tokens_flag AND round_number == 0**: Read `references/token-estimation.md` → Execute "Script Location" section, then "Session Start" section
+**IF tokens_flag AND round_number == 0**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-estimation.md` → Execute "Script Location" section, then "Session Start" section
 
-**IF tokens_flag**: Read `references/token-estimation.md` → Execute "Per-Round Init" section
+**IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-estimation.md` → Execute "Per-Round Init" section
 
 ### Step 2.2: Facilitator Question
 
@@ -345,7 +345,7 @@ participant_context:
 
 **IF --verbose**: Write dump file `rounds/{NNN}-01-facilitator-question.yaml` (see `references/verbose-dump-format.md` for naming and content format)
 
-**IF tokens_flag**: Read `references/token-estimation.md` → Execute "Capture T1" section
+**IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-estimation.md` → Execute "Capture T1" section
 
 ### Step 2.3: Participant Responses (PARALLEL)
 
@@ -425,7 +425,7 @@ references:
 
 **IF --verbose**: Write dump files `rounds/{NNN}-02-{participant-id}.yaml` for each
 
-**IF tokens_flag**: Read `references/token-estimation.md` → Execute "Capture T2" section
+**IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-estimation.md` → Execute "Capture T2" section
 
 ### Step 2.4: Facilitator Synthesis
 
@@ -527,7 +527,7 @@ escalation_reason: null
 
 **IF --verbose**: Write dump file `rounds/{NNN}-03-facilitator-synthesis.yaml`
 
-**IF tokens_flag**: Read `references/token-estimation.md` → Execute "Capture T3" section, then "Round Recap" section
+**IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-estimation.md` → Execute "Capture T3" section, then "Round Recap" section
 
 ### Step 2.5: Process Artifacts
 
@@ -696,7 +696,7 @@ After each major step (2.2, 2.3, 2.4, 2.5), verify correct execution using the c
 
 ## PHASE 3: Completion
 
-**IF tokens_flag**: Read `references/token-estimation.md` → Execute "Session Complete" section
+**IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-estimation.md` → Execute "Session Complete" section
 
 ### Step 3.1: Update Session Status
 
