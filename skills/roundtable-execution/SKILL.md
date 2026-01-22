@@ -244,7 +244,7 @@ AGENDA STATUS:
 ARTIFACTS: {count} requirements, {count} conflicts, {count} open questions
 ```
 
-**IF tokens_flag AND round_number == 0**: Read `references/token-estimation.md` → Execute "Session Start" section
+**IF tokens_flag AND round_number == 0**: Read `references/token-estimation.md` → Execute "Script Location" section, then "Session Start" section
 
 **IF tokens_flag**: Read `references/token-estimation.md` → Execute "Per-Round Init" section
 
