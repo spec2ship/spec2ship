@@ -428,10 +428,10 @@ Fix: Replace placeholder with explicit template matching verbose-dump-format.md.
 - Centralized execution logic
 - Easier maintenance
 
-**Current state** (2026-01-21):
+**Current state** (2026-01-23):
 - Branch: `feature/TECH-002-roundtable-unification`
-- Ready to push: 4 commits (output-generation skill, command refactor, format fixes, docs)
-- Next action: Test Phase 1 output, then push
+- Token tracker v2.2.0 pushed (session isolation, statusline integration)
+- Next action: Test Phase 1 output, then continue with Phase 2
 
 ---
 
@@ -485,6 +485,7 @@ Fix: Replace placeholder with explicit template matching verbose-dump-format.md.
 
 | ID | Description | Completed |
 |----|-------------|-----------|
+| TECH-004 | Token tracker v2.2.0 - session isolation + statusline | 2026-01-23 |
 | FLOW-001 | Ideas and artifact traceability | 2026-01-19 |
 | TEST-002 | Progressive disclosure for diagnostic | 2026-01-18 |
 | WORK-002 | Roundtable scope awareness | 2026-01-17 |
