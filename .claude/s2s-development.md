@@ -459,7 +459,7 @@ Optional features (like `--diagnostic`, `--tokens`, `--verbose`) should be activ
 ```markdown
 ### Step 2.4: Facilitator Synthesis
 ...
-**IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/.../token-estimation.md` → Execute "Capture T3" section
+**IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/.../token-tracking.md` → Execute "Capture T3" section
 **IF diagnostic_flag**: Read `${CLAUDE_PLUGIN_ROOT}/.../diagnostic.md` → Execute "Per-Round Diagnostic" section
 ```
 

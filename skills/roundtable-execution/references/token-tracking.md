@@ -1,0 +1,138 @@
+# Token Tracking Instructions
+
+Only read this file when `--tokens` flag is passed.
+
+---
+
+## Script Location (execute ONCE at session start)
+
+Script path:
+```
+${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/token-tracker.sh
+```
+
+Store as `TOKEN_SCRIPT`. Verify exists:
+```bash
+[ -f "<TOKEN_SCRIPT>" ] && echo "Script found" || echo "Script NOT found"
+```
+
+If not found: skip all token tracking, proceed normally.
+
+---
+
+## Session Start (before first round)
+
+```bash
+eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed})
+```
+
+Display:
+```
+┌─────────────────────────────────────────────────────────────┐
+│ CONTEXT STATUS (Initial)                                    │
+├─────────────────────────────────────────────────────────────┤
+│ Current usage:     {CURRENT_K}k tokens ({CURRENT_PCT}%)     │
+│ Available:         ~{AVAILABLE_K}k tokens remaining         │
+│ Status:            {PROGRESS_BAR} [{CONTEXT_STATUS}]        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Per-Round Init (Step 2.1)
+
+```bash
+eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed})
+```
+
+Display (for round > 1, include orchestrator gap if > 0):
+```
+┌─────────────────────────────────────────────────────────────┐
+│ CONTEXT STATUS (Round {round_number} Start)                 │
+├─────────────────────────────────────────────────────────────┤
+│ Current usage:     {CURRENT_K}k tokens ({CURRENT_PCT}%)     │
+│ ~Orchestrator:     ~{ORCHESTRATOR_GAP_K}k (since last round)│
+│ Available:         ~{AVAILABLE_K}k tokens remaining         │
+│ Status:            {PROGRESS_BAR} [{CONTEXT_STATUS}]        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Capture T1 (after facilitator question - Step 2.2)
+
+```bash
+bash "<TOKEN_SCRIPT>" capture "{session-id}" T1
+```
+
+---
+
+## Capture T2 (after participants - Step 2.3)
+
+```bash
+bash "<TOKEN_SCRIPT>" capture "{session-id}" T2
+```
+
+---
+
+## Capture T3 (after synthesis - Step 2.4)
+
+```bash
+bash "<TOKEN_SCRIPT>" capture "{session-id}" T3
+```
+
+---
+
+## Round Recap (Step 2.7)
+
+```bash
+eval $(bash "<TOKEN_SCRIPT>" recap "{session-id}" {participant_count})
+```
+
+Display:
+```
+┌─────────────────────────────────────────────────────────────┐
+│ TOKEN BREAKDOWN (Round {round_number})                      │
+├─────────────────────────────────────────────────────────────┤
+│ Facilitator (question):     {QUESTION_K}k tokens            │
+│ Participants ({PARTICIPANT_COUNT}): {PARTICIPANTS_K}k tokens ({PARTICIPANT_AVG_K}k avg) │
+│ Facilitator (synthesis):    {SYNTHESIS_K}k tokens           │
+│ ─────────────────────────────────────────────────────────── │
+│ Round subagents:            {ROUND_DELTA_K}k tokens         │
+│ ~Orchestrator gap:          ~{ORCHESTRATOR_GAP_K}k tokens   │
+│ ─────────────────────────────────────────────────────────── │
+│ Rounds total (accum):       {ROUNDS_ACCUM_K}k tokens        │
+│ Context total:              {ROUND_END_K}k tokens           │
+│ Context usage:              {CONTEXT_PCT}% {PROGRESS_BAR} [{CONTEXT_STATUS}] │
+└─────────────────────────────────────────────────────────────┘
+```
+
+`~` prefix = estimated value.
+
+---
+
+## Session Complete (Step 3.1)
+
+```bash
+eval $(bash "<TOKEN_SCRIPT>" summary "{session-id}")
+```
+
+Display:
+```
+┌─────────────────────────────────────────────────────────────┐
+│ SESSION TOKEN SUMMARY                                       │
+├─────────────────────────────────────────────────────────────┤
+│ Session start:     {SESSION_START_K}k tokens                │
+│ Session consumed:  {SESSION_CONSUMED_K}k tokens             │
+│   ├─ Subagents:    {ROUNDS_TOTAL_K}k tokens (measured)      │
+│   └─ ~Orchestrator: ~{ORCHESTRATOR_ESTIMATED_K}k (estimated)│
+│ ─────────────────────────────────────────────────────────── │
+│ Final total:       {FINAL_TOTAL_K}k tokens ({CONTEXT_PCT}%) │
+│ Context status:    {PROGRESS_BAR} [{CONTEXT_STATUS}]        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+Cleanup:
+```bash
+bash "<TOKEN_SCRIPT>" cleanup "{session-id}"
+```
