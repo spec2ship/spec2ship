@@ -26,10 +26,10 @@ If not found: skip all token tracking, proceed normally.
 eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed})
 ```
 
-Display:
+**Print this box to the user** (substitute variables from eval):
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ CONTEXT STATUS (Initial)                                    │
+│ CONTEXT STATUS (Initial)                      [{CONTEXT_SOURCE}] │
 ├─────────────────────────────────────────────────────────────┤
 │ Current usage:     {CURRENT_K}k tokens ({CURRENT_PCT}%)     │
 │ Available:         ~{AVAILABLE_K}k tokens remaining         │
@@ -45,10 +45,10 @@ Display:
 eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed})
 ```
 
-Display (for round > 1, include orchestrator gap if > 0):
+**Print this box to the user** (for round > 1, include orchestrator gap if > 0):
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ CONTEXT STATUS (Round {round_number} Start)                 │
+│ CONTEXT STATUS (Round {round_number} Start)   [{CONTEXT_SOURCE}] │
 ├─────────────────────────────────────────────────────────────┤
 │ Current usage:     {CURRENT_K}k tokens ({CURRENT_PCT}%)     │
 │ ~Orchestrator:     ~{ORCHESTRATOR_GAP_K}k (since last round)│
@@ -89,10 +89,10 @@ bash "<TOKEN_SCRIPT>" capture "{session-id}" T3
 eval $(bash "<TOKEN_SCRIPT>" recap "{session-id}" {participant_count})
 ```
 
-Display:
+**Print this box to the user** (substitute variables from eval):
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ TOKEN BREAKDOWN (Round {round_number})                      │
+│ TOKEN BREAKDOWN (Round {round_number})        [{CONTEXT_SOURCE}] │
 ├─────────────────────────────────────────────────────────────┤
 │ Facilitator (question):     {QUESTION_K}k tokens            │
 │ Participants ({PARTICIPANT_COUNT}): {PARTICIPANTS_K}k tokens ({PARTICIPANT_AVG_K}k avg) │
@@ -117,10 +117,10 @@ Display:
 eval $(bash "<TOKEN_SCRIPT>" summary "{session-id}")
 ```
 
-Display:
+**Print this box to the user** (substitute variables from eval):
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ SESSION TOKEN SUMMARY                                       │
+│ SESSION TOKEN SUMMARY                         [{CONTEXT_SOURCE}] │
 ├─────────────────────────────────────────────────────────────┤
 │ Session start:     {SESSION_START_K}k tokens                │
 │ Session consumed:  {SESSION_CONSUMED_K}k tokens             │

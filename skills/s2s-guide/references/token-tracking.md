@@ -19,6 +19,8 @@ Token tracking v2.1+ uses Claude Code's statusline feature for accurate context 
 
 ### Installation steps
 
+#### Linux / macOS
+
 1. **Create statusline script** at `~/.claude/statusline-command.sh`:
 
 ```bash
@@ -44,7 +46,43 @@ echo "$MODEL"
 }
 ```
 
-3. **Verify** by running any command and checking:
+#### Windows
+
+On Windows, Claude Code doesn't execute `.sh` scripts via bash. Use PowerShell instead.
+
+1. **Create statusline script** at `~/.claude/statusline-command.ps1`:
+
+```powershell
+$input_data = $input | Out-String
+$json = $input_data | ConvertFrom-Json -ErrorAction SilentlyContinue
+
+if ($json.context_window) {
+    $json.context_window | ConvertTo-Json -Compress | Out-File -FilePath "$env:USERPROFILE\.claude\cache\context-window.json" -Encoding UTF8 -NoNewline
+}
+
+if ($json.model.display_name) {
+    Write-Output $json.model.display_name
+} else {
+    Write-Output "Claude"
+}
+```
+
+2. **Enable statusline** in `~/.claude/settings.json`:
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "powershell -ExecutionPolicy Bypass -File C:/Users/YOUR_USERNAME/.claude/statusline-command.ps1"
+  }
+}
+```
+
+**Note:** Replace `YOUR_USERNAME` with your actual Windows username.
+
+#### Verify installation
+
+Run any Claude Code command and check:
 ```bash
 cat ~/.claude/cache/context-window.json
 ```

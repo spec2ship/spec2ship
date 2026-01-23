@@ -107,7 +107,8 @@ get_cost_from_jsonl() {
 get_tokens_from_statusline() {
     if [[ -f "$CONTEXT_WINDOW_FILE" ]]; then
         # Check file age (should be recent - within last 60 seconds)
-        local file_age=$(($(date +%s) - $(stat -f %m "$CONTEXT_WINDOW_FILE" 2>/dev/null || stat -c %Y "$CONTEXT_WINDOW_FILE" 2>/dev/null || echo 0)))
+        # Using date -r for cross-platform compatibility (works on macOS, Linux, Git Bash)
+        local file_age=$(($(date +%s) - $(date -r "$CONTEXT_WINDOW_FILE" +%s 2>/dev/null || stat -c %Y "$CONTEXT_WINDOW_FILE" 2>/dev/null || echo 0)))
 
         if [[ $file_age -lt 60 ]]; then
             # Read total_input_tokens + total_output_tokens from statusline data
@@ -407,6 +408,8 @@ EOF
         # New: orchestrator gap before this round and running total
         echo "ORCHESTRATOR_GAP_K=${ORCH_GAP_K}"
         echo "ROUNDS_ACCUM_K=${ROUNDS_ACCUM_K}"
+        # Data source indicator
+        echo "CONTEXT_SOURCE=${contextSource:-jsonl}"
         ;;
 
     summary)
@@ -470,6 +473,8 @@ EOF
         echo "CONTEXT_PCT=${CONTEXT_PCT}"
         echo "CONTEXT_STATUS=${CONTEXT_STATUS}"
         echo "PROGRESS_BAR=${PROGRESS_BAR}"
+        # Data source indicator
+        echo "CONTEXT_SOURCE=${contextSource:-jsonl}"
         ;;
 
     cleanup)
