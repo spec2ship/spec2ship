@@ -91,7 +91,9 @@ Should show context_window data with `total_input_tokens`, `used_percentage`, et
 
 ### Fallback behavior
 
-If statusline is not configured, token-tracker.sh falls back to JSONL parsing. The output will show `CONTEXT_SOURCE=jsonl` (less accurate) instead of `CONTEXT_SOURCE=statusline` (accurate).
+If statusline is not configured (file doesn't exist or contains invalid JSON), token-tracker.sh falls back to JSONL parsing. The output will show `CONTEXT_SOURCE=jsonl` (less accurate, may be stale after /compact) instead of `CONTEXT_SOURCE=statusline` (accurate).
+
+**Anti-pattern: file age check**. Do NOT add "freshness" checks based on file age. Claude Code updates the file after each response, so at session start the file may be minutes/hours old but still valid. Delta calculations (T1-T0, T2-T1) are accurate regardless of initial file age.
 
 ---
 
@@ -251,15 +253,6 @@ Version 2.2.0 adds session isolation for parallel execution:
 - Each roundtable session uses its own cache file: `s2s-token-tracker-{session-id}.txt`
 - Multiple roundtables can run in different terminals without interference
 - The `context-window.json` file is shared but read timing minimizes collision risk
-
-## Version History
-
-| Version | Changes |
-|---------|---------|
-| 2.2.0 | Session-specific cache files for parallel execution support |
-| 2.1.0 | Statusline integration for accurate context tracking |
-| 2.0.0 | Session-level tracking, orchestrator overhead estimation |
-| 1.0.0 | Initial implementation with JSONL parsing |
 
 ## Files
 

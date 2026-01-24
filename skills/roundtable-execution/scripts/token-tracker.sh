@@ -2,7 +2,7 @@
 # token-tracker.sh - Token tracking for roundtable sessions
 # Works on: Linux, Windows (Git Bash), macOS
 #
-# Version: 2.2.0 - Session-specific cache files for parallel execution support
+# Version: 2.3.0 - Removed 60-second staleness check for statusline data
 #
 # Usage:
 #   token-tracker.sh init <session-id> <round-number>
@@ -104,27 +104,24 @@ get_cost_from_jsonl() {
 # Helper: Get tokens from statusline context-window.json (preferred source)
 # Returns: tokens (empty if not available)
 # Note: Does NOT set CONTEXT_SOURCE - caller must handle this
+#
+# Checks: file exists + JSON valid + contains expected fields
+# No file age check - delta calculations are accurate regardless of initial file age
 get_tokens_from_statusline() {
     if [[ -f "$CONTEXT_WINDOW_FILE" ]]; then
-        # Check file age (should be recent - within last 60 seconds)
-        # Using date -r for cross-platform compatibility (works on macOS, Linux, Git Bash)
-        local file_age=$(($(date +%s) - $(date -r "$CONTEXT_WINDOW_FILE" +%s 2>/dev/null || stat -c %Y "$CONTEXT_WINDOW_FILE" 2>/dev/null || echo 0)))
+        # Read used_percentage from statusline data (no staleness check)
+        local input=$(jq -r '.total_input_tokens // 0' "$CONTEXT_WINDOW_FILE" 2>/dev/null)
+        local used_pct=$(jq -r '.used_percentage // 0' "$CONTEXT_WINDOW_FILE" 2>/dev/null)
 
-        if [[ $file_age -lt 60 ]]; then
-            # Read total_input_tokens + total_output_tokens from statusline data
-            local input=$(jq -r '.total_input_tokens // 0' "$CONTEXT_WINDOW_FILE" 2>/dev/null)
-            local used_pct=$(jq -r '.used_percentage // 0' "$CONTEXT_WINDOW_FILE" 2>/dev/null)
-
-            if [[ -n "$input" && "$input" != "null" && "$input" != "0" ]]; then
-                # Calculate tokens from percentage (more accurate)
-                local tokens=$((CONTEXT_LIMIT * used_pct / 100))
-                echo "$tokens"
-                return
-            fi
+        if [[ -n "$input" && "$input" != "null" && "$input" != "0" && -n "$used_pct" && "$used_pct" != "null" ]]; then
+            # Calculate tokens from percentage (more accurate)
+            local tokens=$((CONTEXT_LIMIT * used_pct / 100))
+            echo "$tokens"
+            return
         fi
     fi
 
-    # File not found or stale - return empty to trigger fallback
+    # File not found or invalid JSON - return empty to trigger fallback
     echo ""
 }
 
