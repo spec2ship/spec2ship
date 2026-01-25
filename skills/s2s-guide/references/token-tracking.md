@@ -12,7 +12,7 @@ Token tracking is **automatically configured** by `/s2s:init`. No manual setup r
 
 The init command creates:
 - `.claude/settings.json` - Statusline configuration
-- `.claude/statusline-command.sh` - Session-isolated context tracking
+- `.claude/statusline.sh` - Session-isolated context tracking
 
 ### How it works
 
@@ -41,8 +41,8 @@ If statusline is not configured, token-tracker.sh falls back to JSONL parsing:
 │  │ Statusline      │───▶│ $TMPDIR/s2s-context-window-     ││
 │  │ (per-project)   │    │ {CC-SESSION-ID}.json            ││
 │  │ .claude/        │    │ - session_id (for validation)   ││
-│  │ statusline-     │    │ - used_percentage               ││
-│  │ command.sh      │    │ - total_input_tokens            ││
+│  │ statusline.sh   │    │ - used_percentage               ││
+│  │                 │    │ - total_input_tokens            ││
 │  └─────────────────┘    └─────────────────────────────────┘│
 │           │                            │                   │
 │           │                            │ PRIMARY SOURCE    │
@@ -128,6 +128,6 @@ If `/compact` occurs between rounds, the gap calculation would be negative. Toke
 |------|---------|
 | `roundtable-execution/scripts/token-tracker.sh` | Bash script for tracking (v3.0.0) |
 | `roundtable-execution/references/token-tracking.md` | Operational instructions |
-| `templates/statusline/statusline-command.sh` | Statusline template (v2.0.0) |
+| `templates/statusline/statusline.sh` | Statusline template (v2.1.0) |
 | `$TMPDIR/s2s-context-window-{cc-session-id}.json` | Session-specific context (temp) |
 | `.s2s/sessions/{rt-session-id}.cache` | Session tracking cache (project-local) |

@@ -654,22 +654,22 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/statusline/settings.json`
 
 **Create statusline script**:
 
-If `.claude/statusline-command.sh` does NOT exist:
+If `.claude/statusline.sh` does NOT exist:
 
 **Read template from plugin**:
 
-Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/statusline/statusline-command.sh`
+Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/statusline/statusline.sh`
 
-**Write**: Save to `.claude/statusline-command.sh`
+**Write**: Save to `.claude/statusline.sh`
 
 **Make executable**:
 ```bash
-chmod +x .claude/statusline-command.sh
+chmod +x .claude/statusline.sh
 ```
 
 **Note**: The statusline script:
 1. Saves session-specific context_window data to temp directory for s2s token tracking
-2. Chains to user's global `~/.claude/statusline-command.sh` if it exists
+2. Reads user's global statusline command from `~/.claude/settings.json` and chains to it if configured
 3. Falls back to a minimal display showing model, directory, branch, and context %
 
 ### 5.6 Generate BACKLOG.md
@@ -790,7 +790,7 @@ Created:
 - .s2s/decisions/
 - .claude/CLAUDE.md (with @../.s2s/CONTEXT.md reference)
 - .claude/settings.json (statusline for token tracking)
-- .claude/statusline-command.sh (context tracking + chain to global)
+- .claude/statusline.sh (context tracking + chain to global)
 
 Note: To enable token tracking, restart Claude Code in this directory.
       The statusline configuration is loaded at session start.

@@ -549,9 +549,9 @@ What would you like to configure?
 
 **Approach** (validated 2026-01-24):
 - Per-project `.claude/settings.json` with statusLine config
-- Per-project `.claude/statusline-command.sh` that:
+- Per-project `.claude/statusline.sh` that:
   1. Saves context_window.json (s2s requirement)
-  2. Chains to user's global statusline if exists (preserves user's display)
+  2. Reads global statusline command from `~/.claude/settings.json` and chains to it if configured
   3. Falls back to minimal statusline with context % display
 
 **Benefits**:
@@ -590,12 +590,12 @@ Bug fixes from v2.3.0:
 - [ ] Create `/s2s:config` for token tracking toggle (see FEAT-003)
 
 **Files created/updated**:
-- `templates/statusline/statusline-command.sh` - v2.0.0 with session isolation
+- `templates/statusline/statusline.sh` - v2.1.0 reads global settings for chaining
 - `templates/statusline/settings.json` - Settings template
-- `skills/roundtable-execution/scripts/token-tracker.sh` - v3.0.0
+- `skills/roundtable-execution/scripts/token-tracker.sh` - v3.0.1 (float fix)
 - `skills/roundtable-execution/references/token-tracking.md` - Updated with CC session ID
 - `commands/init.md` - Phase 5.5b for statusline setup
-- `.claude/statusline-command.sh` - Updated to v2.0.0
+- `.claude/statusline.sh` - Updated to v2.1.0
 
 **Related**: TECH-004 (token tracker history)
 
