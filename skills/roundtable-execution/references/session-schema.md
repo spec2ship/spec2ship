@@ -136,9 +136,28 @@ metrics:
     total: 6
     closed: 6
   consensus_rate: 0.85
+
+  # TECH-009: Progressive precision token tracking
   tokens:
-    estimated_total: 45000
-    by_round: [12000, 15000, 18000]
+    total: 45000              # Final accumulated total
+    by_round:                 # Per-round detail with progressive precision
+      - round: 1
+        estimate: 12000       # T3-T1 (immediate, underestimates)
+        actual: 14500         # T1_2 - T1_1 (calculated at round 2, precise)
+        source: "measured"    # measured | estimated | interrupted | noisy
+      - round: 2
+        estimate: 15000
+        actual: 17200
+        source: "measured"
+      - round: 3
+        estimate: 18000
+        actual: null          # Not yet calculated (last round or session closed)
+        source: "estimated"
+    stats:                    # Aggregated statistics (calculated by script)
+      avg_actual: 15850       # Average of "actual" values (precise)
+      avg_estimate: 15000     # Average of "estimate" values
+      overhead_delta: 2200    # avg(actual - estimate) = orchestrator overhead
+      sample_count: 2         # How many rounds have valid "actual"
 
 # Validation state
 validation:

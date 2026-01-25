@@ -4,6 +4,28 @@ Token tracking is always active during roundtable sessions. This file is read at
 
 ---
 
+## Progressive Precision Model (TECH-009)
+
+Token tracking uses **progressive precision** to accurately measure per-round consumption:
+
+| Metric | Calculation | When Available | Precision |
+|--------|-------------|----------------|-----------|
+| `estimate` | T3 - T1 (subagent-only) | End of round N | Underestimates (~) |
+| `actual` | T1_{n+1} - T1_n (includes orchestrator) | Start of round N+1 | Precise |
+
+**Source values**:
+- `measured`: actual calculated with continuity (precise)
+- `estimated`: only estimate available (last round or first round)
+- `interrupted`: /compact or /clear detected (cannot calculate actual)
+- `noisy`: actual >> estimate, user likely did other commands between rounds
+
+**Statistics** (calculated from measured rounds):
+- `avg_actual`: average of actual values (best for projection)
+- `overhead_delta`: avg(actual - estimate) = typical orchestrator overhead
+- `sample_count`: how many rounds have valid actual measurements
+
+---
+
 ## Script Location (execute ONCE at Step 2.0 of first round)
 
 **Use the Read tool** to get the resolved script path:
@@ -68,13 +90,19 @@ These are used to update `.s2s/state.json` for statusline display.
 eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed} "{workflow_type}" "{strategy}" "{phase}" {participants_count})
 ```
 
-**Check ESTIMATED_TOTAL_PCT from output**:
+**Check SHOULD_STOP and SHOULD_WARN from output** (TECH-009):
 
-| Condition | Action |
-|-----------|--------|
-| `ESTIMATED_TOTAL_PCT >= 95` | **STOP** - display pause message with /compact instructions |
-| `ESTIMATED_TOTAL_PCT >= 85` | **WARNING** - display warning but continue |
-| `ESTIMATED_TOTAL_PCT < 85` | **OK** - proceed normally |
+| Variable | Action |
+|----------|--------|
+| `SHOULD_STOP=true` | **STOP** - display pause message with /compact instructions |
+| `SHOULD_WARN=true` | **WARNING** - display warning but continue |
+| Both false | **OK** - proceed normally |
+
+**TECH-009: Update previous round's actual** (if PREV_ROUND_ACTUAL is set):
+
+The script outputs `PREV_ROUND_ACTUAL` and `PREV_ROUND_SOURCE` when it can calculate
+the precise token consumption for the previous round. SKILL.md should update the
+session file's `metrics.tokens.by_round[N-1]` with these values.
 
 **On STOP** - display:
 ```
@@ -83,8 +111,8 @@ eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed} "{workflow_t
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Current:     {CURRENT_K}k tokens ({CURRENT_PCT}%)
-Estimated:   +{ESTIMATED_K}k for next round
-Projected:   {ESTIMATED_TOTAL_K}k ({ESTIMATED_TOTAL_PCT}%) ← exceeds 95%
+Next round:  ~{NEXT_ESTIMATE_K}k (based on {SAMPLE_COUNT} samples)
+Projected:   {PROJECTED_TOTAL_K}k ({PROJECTED_PCT}%) ← exceeds 95%
 
 Option 1 - Compact (preserves some context):
   /compact Keep s2s roundtable session {session-id}, agenda, artifacts
@@ -102,7 +130,7 @@ Session saved at round {round_number}. Progress preserved.
 
 **On WARNING** - display inline with round start:
 ```
-⚠️  Context at {CURRENT_PCT}% - estimated {ESTIMATED_TOTAL_PCT}% after this round
+⚠️  Context at {CURRENT_PCT}% - projected {PROJECTED_PCT}% after this round
     Consider /compact after this round completes
 ```
 
@@ -113,17 +141,21 @@ Session saved at round {round_number}. Progress preserved.
 > Note: `token-tracker init` was already executed in Step 2.0.
 > Use those results to display the context status box.
 
-**Print this box to the user** (for round > 1, include orchestrator gap if > 0):
+**Print this box to the user** (for round > 1, include previous round actual if available):
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ CONTEXT STATUS (Round {round_number} Start)   [{CONTEXT_SOURCE}] │
 ├─────────────────────────────────────────────────────────────┤
 │ Current usage:     {CURRENT_K}k tokens ({CURRENT_PCT}%)     │
-│ ~Orchestrator:     ~{ORCHESTRATOR_GAP_K}k (since last round)│
-│ Available:         ~{AVAILABLE_K}k tokens remaining         │
+{if round > 1 and PREV_ROUND_ACTUAL_K}
+│ Previous round:    {PREV_ROUND_ACTUAL_K}k (actual, was ~{estimate}k est) │
+{/if}
+│ Avg per round:     {AVG_ACTUAL_K}k ({SAMPLE_COUNT} samples) │
+│ Next estimate:     ~{NEXT_ESTIMATE_K}k                      │
+│ Projected:         {PROJECTED_TOTAL_K}k ({PROJECTED_PCT}%)  │
 │ Status:            {PROGRESS_BAR} [{CONTEXT_STATUS}]        │
 {if COMPACT_DETECTED}
-│ Note:              /compact detected - gap reset            │
+│ Note:              /compact detected - previous round interrupted │
 {/if}
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -171,6 +203,7 @@ eval $(bash "<TOKEN_SCRIPT>" recap "{session-id}" {participant_count})
 │ ─────────────────────────────────────────────────────────── │
 │ Round subagents:            {ROUND_DELTA_K}k tokens         │
 │ ~Orchestrator gap:          ~{ORCHESTRATOR_GAP_K}k tokens   │
+│ Round estimate:             ~{ROUND_TOKENS_ESTIMATE_K}k (will refine next round) │
 │ ─────────────────────────────────────────────────────────── │
 │ Rounds total (accum):       {ROUNDS_ACCUM_K}k tokens        │
 │ Context total:              {ROUND_END_K}k tokens           │
@@ -179,6 +212,19 @@ eval $(bash "<TOKEN_SCRIPT>" recap "{session-id}" {participant_count})
 ```
 
 `~` prefix = estimated value.
+
+**TECH-009: Save estimate to session file**:
+
+After displaying the recap, SKILL.md should save `ROUND_TOKENS_ESTIMATE` to the session file:
+```yaml
+metrics:
+  tokens:
+    by_round:
+      - round: {round_number}
+        estimate: {ROUND_TOKENS_ESTIMATE}
+        actual: null
+        source: "estimated"
+```
 
 ---
 

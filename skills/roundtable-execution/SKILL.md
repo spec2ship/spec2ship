@@ -4,7 +4,7 @@ description: "This skill provides instructions for executing multi-agent roundta
   Use when a command needs to run discussion rounds with facilitator and participants.
   Referenced by: specs.md, design.md, brainstorm.md.
   Trigger: 'execute roundtable', 'run discussion rounds', 'multi-agent discussion'."
-version: 2.4.0
+version: 2.5.0
 ---
 
 # Roundtable Execution Instructions
@@ -249,13 +249,24 @@ session_folder = ".s2s/sessions/{session-id}/"
 eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed} "{workflow_type}" "{strategy}" "{phase}" {participants_count})
 ```
 
-**Check capacity**:
+**TECH-009: Update previous round's actual** (if round > 0 and PREV_ROUND_ACTUAL is set):
 
-```
-THRESHOLD = 95  # Maximum context percentage before stopping
+The script outputs `PREV_ROUND_ACTUAL` and `PREV_ROUND_SOURCE` when it can calculate
+the precise token consumption for the previous round. Update the session file:
+
+```yaml
+metrics:
+  tokens:
+    by_round:
+      - round: {round_number - 1}
+        estimate: {existing estimate}
+        actual: {PREV_ROUND_ACTUAL}      # ← update this
+        source: "{PREV_ROUND_SOURCE}"    # ← update this (measured/interrupted/noisy)
 ```
 
-**IF `ESTIMATED_TOTAL_PCT >= THRESHOLD`** (next round would exceed capacity):
+**Check capacity using SHOULD_STOP/SHOULD_WARN** (TECH-009):
+
+**IF `SHOULD_STOP == true`** (next round would exceed 95% capacity):
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -263,8 +274,8 @@ THRESHOLD = 95  # Maximum context percentage before stopping
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Current:     {CURRENT_K}k tokens ({CURRENT_PCT}%)
-Estimated:   +{ESTIMATED_K}k for next round
-Projected:   {ESTIMATED_TOTAL_K}k ({ESTIMATED_TOTAL_PCT}%) ← exceeds {THRESHOLD}%
+Next round:  ~{NEXT_ESTIMATE_K}k (based on {SAMPLE_COUNT} samples)
+Projected:   {PROJECTED_TOTAL_K}k ({PROJECTED_PCT}%) ← exceeds 95%
 
 The roundtable must pause to free context space.
 
@@ -294,15 +305,15 @@ timing:
 
 **STOP execution** - do NOT proceed to Step 2.1.
 
-**IF `ESTIMATED_TOTAL_PCT >= 85`** (warning zone, but can continue):
+**IF `SHOULD_WARN == true`** (warning zone 85-95%, but can continue):
 
 Display warning inline with round start:
 ```
-⚠️  Context at {CURRENT_PCT}% - estimated {ESTIMATED_TOTAL_PCT}% after this round
+⚠️  Context at {CURRENT_PCT}% - projected {PROJECTED_PCT}% after this round
     Consider /compact after this round completes
 ```
 
-**IF `ESTIMATED_TOTAL_PCT < 85`** (OK):
+**IF both SHOULD_STOP and SHOULD_WARN are false** (OK):
 
 Proceed to Step 2.1 normally.
 
@@ -751,6 +762,21 @@ Agenda:
 Next: {next_focus or "Conclusion pending"}
 ───────────────────────────────────────────────────────────────
 ```
+
+**TECH-009: Save round estimate to session file**:
+
+After displaying the recap, update the session file with token estimate for this round:
+```yaml
+metrics:
+  tokens:
+    by_round:
+      - round: {round_number}
+        estimate: {ROUND_TOKENS_ESTIMATE}  # From recap output
+        actual: null                        # Will be calculated next round
+        source: "estimated"
+```
+
+If `metrics.tokens.by_round` doesn't exist yet, create it as an empty array first.
 
 ### Step 2.8: Handle Interactive Mode
 

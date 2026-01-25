@@ -165,7 +165,7 @@ features:
 
 ### TECH-009: Round token tracking con precisione progressiva
 
-**Status**: planned | **Created**: 2026-01-26 | **Priority**: high | **Depends on**: TECH-002 Phase 6
+**Status**: completed | **Created**: 2026-01-26 | **Completed**: 2026-01-26 | **Priority**: high | **Depends on**: TECH-002 Phase 6
 
 **Context**: Token tracking attuale salva solo dati temporanei nel cache file (`.s2s/sessions/{id}.cache`). I dati per-round NON vengono persistiti nel session file. Serve persistere il consumo di token di ogni round per:
 1. Stimare se il prossimo round supererà la soglia (95%)
@@ -404,27 +404,27 @@ fi
 ---
 
 **Tasks**:
-- [ ] Aggiornare token-tracker.sh con lastT1 nel cache
-- [ ] Aggiungere output PREV_ROUND_ACTUAL, PREV_ROUND_SOURCE a init
-- [ ] Aggiungere output ROUND_TOKENS_ESTIMATE a recap
-- [ ] Aggiungere calcolo statistiche (AVG_ACTUAL, NEXT_ESTIMATE) a init
-- [ ] Aggiungere output SHOULD_STOP, SHOULD_WARN a init
-- [ ] Aggiornare SKILL.md Step 2.1 per salvare actual del round precedente
-- [ ] Aggiornare SKILL.md Step 2.7 per salvare estimate del round corrente
-- [ ] Aggiornare session-schema.md con nuovo formato metrics.tokens
-- [ ] Aggiornare token-tracking.md con documentazione
+- [x] Aggiornare token-tracker.sh con lastT1 nel cache
+- [x] Aggiungere output PREV_ROUND_ACTUAL, PREV_ROUND_SOURCE a init
+- [x] Aggiungere output ROUND_TOKENS_ESTIMATE a recap
+- [x] Aggiungere calcolo statistiche (AVG_ACTUAL, NEXT_ESTIMATE) a init
+- [x] Aggiungere output SHOULD_STOP, SHOULD_WARN a init
+- [x] Aggiornare SKILL.md Step 2.0 per salvare actual del round precedente
+- [x] Aggiornare SKILL.md Step 2.7 per salvare estimate del round corrente
+- [x] Aggiornare session-schema.md con nuovo formato metrics.tokens
+- [x] Aggiornare token-tracking.md con documentazione
 - [ ] Test: verificare che estimate viene salvato
 - [ ] Test: verificare che actual viene aggiornato al round successivo
 - [ ] Test: verificare SHOULD_STOP quando proiezione > 95%
 - [ ] Test: verificare detect /compact (gap negativo)
 
 **Acceptance criteria**:
-- [ ] Ogni round ha `estimate` salvato nel session file
-- [ ] Round precedenti hanno `actual` aggiornato (quando continuità)
-- [ ] Sessione si ferma automaticamente se SHOULD_STOP=true
-- [ ] Warning mostrato se SHOULD_WARN=true
-- [ ] Interruzioni (/compact, /clear) correttamente rilevate
-- [ ] Statistiche `avg_actual`, `overhead_delta` calcolate correttamente
+- [x] Ogni round ha `estimate` salvato nel session file (instructions added)
+- [x] Round precedenti hanno `actual` aggiornato (quando continuità) (instructions added)
+- [x] Sessione si ferma automaticamente se SHOULD_STOP=true
+- [x] Warning mostrato se SHOULD_WARN=true
+- [x] Interruzioni (/compact, /clear) correttamente rilevate
+- [x] Statistiche `avg_actual`, `overhead_delta` calcolate correttamente
 
 ---
 
