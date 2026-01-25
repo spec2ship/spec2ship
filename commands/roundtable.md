@@ -85,7 +85,7 @@ Other optional arguments:
        Session: {session_id}
        Topic: {topic from session file}
        Strategy: {strategy from session file}
-       Progress: Round {round from state.json}
+       Progress: Round {rounds_completed from session file} completed
        ```
      - Ask using AskUserQuestion:
        - "Resume this session" (recommended)
@@ -126,7 +126,7 @@ Active roundtable sessions found:
 1. {session-id}
    Topic: {topic}
    Strategy: {strategy}
-   Progress: Round {rounds_completed}
+   Progress: Round {rounds_completed} completed
 
 2. {session-id}
    ...
@@ -314,6 +314,30 @@ Read the session file `.s2s/sessions/{session-id}.yaml` and extract:
 - `agent_state` (for resume capability)
 - Current state of artifacts and agenda
 
+**Immediately update state.json** to align with session file:
+
+**IF `.s2s/state.json` exists**: Read it first to get current `active_plan` value.
+
+Use Write tool to write `.s2s/state.json`:
+```json
+{
+  "active_session": {
+    "id": "{session-id}",
+    "workflow_type": "roundtable",
+    "strategy": "{strategy}",
+    "phase": "discussion",
+    "round": {rounds_completed},
+    "participants_count": {participants count from session}
+  },
+  "active_plan": {existing active_plan value OR null},
+  "last_activity": {
+    "timestamp": "{ISO timestamp}",
+    "action": "session_resumed",
+    "session_id": "{session-id}"
+  }
+}
+```
+
 Display:
 
     Resuming Roundtable Session
@@ -322,7 +346,7 @@ Display:
     Session: {session-id}
     Topic: {topic}
     Strategy: {strategy}
-    Progress: Round {rounds_completed}
+    Progress: Round {rounds_completed} completed
 
     Continuing discussion...
 

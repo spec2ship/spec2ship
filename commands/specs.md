@@ -61,7 +61,7 @@ Extract from $ARGUMENTS:
 
        Session: {session_id}
        Topic: {active_session topic from session file}
-       Progress: Round {round from state.json}
+       Progress: Round {rounds_completed from session file} completed
        ```
      - Ask using AskUserQuestion:
        - "Resume this session" (recommended)
@@ -100,7 +100,7 @@ Active specs sessions found:
 
 1. {session-id}
    Topic: {topic}
-   Progress: Round {rounds_completed}
+   Progress: Round {rounds_completed} completed
 
 2. {session-id}
    ...
@@ -456,6 +456,20 @@ validation:
 Initialize:
 - `round_number = metrics.rounds_completed` (from session file, 0 for new session)
 - `session_folder = ".s2s/sessions/{session-id}/"`
+
+**On resume**: Immediately update state.json to align with session file:
+```json
+{
+  "active_session": {
+    "id": "{session-id}",
+    "workflow_type": "specs",
+    "round": {round_number}
+  },
+  "last_activity": {
+    "action": "session_resumed"
+  }
+}
+```
 
 ### Round Loop (repeat until conclusion)
 
