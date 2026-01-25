@@ -163,6 +163,24 @@ features:
 
 ---
 
+### DOC-001: Document jq as recommended dependency
+
+**Status**: planned | **Created**: 2026-01-25 | **Priority**: low
+
+**Context**: The context-reset.sh hook and other bash scripts use jq for JSON parsing. Scripts now have graceful degradation (work without jq using grep/sed fallback), but jq provides better performance and full functionality.
+
+**Tasks**:
+- [ ] Add "Prerequisites" section to docs/README.md mentioning jq
+- [ ] Document installation commands for macOS, Linux, Windows
+- [ ] Note that scripts work without jq but with reduced functionality
+- [ ] Consider adding jq check to /s2s:init with installation suggestion
+
+**Acceptance criteria**:
+- [ ] Users know jq is recommended before using s2s
+- [ ] Clear installation instructions for all platforms
+
+---
+
 ### BUG-001: Agent resume fails across Claude sessions
 
 **Status**: planned | **Created**: 2026-01-20 | **Priority**: low
@@ -589,10 +607,11 @@ Applied token tracking always-active, state.json, and checkpoint reminders to al
 
 Handle /clear, /compact, and context capacity limits.
 
-- [x] Create `templates/hooks/context-reset.sh` (v2.0.0) - SessionStart hook
+- [x] Create `templates/hooks/context-reset.sh` (v2.1.0) - SessionStart hook
   - Updates state.json with last_activity (context_clear/context_compact)
   - Shows resume command if roundtable was interrupted
-  - Note: Token values come from statusline on next API call, not from hook
+  - Graceful degradation: works without jq (uses grep/sed fallback)
+  - Shows jq installation warning if not available
 - [x] Update `templates/statusline/settings.json` with hooks config
 - [x] Update `commands/init.md` to copy hook during initialization
 - [x] Add Step 2.0 Context Capacity Check to SKILL.md (threshold 95%)
