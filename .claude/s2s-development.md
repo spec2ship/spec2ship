@@ -436,6 +436,93 @@ Reference files listed in a skill's reference table are **NOT automatically load
 
 **Verified**: 2026-01-21 - Fixed roundtable.md, specs.md, design.md diagnostic/agenda references
 
+### Skill Structure: Core Inline + Reference Extensions (CRITICAL)
+
+Skills should separate **always-executed** instructions from **optional** functionality using the Anchor + Reference pattern.
+
+**Why this matters for LLMs**:
+
+| Problem | Impact | Mitigation |
+|---------|--------|------------|
+| Context dilution | More files = instructions "dilute" | Keep core inline |
+| Instruction forgetting | LLM may skip distributed instructions | Critical steps near execution point |
+| Reference overhead | Each Read adds latency + context | Only load when needed |
+| Anchor mismatch | Reference may not align with skill | Explicit anchor IDs |
+
+**Pattern: Core inline, extensions via reference**
+
+```markdown
+# SKILL.md
+
+## Step 2.1: Round Start {#anchor-round-start}
+
+**Core actions** (ALWAYS executed):
+1. Read session file
+2. Prepare context
+3. **IMMEDIATELY** update `.s2s/state.json` with active_session  ← Core, inline
+
+**Extensions** (loaded on demand):
+- **IF `--tokens`**: Read `references/token-tracking.md#round-init` → Execute
+- **IF `--verbose`**: Read `references/verbose-dump-format.md` → Write dump
+```
+
+**Decision criteria: inline vs reference**
+
+| Criterion | Inline | Reference |
+|-----------|--------|-----------|
+| Always needed | ✅ | |
+| Optional (flag-dependent) | | ✅ |
+| Simple (< 10 lines) | ✅ | |
+| Complex (> 10 lines) | | ✅ |
+| Must not be forgotten | ✅ | |
+| Detailed format spec | | ✅ |
+
+**Anchor conventions**:
+
+```markdown
+# In SKILL.md
+## Step 2.1: Round Start {#round-start}
+
+# In references/token-tracking.md
+## Round Init {#round-start}
+<!-- Anchor matches SKILL.md for alignment -->
+```
+
+**Anti-patterns**:
+
+| Anti-Pattern | Problem | Correct |
+|--------------|---------|---------|
+| Core functionality in reference | May not be loaded | Inline critical steps |
+| Everything inline | Token bloat | Extract optional to references |
+| Reference chain (A → B → C) | Gets lost | Flat structure (Skill → Reference) |
+| No anchor alignment | Confusion | Match anchor IDs |
+| Optional without explicit trigger | Never loaded | "IF flag: Read reference" |
+
+**Example: state.json management (TECH-007)**
+
+State management is **always needed** (for resume suggestion, statusline), so it goes **inline**:
+
+```markdown
+## Step 2.1: Round Start
+
+**IMMEDIATELY** update `.s2s/state.json`:
+```json
+{
+  "active_session": {
+    "id": "{session-id}",
+    "workflow_type": "{workflow_type}",
+    "round": {round_number}
+  }
+}
+```⁣
+
+**IF `--tokens`**: Read `references/token-tracking.md#round-init` → Execute
+```
+
+Token tracking is **optional**, so it stays in a **reference**.
+
+---
+
 ### Optional Feature Hooks Pattern
 
 Optional features (like `--diagnostic`, `--tokens`, `--verbose`) should be activated via **hooks in the skill**, not in commands.

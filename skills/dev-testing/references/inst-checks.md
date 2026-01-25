@@ -662,3 +662,141 @@ issues:
     issue: "SKILL.md in warning zone (1500-2000)"
     suggestion: "Consider moving more content to references/"
 ```
+
+---
+
+## INST-011: Core Inline vs Reference Extensions
+
+| Property | Value |
+|----------|-------|
+| **Severity** | high |
+| **Target** | skills/*/SKILL.md |
+| **Reference** | .claude/s2s-development.md → "Skill Structure: Core Inline + Reference Extensions" |
+
+### Purpose
+
+Skills should separate always-executed instructions (inline) from optional functionality (reference). This prevents LLM instruction forgetting and ensures critical steps are always executed.
+
+### Decision Criteria
+
+| Criterion | Should be | Location |
+|-----------|-----------|----------|
+| Always needed (no flag) | Inline | SKILL.md |
+| Optional (flag-dependent) | Reference | references/*.md |
+| Must not be forgotten | Inline | SKILL.md |
+| Complex format spec | Reference | references/*.md |
+
+### Good Patterns
+
+**Core functionality inline, optional in reference:**
+
+```markdown
+## Step 2.1: Round Start
+
+**IMMEDIATELY** update `.s2s/state.json`:   ← Core: inline
+{json content}
+
+**IF `--tokens`**: Read `references/token-tracking.md#round-init` → Execute  ← Optional: reference
+```
+
+**Explicit anchor alignment:**
+
+```markdown
+# SKILL.md
+## Step 2.1: Round Start {#round-start}
+
+# references/token-tracking.md
+## Round Init {#round-start}   ← Matching anchor
+```
+
+### Bad Patterns
+
+**Core functionality in reference (may not be loaded):**
+
+```markdown
+## Step 2.1: Round Start
+
+Read `references/state-manager.md` → Execute  ← WRONG: core in reference
+
+**IF `--tokens`**: Read `references/token-tracking.md` → Execute
+```
+
+**Reference chain (gets lost):**
+
+```markdown
+# SKILL.md
+Read `references/a.md` → Execute
+
+# references/a.md
+Read `references/b.md` → Execute  ← WRONG: chain
+
+# references/b.md
+Read `references/c.md` → Execute  ← WRONG: deep chain
+```
+
+**Optional without explicit trigger:**
+
+```markdown
+## References
+| File | Content |
+| `references/token-tracking.md` | Token tracking |
+
+# No explicit "IF flag: Read..." trigger in steps!
+```
+
+### Verification
+
+1. For each SKILL.md, identify:
+   - Core functionality (no flag dependency)
+   - Optional functionality (flag-dependent)
+2. Check core functionality is inline, not in reference
+3. Check optional functionality has explicit trigger ("IF flag: Read reference")
+4. Check for reference chains (reference loading another reference)
+5. Check anchor alignment between SKILL.md and references
+
+### Core Functionality Indicators
+
+Look for these patterns that indicate **core** (should be inline):
+
+- State updates (session.yaml, state.json)
+- File writes that always happen
+- Agent invocations that always happen
+- Validation that always runs
+
+### Optional Functionality Indicators
+
+Look for these patterns that indicate **optional** (should be reference):
+
+- `IF --verbose`
+- `IF --tokens`
+- `IF --diagnostic`
+- `IF {flag}`
+
+### Evidence Schema
+
+```yaml
+check: INST-011
+status: pass | fail | warn
+files_checked: 8
+issues:
+  - file: "skills/roundtable-execution/SKILL.md"
+    issue: "core_in_reference"
+    detail: "state.json update is in references/state-manager.md"
+    severity: high
+    suggestion: "Move state.json update inline in SKILL.md"
+  - file: "skills/example/SKILL.md"
+    issue: "reference_chain"
+    detail: "references/a.md loads references/b.md"
+    severity: high
+    suggestion: "Flatten: SKILL.md should load both directly"
+  - file: "skills/other/SKILL.md"
+    issue: "optional_without_trigger"
+    detail: "references/format.md listed but no IF trigger"
+    severity: medium
+    suggestion: "Add explicit 'IF flag: Read references/format.md'"
+  - file: "skills/another/SKILL.md"
+    issue: "anchor_mismatch"
+    detail: "SKILL.md uses {#step-1}, reference uses {#init}"
+    severity: medium
+    suggestion: "Align anchors: both should use same ID"
+```

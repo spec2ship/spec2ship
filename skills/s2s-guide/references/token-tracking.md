@@ -6,57 +6,68 @@ Token tracking monitors context usage during roundtable sessions, providing visi
 
 When `--tokens` flag is passed to roundtable commands, the system tracks token usage at key checkpoints and displays breakdown information.
 
-## Automatic Setup (v3.0.0+)
+## Automatic Setup (v3.1.0+)
 
 Token tracking is **automatically configured** by `/s2s:init`. No manual setup required.
 
 The init command creates:
 - `.claude/settings.json` - Statusline configuration
-- `.claude/statusline.sh` - Session-isolated context tracking
+- `.claude/statusline.sh` - Context tracking with state display
 
-### How it works
+### How it works (TECH-007)
 
-Each Claude Code session gets its own context file in temp directory:
-- **Statusline writes to**: `$TMPDIR/s2s-context-window-{cc-session-id}.json`
+All files are **project-local** in `.s2s/` directory:
+- **Statusline writes to**: `.s2s/context-window.json`
+- **State file**: `.s2s/state.json` (for active session display)
 - **Token tracker cache**: `.s2s/sessions/{rt-session-id}.cache`
 
 This enables:
-- Parallel sessions without interference
-- No stale data from other sessions
+- No session ID complexity
+- Project-specific tracking
+- Resume suggestions for interrupted sessions
 - Accurate tracking that survives `/compact`
 
 ### Fallback behavior
 
 If statusline is not configured, token-tracker.sh falls back to JSONL parsing:
-- `CONTEXT_SOURCE=statusline` = accurate, session-isolated
+- `CONTEXT_SOURCE=statusline` = accurate, project-local
 - `CONTEXT_SOURCE=jsonl` = less accurate, may be stale after /compact
 
-## Architecture (v3.0.0)
+## Architecture (v4.1.0)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ Claude Code Session (CC-SESSION-ID)                         │
+│ Project Directory                                           │
 │                                                             │
 │  ┌─────────────────┐    ┌─────────────────────────────────┐│
-│  │ Statusline      │───▶│ $TMPDIR/s2s-context-window-     ││
-│  │ (per-project)   │    │ {CC-SESSION-ID}.json            ││
-│  │ .claude/        │    │ - session_id (for validation)   ││
-│  │ statusline.sh   │    │ - used_percentage               ││
-│  │                 │    │ - total_input_tokens            ││
+│  │ Statusline      │───▶│ .s2s/context-window.json        ││
+│  │ (per-project)   │    │ - session_id                    ││
+│  │ .claude/        │    │ - used_percentage               ││
+│  │ statusline.sh   │    │ - current_context_tokens        ││
+│  │ v3.1.0          │    │ - transcript_path               ││
 │  └─────────────────┘    └─────────────────────────────────┘│
 │           │                            │                   │
 │           │                            │ PRIMARY SOURCE    │
 │           ▼                            ▼                   │
 │  ┌─────────────────┐    ┌─────────────────────────────────┐│
+│  │ SKILL.md        │───▶│ .s2s/state.json                 ││
+│  │ (inline)        │    │ - active_session (for statusline)│
+│  │                 │    │ - active_plan                   ││
+│  │ Updates state   │    │ - last_activity (for resume)    ││
+│  │ at Step 2.1/3.1 │    │                                 ││
+│  └─────────────────┘    └─────────────────────────────────┘│
+│           │                                               │
+│           ▼                                               │
+│  ┌─────────────────┐    ┌─────────────────────────────────┐│
 │  │ token-tracker.sh│───▶│ .s2s/sessions/                  ││
-│  │ v3.0.0          │    │ {rt-session-id}.cache           ││
+│  │ v4.1.0          │    │ {rt-session-id}.cache           ││
 │  │                 │    │                                 ││
 │  │ Commands:       │    │ Stores:                         ││
 │  │ - init          │    │ - sessionStartTokens            ││
 │  │ - capture       │    │ - T0, T1, T2, T3 checkpoints    ││
 │  │ - recap         │    │ - roundsDeltaAccum              ││
-│  │ - summary       │    │ - ccSessionId                   ││
-│  │ - cleanup       │    │ - statuslineActive              ││
+│  │ - summary       │    │ - statuslineActive              ││
+│  │ - cleanup       │    │                                 ││
 │  └─────────────────┘    └─────────────────────────────────┘│
 │           │                            │                   │
 │           │                            │ FALLBACK          │
@@ -115,7 +126,7 @@ T0 (next round init)
 - Status: OK (<60%), WARNING (60-80%), CRITICAL (>80%)
 - `[statusline]` or `[jsonl]` = data source indicator
 
-## Compact Detection (v3.0.0)
+## Compact Detection
 
 If `/compact` occurs between rounds, the gap calculation would be negative. Token tracker detects this and:
 - Resets orchestrator gap to 0
@@ -126,8 +137,14 @@ If `/compact` occurs between rounds, the gap calculation would be negative. Toke
 
 | File | Purpose |
 |------|---------|
-| `roundtable-execution/scripts/token-tracker.sh` | Bash script for tracking (v3.0.0) |
+| `roundtable-execution/scripts/token-tracker.sh` | Bash script for tracking (v4.1.0) |
 | `roundtable-execution/references/token-tracking.md` | Operational instructions |
-| `templates/statusline/statusline.sh` | Statusline template (v2.1.0) |
-| `$TMPDIR/s2s-context-window-{cc-session-id}.json` | Session-specific context (temp) |
+| `roundtable-execution/SKILL.md` | State management inline (v2.1.0) |
+| `templates/statusline/statusline.sh` | Statusline template (v3.1.0) |
+| `.s2s/context-window.json` | Context data (project-local) |
+| `.s2s/state.json` | Active session state (project-local) |
 | `.s2s/sessions/{rt-session-id}.cache` | Session tracking cache (project-local) |
+
+## Known Limitations
+
+- **One session per project**: Multiple Claude Code sessions on the same project will interfere (last writer wins). This is an acceptable trade-off for simplicity.

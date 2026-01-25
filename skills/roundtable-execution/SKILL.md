@@ -4,7 +4,7 @@ description: "This skill provides instructions for executing multi-agent roundta
   Use when a command needs to run discussion rounds with facilitator and participants.
   Referenced by: specs.md, design.md, brainstorm.md.
   Trigger: 'execute roundtable', 'run discussion rounds', 'multi-agent discussion'."
-version: 2.0.0
+version: 2.1.0
 ---
 
 # Roundtable Execution Instructions
@@ -228,7 +228,7 @@ round_number = 0
 session_folder = ".s2s/sessions/{session-id}/"
 ```
 
-### Step 2.1: Display Round Start
+### Step 2.1: Display Round Start {#round-start}
 
 ```
 ═══════════════════════════════════════════════════════════════
@@ -242,6 +242,30 @@ AGENDA STATUS:
 {/for}
 
 ARTIFACTS: {count} requirements, {count} conflicts, {count} open questions
+```
+
+**CORE: Update state.json** (for resume suggestion and statusline display)
+
+**IF `.s2s/state.json` exists**: Read it first to get current `active_plan` value.
+
+**IMMEDIATELY** use Write tool to write `.s2s/state.json`:
+```json
+{
+  "active_session": {
+    "id": "{session-id}",
+    "workflow_type": "{workflow_type}",
+    "strategy": "{strategy}",
+    "phase": "{current_phase}",
+    "round": {round_number + 1},
+    "participants_count": {participants count}
+  },
+  "active_plan": {existing active_plan value OR null if file didn't exist},
+  "last_activity": {
+    "timestamp": "{ISO timestamp}",
+    "action": "round_started",
+    "session_id": "{session-id}"
+  }
+}
 ```
 
 **IF tokens_flag AND round_number == 0**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md` → Execute "Script Location" section, then "Session Start" section
@@ -702,12 +726,29 @@ After each major step (2.2, 2.3, 2.4, 2.5), verify correct execution using the c
 
 **IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md` → Execute "Session Complete" section
 
-### Step 3.1: Update Session Status
+### Step 3.1: Update Session Status {#session-close}
 
 ```yaml
 status: "closed"
 timing:
   closed_at: "{ISO timestamp}"
+```
+
+**CORE: Clear active_session from state.json**
+
+**IF `.s2s/state.json` exists**: Read it first to get current `active_plan` value.
+
+**IMMEDIATELY** use Write tool to write `.s2s/state.json`:
+```json
+{
+  "active_session": null,
+  "active_plan": {existing active_plan value OR null if file didn't exist},
+  "last_activity": {
+    "timestamp": "{ISO timestamp}",
+    "action": "session_closed",
+    "session_id": "{session-id}"
+  }
+}
 ```
 
 ### Step 3.2: Read Session for Summary

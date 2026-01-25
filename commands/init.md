@@ -633,8 +633,8 @@ Write `.claude/CLAUDE.md` with project-specific content:
 ### 5.5b Setup Statusline for Token Tracking
 
 > **Purpose**: Configure per-project statusline to enable accurate token tracking during roundtable sessions.
-> The statusline saves session-specific context_window data to temp directory (`$TMPDIR/s2s-context-window-{session-id}.json`).
-> Each Claude Code session has its own file, avoiding conflicts between parallel sessions.
+> The statusline saves context_window data to `.s2s/context-window.json` (project-local).
+> It also reads active session state from `.s2s/state.json` to display roundtable info in statusline.
 > If user has a global statusline, the project script chains to it to preserve their customizations.
 
 **Check if .claude/settings.json exists**:

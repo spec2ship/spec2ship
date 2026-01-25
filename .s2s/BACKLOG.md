@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-01-24
+**Updated**: 2026-01-25
 **Format**: Work items for active development
 
 ---
@@ -590,14 +590,202 @@ Bug fixes from v2.3.0:
 - [ ] Create `/s2s:config` for token tracking toggle (see FEAT-003)
 
 **Files created/updated**:
-- `templates/statusline/statusline.sh` - v2.1.0 reads global settings for chaining
+- `templates/statusline/statusline.sh` - v3.0.2 (visual bar, correct token calc, no cost)
 - `templates/statusline/settings.json` - Settings template
-- `skills/roundtable-execution/scripts/token-tracker.sh` - v3.0.1 (float fix)
-- `skills/roundtable-execution/references/token-tracking.md` - Updated with CC session ID
+- `skills/roundtable-execution/scripts/token-tracker.sh` - v3.1.0 (roundtable state file)
+- `skills/roundtable-execution/references/token-tracking.md` - Updated with CC session ID + params
 - `commands/init.md` - Phase 5.5b for statusline setup
-- `.claude/statusline.sh` - Updated to v2.1.0
+- `.claude/statusline.sh` - Updated to v3.0.2
 
-**Related**: TECH-004 (token tracker history)
+**Statusline v3.0.2 features** (2026-01-25):
+- Visual token bar: `⛁ ⛁ ⛁ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶ ⛶` (10 slots, 20k each)
+- Correct token calculation from `context_window_size * used_percentage`
+- Shows used/available: `62k (31%) ⛁⛁⛁⛶⛶⛶... 138k`
+- Color coding: green < 60%, yellow 60-79%, red ≥ 80%
+- Removed cost display (not relevant for subscription users)
+- Roundtable state integration (reads `s2s-roundtable-{cc-session}.json`)
+- Chain to global statusline if configured
+
+**Token tracker v3.1.0 features** (2026-01-25):
+- Writes `s2s-roundtable-{cc-session}.json` with RT state for statusline
+- New init params: workflow_type, strategy, phase, participants_count
+- Removes roundtable state on summary/cleanup
+
+**Related**: TECH-004 (token tracker history), TECH-007 (unified state file)
+
+**Note** (2026-01-25): Session isolation approach being revised. TECH-007 proposes using `.s2s/state.json` instead of `$TMPDIR` with cc-session-id. This simplifies implementation significantly.
+
+---
+
+### TECH-007: Unified project state file (.s2s/state.json)
+
+**Status**: completed | **Created**: 2026-01-25 | **Completed**: 2026-01-25 | **Priority**: high | **Supersedes**: TECH-006
+
+**Context**: TECH-006 explored using `$TMPDIR` with cc-session-id for session isolation. After analysis, a simpler approach emerged: write state files directly to `.s2s/` directory. This eliminates session ID complexity and enables intelligent resume suggestions.
+
+**Goals**:
+1. Provide immediate session state lookup (no grep scanning needed)
+2. Enable resume suggestions for interrupted sessions
+3. Simplify statusline roundtable info display
+4. Centralize ephemeral state in project directory
+
+**Proposed architecture**:
+
+```
+.s2s/
+├── state.json              # Current s2s state (persistent, updated by commands)
+├── context-window.json     # Written by statusline (~300ms, ephemeral)
+└── sessions/
+    └── {id}.yaml           # Complete session data (existing)
+```
+
+**state.json schema**:
+
+```json
+{
+  "active_session": {
+    "id": "20260125-specs-auth",
+    "workflow_type": "specs",
+    "strategy": "standard",
+    "round": 2,
+    "phase": "discussion",
+    "participants_count": 3
+  },
+  "active_plan": "20260125-143022-user-auth",
+  "last_activity": {
+    "timestamp": "2026-01-25T11:18:30Z",
+    "action": "round_completed",
+    "session_id": "20260125-specs-auth"
+  }
+}
+```
+
+**Integration with existing resume logic**:
+
+Current logic (specs.md, design.md, brainstorm.md):
+```bash
+# Scans all session files with grep
+grep -l 'workflow_type: specs' .s2s/sessions/*.yaml | xargs grep -l 'status: active'
+```
+
+New logic (hybrid approach):
+```markdown
+1. **First**: Check `.s2s/state.json` for `active_session`
+   - If present AND matching workflow_type → immediate resume suggestion
+   - Fast path: no grep scanning needed
+
+2. **Fallback**: If state.json missing/stale → grep scan (existing logic)
+   - Handles edge cases (state.json deleted, multiple active sessions)
+   - Backward compatible
+
+3. **Consistency check**: If state.json says session X active but X.yaml says closed
+   - state.json is stale → clear it and use grep result
+```
+
+**Resume suggestion on startup** (new feature):
+
+When any s2s command runs:
+```
+⚠️  Interrupted session found: specs "User authentication" (round 2)
+    Last activity: 2026-01-24 18:32
+
+    [R] Resume session
+    [C] Close and start new
+    [I] Ignore (keep in background)
+```
+
+This triggers when:
+- `state.json.active_session` exists
+- Session YAML `status` is NOT "closed"
+- User hasn't explicitly dismissed
+
+**Inconsistency handling** (key design decision):
+
+Inconsistency between state.json and session YAML is a **feature**, not a bug:
+- Indicates interrupted session (crash, closed terminal)
+- Enables resume suggestion
+- On explicit close: both files updated atomically
+
+**Comparison: TECH-006 ($TMPDIR) vs TECH-007 (.s2s/)**:
+
+| Aspect | TECH-006 ($TMPDIR) | TECH-007 (.s2s/) |
+|--------|-------------------|------------------|
+| Session isolation | cc-session-id in filename | Not needed (one state per project) |
+| Resume detection | No | Yes (state.json persists) |
+| Multi-session same project | Supported | Limitation (documented) |
+| File discovery | Complex (auto-discover) | Simple (fixed path) |
+| Cleanup | OS temp cleanup | Explicit (session close) |
+| Statusline integration | Needs cc-session-id | Direct read |
+
+**Known limitation**:
+
+Multiple Claude Code sessions on same project will interfere (last writer wins).
+This is an acceptable trade-off because:
+- Uncommon use case
+- Documented behavior
+- Alternative ($TMPDIR) adds significant complexity
+
+**Impact on existing code**:
+
+1. **statusline.sh**: Write to `.s2s/context-window.json` (simple)
+2. **token-tracker.sh**: Read from `.s2s/context-window.json`, write to `.s2s/state.json` (replaces roundtable-state.json)
+3. **Commands (specs, design, brainstorm, roundtable)**: Update `.s2s/state.json` on session start/round/close
+4. **Session commands**: `/s2s:session:close` clears `active_session` in state.json
+
+**Tasks**:
+- [x] Update statusline.sh to write `.s2s/context-window.json` (v3.1.0)
+- [x] Update token-tracker.sh to read from `.s2s/context-window.json` (v4.1.0)
+- [x] Move state.json update logic to SKILL.md inline (Opzione B - best practice)
+- [x] Document "Core Inline + Reference Extensions" pattern in s2s-development.md
+- [x] Add INST-011 check for core inline vs reference pattern
+- [x] Update session close to clear state.json (inline in SKILL.md Step 3.1)
+- [x] Add `.s2s/context-window.json` and `.s2s/state.json` to .gitignore (already covered by `.s2s/*`)
+- [x] Update token-tracking.md documentation
+- [x] Test: statusline writes context-window.json correctly
+- [x] Test: token-tracker reads from statusline
+- [ ] Add state.json check to command auto-detect sections (future enhancement)
+- [ ] Implement resume suggestion on s2s command startup (future enhancement)
+- [ ] Test: statusline shows RT info (requires Claude restart)
+- [ ] Test: resume suggestion works after interrupt
+
+**Acceptance criteria**:
+- [ ] Statusline displays roundtable info from state.json
+- [ ] Resume suggestion shown for interrupted sessions
+- [ ] Session close clears state.json.active_session
+- [ ] Fallback to grep scan works when state.json missing
+- [ ] .gitignore includes ephemeral state files
+
+**Files to modify**:
+- `templates/statusline/statusline.sh`
+- `skills/roundtable-execution/scripts/token-tracker.sh`
+- `skills/roundtable-execution/SKILL.md` (state.json updates)
+- `commands/specs.md`, `design.md`, `brainstorm.md`, `roundtable.md` (auto-detect)
+- `commands/session/close.md` (state.json cleanup)
+- `templates/project/.gitignore`
+
+---
+
+### TECH-006: Token tracker cc-session-id resolution (SUPERSEDED)
+
+**Status**: superseded | **Created**: 2026-01-25 | **Superseded by**: TECH-007
+
+**Original problem**: `${CLAUDE_SESSION_ID}` is empty when passed to bash commands.
+
+**Resolution**: TECH-007 eliminates the need for cc-session-id by using project-local `.s2s/` files instead of `$TMPDIR` with session-specific filenames.
+
+**Archive** (original analysis):
+
+The approach of using `$TMPDIR/s2s-context-window-{cc-session}.json` was explored but found to have issues:
+1. `${CLAUDE_SESSION_ID}` not substituted in bash command context
+2. Auto-discovery with 60-second freshness check is fragile
+3. Project matching via transcript_path adds complexity
+4. Files persist in temp dir, requiring cleanup logic
+
+TECH-007's `.s2s/` approach is simpler:
+- No session ID needed (one state per project)
+- Fixed paths (`.s2s/context-window.json`, `.s2s/state.json`)
+- Project-local by definition
+- Cleanup is explicit (session close)
 
 ---
 

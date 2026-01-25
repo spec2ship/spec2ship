@@ -76,6 +76,7 @@ Verify that command/agent files follow s2s patterns and guidelines.
 | INST-008 | Subagent Spawning Prohibition | critical | agents | inst-checks.md |
 | INST-009 | Skill Third Person Voice | medium | skills | inst-checks.md |
 | INST-010 | Skill Progressive Disclosure | medium | skills | inst-checks.md |
+| INST-011 | Core Inline vs Reference Extensions | high | skills | inst-checks.md |
 
 **Invoked by**: `/s2s:dev:check --instructions` or `/s2s:dev:check --all`
 

@@ -2,13 +2,13 @@
 # token-tracker.sh - Token tracking for roundtable sessions
 # Works on: Linux, Windows (Git Bash), macOS
 #
-# Version: 3.0.1 - Fix floating point arithmetic in statusline percentage
+# Version: 4.1.0 - State management moved to SKILL.md inline (TECH-007 Opzione B)
 #
 # Usage:
-#   token-tracker.sh init <session-id> <round-number> [cc-session-id]
-#   token-tracker.sh capture <session-id> <T1|T2|T3> [cc-session-id]
-#   token-tracker.sh recap <session-id> <participant-count> [cc-session-id]
-#   token-tracker.sh summary <session-id> [cc-session-id]
+#   token-tracker.sh init <session-id> <round-number> [workflow-type] [strategy] [phase] [participants-count]
+#   token-tracker.sh capture <session-id> <T1|T2|T3>
+#   token-tracker.sh recap <session-id> <participant-count>
+#   token-tracker.sh summary <session-id>
 #   token-tracker.sh cleanup <session-id>
 #
 # Output (eval-able):
@@ -26,19 +26,19 @@
 #   - Orchestrator overhead = SESSION_CONSUMED - roundsDeltaAccum (estimated, shown as ~)
 #
 # Data sources (in priority order):
-#   1. Statusline temp file (accurate, session-isolated, survives /compact)
+#   1. .s2s/context-window.json (accurate, survives /compact, written by statusline)
 #   2. JSONL file (fallback, may be stale after /compact)
 #
-# Session isolation:
-#   - Statusline writes to: $TMPDIR/s2s-context-window-{cc-session-id}.json
-#   - Token tracker cache: .s2s/sessions/{rt-session-id}.cache
-#   - Each CC session has its own context file, no conflicts
+# File locations (all project-local in .s2s/):
+#   - Context window: .s2s/context-window.json (written by statusline ~300ms)
+#   - Token cache: .s2s/sessions/{rt-session-id}.cache
+#   - State file: .s2s/state.json (managed by SKILL.md, not this script)
 
 ACTION="$1"
 CONTEXT_LIMIT=200000  # Claude Code context limit in tokens
 
-# Temp directory for statusline context files
-S2S_TMPDIR="${CLAUDE_CODE_TMPDIR:-${TMPDIR:-/tmp}}"
+# Project-local .s2s directory
+S2S_DIR=".s2s"
 
 # Helper: Get cache file path for a roundtable session (project-local)
 get_cache_file() {
@@ -51,15 +51,13 @@ get_cache_file() {
     fi
 }
 
-# Helper: Get context window file path for a CC session (temp directory)
+# Helper: Get context window file path (project-local)
 get_context_window_file() {
-    local cc_session_id="$1"
-    if [[ -z "$cc_session_id" ]]; then
-        echo ""
-    else
-        echo "$S2S_TMPDIR/s2s-context-window-${cc_session_id}.json"
-    fi
+    echo "${S2S_DIR}/context-window.json"
 }
+
+# Note: state.json management is handled inline in roundtable-execution SKILL.md
+# Token tracker only handles token metrics, not session state
 
 # Helper: Extract token field from JSONL line using sed (cross-platform)
 extract_number() {
@@ -109,21 +107,12 @@ get_cost_from_jsonl() {
     echo "${cost:-0}"
 }
 
-# Helper: Get tokens from statusline temp file (session-specific)
-# Returns: tokens (empty if not available or wrong session)
+# Helper: Get tokens from statusline context file (project-local)
+# Returns: tokens (empty if not available)
 get_tokens_from_statusline() {
-    local cc_session_id="$1"
-    local context_file=$(get_context_window_file "$cc_session_id")
+    local context_file=$(get_context_window_file)
 
-    if [[ -z "$context_file" || ! -f "$context_file" ]]; then
-        echo ""
-        return
-    fi
-
-    # Verify session ID matches (statusline writes session_id in the file)
-    local file_session=$(jq -r '.session_id // ""' "$context_file" 2>/dev/null)
-    if [[ -n "$cc_session_id" && "$file_session" != "$cc_session_id" ]]; then
-        # Session mismatch - file from different session
+    if [[ ! -f "$context_file" ]]; then
         echo ""
         return
     fi
@@ -144,10 +133,9 @@ get_tokens_from_statusline() {
 # Returns: "tokens:source" format (e.g., "78000:statusline" or "76000:jsonl")
 get_current_tokens() {
     local jsonl_file="$1"
-    local cc_session_id="$2"
 
     # Try statusline first (accurate, survives /compact)
-    local tokens=$(get_tokens_from_statusline "$cc_session_id")
+    local tokens=$(get_tokens_from_statusline)
 
     if [[ -n "$tokens" && "$tokens" != "0" ]]; then
         echo "${tokens}:statusline"
@@ -178,12 +166,11 @@ find_jsonl_file() {
     ls -t "${jsonl_dir}"/*.jsonl 2>/dev/null | head -1
 }
 
-# Helper: Check if statusline is active for this CC session
+# Helper: Check if statusline is active (context-window.json exists)
 check_statusline_active() {
-    local cc_session_id="$1"
-    local context_file=$(get_context_window_file "$cc_session_id")
+    local context_file=$(get_context_window_file)
 
-    if [[ -n "$context_file" && -f "$context_file" ]]; then
+    if [[ -f "$context_file" ]]; then
         echo "true"
     else
         echo "false"
@@ -194,7 +181,10 @@ case "$ACTION" in
     init)
         SESSION_ID="$2"
         ROUND_NUMBER="$3"
-        CC_SESSION_ID="$4"
+        WORKFLOW_TYPE="$4"
+        STRATEGY="$5"
+        PHASE="$6"
+        PARTICIPANTS_COUNT="$7"
         CACHE_FILE=$(get_cache_file "$SESSION_ID")
 
         # Ensure cache directory exists
@@ -204,10 +194,10 @@ case "$ACTION" in
         JSONL_FILE=$(find_jsonl_file)
 
         # Check if statusline is active
-        STATUSLINE_ACTIVE=$(check_statusline_active "$CC_SESSION_ID")
+        STATUSLINE_ACTIVE=$(check_statusline_active)
 
         # Get current tokens (statusline preferred, JSONL fallback)
-        _RESULT=$(get_current_tokens "$JSONL_FILE" "$CC_SESSION_ID")
+        _RESULT=$(get_current_tokens "$JSONL_FILE")
         ROUND_START_TOKENS=${_RESULT%%:*}
         CONTEXT_SOURCE=${_RESULT##*:}
         ROUND_START_TOKENS=${ROUND_START_TOKENS:-0}
@@ -292,7 +282,6 @@ case "$ACTION" in
         # Save to project-local cache
         cat > "$CACHE_FILE" <<EOF
 sessionId=${SESSION_ID}
-ccSessionId=${CC_SESSION_ID}
 sessionStartTokens=${SESSION_START_TOKENS}
 round=$((ROUND_NUMBER + 1))
 startTokens=${ROUND_START_TOKENS}
@@ -305,7 +294,13 @@ lastT3=${LAST_T3}
 roundsDeltaAccum=${ROUNDS_DELTA_ACCUM}
 orchestratorGapThisRound=${ORCHESTRATOR_GAP}
 compactDetected=${COMPACT_DETECTED:-false}
+workflowType=${WORKFLOW_TYPE}
+strategy=${STRATEGY}
+phase=${PHASE}
+participantsCount=${PARTICIPANTS_COUNT}
 EOF
+
+        # Note: state.json is updated by SKILL.md inline, not by token-tracker
 
         # Output eval-able variables
         echo "CURRENT_K=${CURRENT_K}"
@@ -326,14 +321,13 @@ EOF
     capture)
         SESSION_ID="$2"
         CHECKPOINT="$3"
-        CC_SESSION_ID="$4"
         CACHE_FILE=$(get_cache_file "$SESSION_ID")
 
         if [[ -f "$CACHE_FILE" ]]; then
             source "$CACHE_FILE"
         fi
 
-        _RESULT=$(get_current_tokens "$jsonlFile" "$CC_SESSION_ID")
+        _RESULT=$(get_current_tokens "$jsonlFile")
         TOKENS=${_RESULT%%:*}
 
         echo "${CHECKPOINT}=${TOKENS}" >> "$CACHE_FILE"
@@ -342,7 +336,6 @@ EOF
     recap)
         SESSION_ID="$2"
         PARTICIPANT_COUNT="$3"
-        CC_SESSION_ID="$4"
         PARTICIPANT_COUNT=${PARTICIPANT_COUNT:-4}
         CACHE_FILE=$(get_cache_file "$SESSION_ID")
 
@@ -427,7 +420,6 @@ EOF
 
     summary)
         SESSION_ID="$2"
-        CC_SESSION_ID="$3"
         CACHE_FILE=$(get_cache_file "$SESSION_ID")
 
         if [[ -f "$CACHE_FILE" ]]; then
@@ -437,7 +429,7 @@ EOF
         SESSION_START_TOKENS=${sessionStartTokens:-${startTokens:-0}}
         ROUNDS_TOTAL=${roundsDeltaAccum:-0}
 
-        _RESULT=$(get_current_tokens "$jsonlFile" "$CC_SESSION_ID")
+        _RESULT=$(get_current_tokens "$jsonlFile")
         CURRENT_TOKENS=${_RESULT%%:*}
 
         SESSION_CONSUMED=$((CURRENT_TOKENS - SESSION_START_TOKENS))
@@ -465,6 +457,8 @@ EOF
         EMPTY=$((16 - FILLED))
         PROGRESS_BAR=$(printf '%*s' "$FILLED" '' | tr ' ' '#')$(printf '%*s' "$EMPTY" '' | tr ' ' '-')
 
+        # Note: state.json is cleared by SKILL.md inline, not by token-tracker
+
         echo "SESSION_START_K=${SESSION_START_K}"
         echo "SESSION_CONSUMED_K=${SESSION_CONSUMED_K}"
         echo "ROUNDS_TOTAL_K=${ROUNDS_TOTAL_K}"
@@ -483,10 +477,12 @@ EOF
 
         rm -f "$CACHE_FILE"
         rm -f "${CACHE_FILE}.bak" 2>/dev/null
+
+        # Note: state.json is cleared by SKILL.md inline, not by token-tracker
         ;;
 
     *)
-        echo "Usage: $0 {init|capture|recap|summary|cleanup} <session-id> [args...] [cc-session-id]" >&2
+        echo "Usage: $0 {init|capture|recap|summary|cleanup} <session-id> [args...]" >&2
         exit 1
         ;;
 esac
