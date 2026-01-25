@@ -388,10 +388,10 @@ Display agenda status and artifact counts.
 **TOKEN TRACKING** (always active - executes every round, including resume):
 
 1. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md`
-2. **IF round_number == 0** (first round only):
-   - Execute "Script Location" section (verify script, store as TOKEN_SCRIPT)
-   - Execute "Session Start" section (init + display CONTEXT STATUS box)
-3. Execute "Per-Round Init" section (every round)
+2. **ALWAYS** execute "Script Location" section (verify script exists, store path as TOKEN_SCRIPT)
+3. **IF round_number == 0** (new session only):
+   - Execute "Session Start" section (init + display CONTEXT STATUS box with "Initial" label)
+4. Execute "Per-Round Init" section (every round, shows orchestrator gap for round > 1)
 
 #### Step 2.2: Facilitator Question
 
