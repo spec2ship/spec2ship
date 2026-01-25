@@ -232,6 +232,76 @@ session_folder = ".s2s/sessions/{session-id}/"
 
 ---
 
+### Step 2.0: Context Capacity Check {#context-check}
+
+> **Purpose**: Before starting each round, verify there's enough context capacity to complete it.
+> If capacity is insufficient, stop gracefully and guide user to resume after /compact or /clear.
+
+**Execute token tracker init** (same as Step 2.1 but check result first):
+
+```bash
+eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed} "{workflow_type}" "{strategy}" "{phase}" {participants_count})
+```
+
+**Check capacity**:
+
+```
+THRESHOLD = 95  # Maximum context percentage before stopping
+```
+
+**IF `ESTIMATED_TOTAL_PCT >= THRESHOLD`** (next round would exceed capacity):
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  CONTEXT CAPACITY INSUFFICIENT FOR NEXT ROUND
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current:     {CURRENT_K}k tokens ({CURRENT_PCT}%)
+Estimated:   +{ESTIMATED_K}k for next round
+Projected:   {ESTIMATED_TOTAL_K}k ({ESTIMATED_TOTAL_PCT}%) ← exceeds {THRESHOLD}%
+
+The roundtable must pause to free context space.
+
+Option 1 - Compact (preserves some context):
+  Run: /compact Keep s2s roundtable session {session-id}, current agenda, and artifacts summary
+
+  Then resume:
+  /s2s:{workflow_type} --session {session-id}
+
+Option 2 - Clear (fresh start, faster):
+  Run: /clear
+
+  Then resume:
+  /s2s:{workflow_type} --session {session-id}
+
+Session saved at round {round_number}. All progress preserved in session file.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**Update session file** with pause status:
+```yaml
+status: "paused"
+timing:
+  paused_at: "{ISO timestamp}"
+  pause_reason: "context_capacity"
+```
+
+**STOP execution** - do NOT proceed to Step 2.1.
+
+**IF `ESTIMATED_TOTAL_PCT >= 85`** (warning zone, but can continue):
+
+Display warning inline with round start:
+```
+⚠️  Context at {CURRENT_PCT}% - estimated {ESTIMATED_TOTAL_PCT}% after this round
+    Consider /compact after this round completes
+```
+
+**IF `ESTIMATED_TOTAL_PCT < 85`** (OK):
+
+Proceed to Step 2.1 normally.
+
+---
+
 ### Step 2.1: Display Round Start {#round-start}
 
 ```
@@ -272,13 +342,16 @@ ARTIFACTS: {count} requirements, {count} conflicts, {count} open questions
 }
 ```
 
-**TOKEN TRACKING** (always active - executes every round, including resume):
+**TOKEN TRACKING** (init already executed in Step 2.0):
+
+> Note: Step 2.0 already ran `token-tracker init` and verified capacity.
+> Use the results from Step 2.0 (CURRENT_K, CURRENT_PCT, etc.) to display the context status box.
 
 1. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md`
-2. **ALWAYS** execute "Script Location" section (verify script exists, store path as TOKEN_SCRIPT)
-3. **IF round_number == 0** (new session only):
-   - Execute "Session Start" section (init + display CONTEXT STATUS box with "Initial" label)
-4. Execute "Per-Round Init" section (every round, shows orchestrator gap for round > 1)
+2. **IF round_number == 0** (new session only):
+   - Display "CONTEXT STATUS (Initial)" box using values from Step 2.0
+3. **IF round_number > 0**:
+   - Display "CONTEXT STATUS (Round N Start)" box using values from Step 2.0
 
 ### Step 2.2: Facilitator Question
 

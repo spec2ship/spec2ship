@@ -672,6 +672,26 @@ chmod +x .claude/statusline.sh
 2. Reads user's global statusline command from `~/.claude/settings.json` and chains to it if configured
 3. Falls back to a minimal display showing model, directory, branch, and context %
 
+**Create context hook script**:
+
+If `.claude/context-reset.sh` does NOT exist:
+
+**Read template from plugin**:
+
+Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/hooks/context-reset.sh`
+
+**Write**: Save to `.claude/context-reset.sh`
+
+**Make executable**:
+```bash
+chmod +x .claude/context-reset.sh
+```
+
+**Note**: The context hook handles `/clear` and `/compact` events:
+1. Resets token tracking state appropriately
+2. Shows resume command if roundtable was interrupted
+3. Updates `.s2s/state.json` with context event
+
 ### 5.6 Generate BACKLOG.md
 
 **Read template from plugin**:
@@ -789,8 +809,9 @@ Created:
 - .s2s/plans/
 - .s2s/decisions/
 - .claude/CLAUDE.md (with @../.s2s/CONTEXT.md reference)
-- .claude/settings.json (statusline for token tracking)
+- .claude/settings.json (statusline + hooks for token tracking)
 - .claude/statusline.sh (context tracking + chain to global)
+- .claude/context-reset.sh (handles /clear and /compact events)
 
 Note: To enable token tracking, restart Claude Code in this directory.
       The statusline configuration is loaded at session start.

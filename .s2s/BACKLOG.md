@@ -585,6 +585,18 @@ Applied token tracking always-active, state.json, and checkpoint reminders to al
 - [x] Add checkpoint reminders (T1, T2, T3) to all 4 commands
 - [x] Add state.json fast-path read in auto-detect (all 4 commands) - hybrid approach per TECH-007
 
+**Phase 6b: Token tracking edge cases** ✅ (completed 2026-01-25)
+
+Handle /clear, /compact, and context capacity limits.
+
+- [x] Create `templates/hooks/context-reset.sh` (v1.1.0) - SessionStart hook
+- [x] Update `templates/statusline/settings.json` with hooks config
+- [x] Update `commands/init.md` to copy hook during initialization
+- [x] Add Step 2.0 Context Capacity Check to SKILL.md (threshold 95%)
+- [x] Update token-tracking.md with capacity check documentation
+- [ ] Propagate Step 2.0 to specs.md, design.md, brainstorm.md (defer to Phase 3)
+- [ ] Test hook with real /clear and /compact events
+
 **Phase 2: Validation consolidation** (~120 lines simplified)
 - [ ] Verify session-qa can perform Step 2.6b checks
 - [ ] Modify commands to call `Task(session-qa)` for validation

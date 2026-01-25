@@ -1,10 +1,10 @@
 # Token Tracking Instructions
 
-Token tracking is always active during roundtable sessions. This file is read at Step 2.1 of each round.
+Token tracking is always active during roundtable sessions. This file is read at Step 2.0 (context check) and Step 2.1 (round start) of each round.
 
 ---
 
-## Script Location (execute ONCE at first round)
+## Script Location (execute ONCE at Step 2.0 of first round)
 
 Script path:
 ```
@@ -59,11 +59,59 @@ These are used to update `.s2s/state.json` for statusline display.
 
 ---
 
-## Per-Round Init (Step 2.1)
+## Context Capacity Check (Step 2.0)
+
+> **Purpose**: Before starting each round, verify there's enough context capacity.
+> If projected usage exceeds 95%, stop and guide user to /compact or /clear.
 
 ```bash
 eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed} "{workflow_type}" "{strategy}" "{phase}" {participants_count})
 ```
+
+**Check ESTIMATED_TOTAL_PCT from output**:
+
+| Condition | Action |
+|-----------|--------|
+| `ESTIMATED_TOTAL_PCT >= 95` | **STOP** - display pause message with /compact instructions |
+| `ESTIMATED_TOTAL_PCT >= 85` | **WARNING** - display warning but continue |
+| `ESTIMATED_TOTAL_PCT < 85` | **OK** - proceed normally |
+
+**On STOP** - display:
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  CONTEXT CAPACITY INSUFFICIENT FOR NEXT ROUND
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current:     {CURRENT_K}k tokens ({CURRENT_PCT}%)
+Estimated:   +{ESTIMATED_K}k for next round
+Projected:   {ESTIMATED_TOTAL_K}k ({ESTIMATED_TOTAL_PCT}%) ← exceeds 95%
+
+Option 1 - Compact (preserves some context):
+  /compact Keep s2s roundtable session {session-id}, agenda, artifacts
+
+  Then: /s2s:{workflow_type} --session {session-id}
+
+Option 2 - Clear (fresh start):
+  /clear
+
+  Then: /s2s:{workflow_type} --session {session-id}
+
+Session saved at round {round_number}. Progress preserved.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+**On WARNING** - display inline with round start:
+```
+⚠️  Context at {CURRENT_PCT}% - estimated {ESTIMATED_TOTAL_PCT}% after this round
+    Consider /compact after this round completes
+```
+
+---
+
+## Per-Round Display (Step 2.1)
+
+> Note: `token-tracker init` was already executed in Step 2.0.
+> Use those results to display the context status box.
 
 **Print this box to the user** (for round > 1, include orchestrator gap if > 0):
 ```
