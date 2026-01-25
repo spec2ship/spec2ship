@@ -100,6 +100,38 @@ commands/dev/test.md         # /s2s:dev:test
 
 ## Planned
 
+### QUAL-002: Execution compliance checks (EXEC-*)
+
+**Status**: planned | **Created**: 2026-01-25 | **Priority**: medium
+
+**Context**: Optional features (`--tokens`, `--verbose`, `--diagnostic`) require LLM to follow distributed conditional instructions. Even with the "Feature Activation Pattern" (s2s-development.md), compliance may not be 100%. Need post-hoc evidence-based validation.
+
+**Principle**: Verify AFTER execution by checking artifacts, not DURING (inline validation adds skippable instructions).
+
+**Proposed checks** (for session-qa agent):
+
+| Check | Applies When | Evidence |
+|-------|--------------|----------|
+| EXEC-001 | tokens_flag used | `.s2s/sessions/{id}.cache` has entries per round |
+| EXEC-002 | verbose_flag used | `rounds/*.yaml` dump files exist for each round |
+| EXEC-003 | diagnostic_flag used | session-observer findings in session file |
+
+**Tasks**:
+- [ ] Add EXEC-* section to `agents/validation/session-qa.md`
+- [ ] Implement EXEC-001 (token tracking compliance)
+- [ ] Implement EXEC-002 (verbose dump compliance)
+- [ ] Implement EXEC-003 (diagnostic compliance)
+- [ ] Update `/s2s:session:validate` to show EXEC-* results
+
+**Acceptance criteria**:
+- [ ] `/s2s:session:validate` reports if optional features were properly executed
+- [ ] Evidence files include EXEC-* results
+- [ ] Clear indication when compliance failed
+
+**Related**: s2s-development.md → "Feature Activation Pattern" and "Validation Strategy: Post-Hoc Evidence-Based"
+
+---
+
 ### BUG-001: Agent resume fails across Claude sessions
 
 **Status**: planned | **Created**: 2026-01-20 | **Priority**: low

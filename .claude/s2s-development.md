@@ -554,6 +554,100 @@ Optional features (like `--diagnostic`, `--tokens`, `--verbose`) should be activ
 
 ---
 
+### Feature Activation Pattern for LLM Compliance (CRITICAL)
+
+The "Optional Feature Hooks Pattern" above describes WHERE to place hooks. This section describes HOW to structure them so LLMs reliably execute them.
+
+**Problem**: Distributed conditional instructions (`IF flag: Read → Execute` at 6+ points) have low compliance rate because:
+1. Main flow dominates LLM attention
+2. Each file read is a cognitive break
+3. No commitment mechanism
+4. No accountability if skipped
+
+**Solution**: Feature Activation + Section References
+
+**Pattern**:
+
+```markdown
+## PHASE 2: Execution
+
+### Feature Activation (execute ONCE at phase start)
+
+**IF tokens_flag**:
+1. Read `references/token-tracking.md` NOW
+2. Execute "Script Location" section
+3. **CHECKPOINT CONTRACT**: Execute these sections at each step:
+   - "Capture T1" → after Step 2.2
+   - "Capture T2" → after Step 2.3
+   - "Capture T3" + "Round Recap" → after Step 2.4
+
+### Step 2.2: Facilitator Question
+[... main instructions ...]
+
+→ **IF tokens_flag**: Execute "Capture T1" section from token-tracking.md
+
+### Step 2.3: Participants
+[... main instructions ...]
+
+→ **IF tokens_flag**: Execute "Capture T2" section from token-tracking.md
+```
+
+**Key elements**:
+
+| Element | Purpose |
+|---------|---------|
+| Feature Activation block | Creates explicit commitment at phase start |
+| Single file read | Loads reference once, not at each checkpoint |
+| Checkpoint Contract | Lists all execution points upfront |
+| Section reference at step | Lightweight reminder (no file read) |
+
+**Why this works for LLMs**:
+- Commitment upfront increases follow-through
+- Single load reduces friction
+- Inline reminders provide proximity
+- Contract creates accountability (can be verified post-hoc)
+
+**Trade-off accepted**: Section names appear in two places (Feature Activation + step). This mild DRY violation is intentional for LLM reliability.
+
+**Verification**: Use post-hoc evidence-based validation (EXEC-* checks in session-qa) rather than inline checkpoints. Inline validation adds instructions that may themselves be skipped.
+
+**Verified**: 2026-01-25 - Pattern documented based on LLM compliance analysis
+
+---
+
+### Validation Strategy: Post-Hoc Evidence-Based
+
+**Principle**: Don't verify DURING execution (adds skippable instructions), verify AFTER by checking artifacts.
+
+**Why NOT inline validation**:
+- Validation instructions compete with execution instructions for LLM attention
+- The problem (LLM skipping instructions) applies to validation instructions too
+- Pollutes the clean instruction flow
+- Increases cognitive load
+
+**Correct approach**:
+
+| Feature | Evidence to Check |
+|---------|-------------------|
+| `--tokens` | `.s2s/sessions/{id}.cache` has entries per round |
+| `--verbose` | `rounds/*.yaml` dump files exist |
+| `--diagnostic` | session-observer findings in session file |
+
+**Tool assignment**:
+- **session-qa**: Execution compliance checks (EXEC-*) - comprehensive, evidence files
+- **session-observer**: Real-time anomaly hints - lightweight, per-round
+
+**Workflow**:
+```
+Normal use:     /s2s:specs --tokens
+Development:    /s2s:specs --tokens --diagnostic
+Verification:   /s2s:session:validate {session-id}
+```
+
+**See also**: BACKLOG.md → QUAL-002 for EXEC-* check implementation status.
+
+---
+
 ## Session File Management
 
 ### Per-Round Persistence

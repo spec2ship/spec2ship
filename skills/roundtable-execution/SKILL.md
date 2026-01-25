@@ -4,7 +4,7 @@ description: "This skill provides instructions for executing multi-agent roundta
   Use when a command needs to run discussion rounds with facilitator and participants.
   Referenced by: specs.md, design.md, brainstorm.md.
   Trigger: 'execute roundtable', 'run discussion rounds', 'multi-agent discussion'."
-version: 2.1.0
+version: 2.2.0
 ---
 
 # Roundtable Execution Instructions
@@ -228,6 +228,21 @@ round_number = 0
 session_folder = ".s2s/sessions/{session-id}/"
 ```
 
+### Feature Activation (execute ONCE before first round)
+
+**IF tokens_flag**:
+1. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md` NOW
+2. Execute "Script Location" section (verify script exists, store as TOKEN_SCRIPT)
+3. Execute "Session Start" section (init + display CONTEXT STATUS box)
+4. **CHECKPOINT CONTRACT** - You commit to execute these sections at each round:
+   - "Per-Round Init" → at Step 2.1 (round start)
+   - "Capture T1" → after Step 2.2 (facilitator question)
+   - "Capture T2" → after Step 2.3 (participants)
+   - "Capture T3" + "Round Recap" → after Step 2.4 (synthesis)
+   - "Session Complete" → at Step 3.1 (session close)
+
+---
+
 ### Step 2.1: Display Round Start {#round-start}
 
 ```
@@ -268,9 +283,7 @@ ARTIFACTS: {count} requirements, {count} conflicts, {count} open questions
 }
 ```
 
-**IF tokens_flag AND round_number == 0**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md` → Execute "Script Location" section, then "Session Start" section
-
-**IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md` → Execute "Per-Round Init" section
+→ **IF tokens_flag**: Execute "Per-Round Init" section from token-tracking.md
 
 ### Step 2.2: Facilitator Question
 
@@ -369,7 +382,7 @@ participant_context:
 
 **IF --verbose**: Write dump file `rounds/{NNN}-01-facilitator-question.yaml` (see `references/verbose-dump-format.md` for naming and content format)
 
-**IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md` → Execute "Capture T1" section
+→ **IF tokens_flag**: Execute "Capture T1" section from token-tracking.md
 
 ### Step 2.3: Participant Responses (PARALLEL)
 
@@ -449,7 +462,7 @@ references:
 
 **IF --verbose**: Write dump files `rounds/{NNN}-02-{participant-id}.yaml` for each
 
-**IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md` → Execute "Capture T2" section
+→ **IF tokens_flag**: Execute "Capture T2" section from token-tracking.md
 
 ### Step 2.4: Facilitator Synthesis
 
@@ -551,7 +564,7 @@ escalation_reason: null
 
 **IF --verbose**: Write dump file `rounds/{NNN}-03-facilitator-synthesis.yaml`
 
-**IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md` → Execute "Capture T3" section, then "Round Recap" section
+→ **IF tokens_flag**: Execute "Capture T3" section, then "Round Recap" section from token-tracking.md
 
 **IF diagnostic_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/diagnostic.md` → Execute "Per-Round Diagnostic" section
 
@@ -724,7 +737,7 @@ After each major step (2.2, 2.3, 2.4, 2.5), verify correct execution using the c
 
 **IF diagnostic_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/diagnostic.md` → Execute "End-Session Diagnostic Report" section
 
-**IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md` → Execute "Session Complete" section
+→ **IF tokens_flag**: Execute "Session Complete" section from token-tracking.md
 
 ### Step 3.1: Update Session Status {#session-close}
 
