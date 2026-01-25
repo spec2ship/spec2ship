@@ -6,17 +6,17 @@ Token tracking is always active during roundtable sessions. This file is read at
 
 ## Script Location (execute ONCE at Step 2.0 of first round)
 
-Script path:
+**Use the Read tool** to get the resolved script path:
+
 ```
-${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/token-tracker.sh
+Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/token-tracker.sh`
 ```
 
-Store as `TOKEN_SCRIPT`. Verify exists:
-```bash
-[ -f "<TOKEN_SCRIPT>" ] && echo "Script found" || echo "Script NOT found"
-```
+The Read tool response shows the actual resolved path in its header (e.g., `File: /path/to/.../token-tracker.sh`).
 
-If not found: skip all token tracking, proceed normally.
+**Extract that full path** and store it as `TOKEN_SCRIPT`.
+
+If Read fails (file not found): skip all token tracking, proceed normally.
 
 ---
 

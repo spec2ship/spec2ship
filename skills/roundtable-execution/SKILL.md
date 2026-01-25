@@ -4,7 +4,7 @@ description: "This skill provides instructions for executing multi-agent roundta
   Use when a command needs to run discussion rounds with facilitator and participants.
   Referenced by: specs.md, design.md, brainstorm.md.
   Trigger: 'execute roundtable', 'run discussion rounds', 'multi-agent discussion'."
-version: 2.3.0
+version: 2.4.0
 ---
 
 # Roundtable Execution Instructions
@@ -237,7 +237,13 @@ session_folder = ".s2s/sessions/{session-id}/"
 > **Purpose**: Before starting each round, verify there's enough context capacity to complete it.
 > If capacity is insufficient, stop gracefully and guide user to resume after /compact or /clear.
 
-**Execute token tracker init** (same as Step 2.1 but check result first):
+**TOKEN TRACKING SETUP** (execute ONCE per session, including resume):
+
+1. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md`
+2. Execute "Script Location" section to get TOKEN_SCRIPT path
+3. If script not found: skip token tracking, proceed to Step 2.1
+
+**Execute token tracker init**:
 
 ```bash
 eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed} "{workflow_type}" "{strategy}" "{phase}" {participants_count})
@@ -342,16 +348,14 @@ ARTIFACTS: {count} requirements, {count} conflicts, {count} open questions
 }
 ```
 
-**TOKEN TRACKING** (init already executed in Step 2.0):
+**TOKEN TRACKING DISPLAY** (using values from Step 2.0):
 
-> Note: Step 2.0 already ran `token-tracker init` and verified capacity.
-> Use the results from Step 2.0 (CURRENT_K, CURRENT_PCT, etc.) to display the context status box.
+Display context status box using CURRENT_K, CURRENT_PCT, etc. from Step 2.0's token-tracker init:
 
-1. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md`
-2. **IF round_number == 0** (new session only):
-   - Display "CONTEXT STATUS (Initial)" box using values from Step 2.0
-3. **IF round_number > 0**:
-   - Display "CONTEXT STATUS (Round N Start)" box using values from Step 2.0
+- **IF round_number == 0**: Display "CONTEXT STATUS (Initial)" box
+- **IF round_number > 0**: Display "CONTEXT STATUS (Round N Start)" box
+
+See token-tracking.md "Per-Round Display" section for box format.
 
 ### Step 2.2: Facilitator Question
 
@@ -866,7 +870,7 @@ The output-generation skill handles:
 | `references/verbose-dump-format.md` | Verbose dump file naming and content |
 | `references/definition-of-done.md` | Step validation checklist |
 | `references/diagnostic.md` | Diagnostic mode (hooks at Step 2.4 and PHASE 3) |
-| `references/token-tracking.md` | Token tracking mode (hooks at Steps 2.1-2.4 and PHASE 3) |
+| `references/token-tracking.md` | Token tracking (setup at Step 2.0, display at 2.1, captures at 2.2-2.4, summary at PHASE 3) |
 
 ---
 

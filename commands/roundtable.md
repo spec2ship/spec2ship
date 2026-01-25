@@ -381,20 +381,23 @@ Pass these values to the skill execution:
 
 **DO NOT improvise.** Follow the skill instructions step-by-step:
 
-1. PHASE 3 of skill: Round Execution Loop
-   - Step 3.1: Facilitator Question (use Task tool)
-   - Step 3.2: Participant Responses (use Task tool, ALL in parallel)
-   - Step 3.3: Facilitator Synthesis (use Task tool)
-   - Step 3.4: Update Session File
-   - Step 3.5: Handle --interactive mode (if enabled)
-   - Step 3.6: Evaluate Next Action
+1. PHASE 2 of skill: Round Execution Loop
+   - Step 2.0: Context Capacity Check (includes TOKEN TRACKING SETUP)
+   - Step 2.1: Display Round Start
+   - Step 2.2: Facilitator Question (use Task tool)
+   - Step 2.3: Participant Responses (use Task tool, ALL in parallel)
+   - Step 2.4: Facilitator Synthesis (use Task tool)
+   - Step 2.5: Process Artifacts
+   - Step 2.6: Update Session File
+   - Step 2.7: Display Round Recap
+   - Step 2.8: Handle --interactive mode (if enabled)
+   - Step 2.9: Evaluate Next Action
    - REPEAT until: next_action == "conclude" AND round >= min_rounds
 
-2. PHASE 4 of skill: Completion
-   - Update session status to "closed"
-   - Set `closed_at` timestamp
-   - Generate output file (based on output_type)
-   - Display completion summary
+2. PHASE 3 of skill: Completion
+   - Step 3.1: Update session status to "closed"
+   - Step 3.2: Read session for summary
+   - Step 3.4-3.5: Generate output file (based on output_type)
 
 **CRITICAL REMINDERS:**
 
@@ -410,10 +413,12 @@ Pass these values to the skill execution:
 
 - **Update state.json at Step 2.1**: Write `active_session` at start of each round (see SKILL.md)
 - **Clear state.json at Step 3.1**: Set `active_session: null` when session closes (see SKILL.md)
-- **Token tracking is ALWAYS active**: Follow token-tracking.md instructions at each step checkpoint
+- **Token tracking is ALWAYS active**: SKILL.md Step 2.0 handles setup (reads token-tracking.md, executes Script Location)
 
-**TOKEN TRACKING CHECKPOINTS:**
+**TOKEN TRACKING CHECKPOINTS** (after Step 2.0 setup is complete):
 
+- **Step 2.0**: TOKEN TRACKING SETUP - Read token-tracking.md, execute "Script Location" to get TOKEN_SCRIPT
+- **Step 2.1**: Display context status box (using values from Step 2.0 init)
 - **After Step 2.2**: Execute "Capture T1" from token-tracking.md
 - **After Step 2.3**: Execute "Capture T2" from token-tracking.md
 - **After Step 2.4**: Execute "Capture T3" and "Round Recap" from token-tracking.md
@@ -421,7 +426,7 @@ Pass these values to the skill execution:
 
 **ADDITIONAL REMINDERS:**
 
-- **Store participant responses**: After Step 3.2, keep responses in `participant_responses` array
-- **Write session file per-round**: After Step 3.3, IMMEDIATELY write to session file using Write/Edit tool
-- **Display recap ALWAYS**: After Step 3.4, show round summary to terminal (not just interactive mode)
+- **Store participant responses**: After Step 2.3, keep responses in `participant_responses` array
+- **Write session file per-round**: After Step 2.4, IMMEDIATELY write to session file using Write/Edit tool
+- **Display recap ALWAYS**: After Step 2.7, show round summary to terminal (not just interactive mode)
 - **If verbose=true**: Include full `responses[]` in session file round data
