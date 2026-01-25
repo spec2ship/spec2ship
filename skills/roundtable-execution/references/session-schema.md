@@ -153,11 +153,8 @@ metrics:
         estimate: 18000
         actual: null          # Not yet calculated (last round or session closed)
         source: "estimated"
-    stats:                    # Aggregated statistics (calculated by script)
-      avg_actual: 15850       # Average of "actual" values (precise)
-      avg_estimate: 15000     # Average of "estimate" values
-      overhead_delta: 2200    # avg(actual - estimate) = orchestrator overhead
-      sample_count: 2         # How many rounds have valid "actual"
+    # Note: stats (avg_actual, overhead_delta, sample_count) are calculated
+    # on-the-fly by token-tracker.sh, not persisted in session file
 
 # Validation state
 validation:

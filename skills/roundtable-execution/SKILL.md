@@ -207,9 +207,10 @@ metrics:
     total: 0
     closed: 0
   consensus_rate: 0.0
+  # TECH-009: Token tracking
   tokens:
-    estimated_total: 0
-    by_round: []
+    total: 0        # Accumulated total (updated at session end)
+    by_round: []    # Per-round detail with estimate/actual/source
 
 validation:
   last_check: null

@@ -335,7 +335,7 @@ metrics:
     closed: 0
   consensus_rate: 0.0
   tokens:
-    estimated_total: 0
+    total: 0        # TECH-009
     by_round: []
 
 # Validation state
@@ -1370,7 +1370,7 @@ metrics:
     closed: {count agenda items with status=closed}
   consensus_rate: {consensus_reached rounds / total rounds}
   tokens:
-    estimated_total: {update}
+    total: {update from summary}
     by_round:
       - round: {N}
         tokens: {estimated for this round}
