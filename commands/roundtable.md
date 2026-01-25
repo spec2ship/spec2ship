@@ -351,6 +351,19 @@ Pass these values to the skill execution:
 - **Minimum 3 rounds** - do NOT conclude before round 3
 - **Maximum 20 rounds** - force conclude if reached
 
+**STATE MANAGEMENT REMINDERS:**
+
+- **Update state.json at Step 2.1**: Write `active_session` at start of each round (see SKILL.md)
+- **Clear state.json at Step 3.1**: Set `active_session: null` when session closes (see SKILL.md)
+- **Token tracking is ALWAYS active**: Follow token-tracking.md instructions at each step checkpoint
+
+**TOKEN TRACKING CHECKPOINTS:**
+
+- **After Step 2.2**: Execute "Capture T1" from token-tracking.md
+- **After Step 2.3**: Execute "Capture T2" from token-tracking.md
+- **After Step 2.4**: Execute "Capture T3" and "Round Recap" from token-tracking.md
+- **At Step 3.1**: Execute "Session Complete" from token-tracking.md
+
 **ADDITIONAL REMINDERS:**
 
 - **Store participant responses**: After Step 3.2, keep responses in `participant_responses` array

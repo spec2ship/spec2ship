@@ -325,6 +325,38 @@ CRITIC PHASE: Identify risks. What could go wrong?
 ARTIFACTS: {count} ideas, {count} risks, {count} mitigations
 ```
 
+**CORE: Update state.json** (for resume suggestion and statusline display)
+
+**IF `.s2s/state.json` exists**: Read it first to get current `active_plan` value.
+
+**IMMEDIATELY** use Write tool to write `.s2s/state.json`:
+```json
+{
+  "active_session": {
+    "id": "{session-id}",
+    "workflow_type": "brainstorm",
+    "strategy": "{strategy_to_use}",
+    "phase": "{current_phase}",
+    "round": {round_number + 1},
+    "participants_count": 4
+  },
+  "active_plan": {existing active_plan value OR null if file didn't exist},
+  "last_activity": {
+    "timestamp": "{ISO timestamp}",
+    "action": "round_started",
+    "session_id": "{session-id}"
+  }
+}
+```
+
+**TOKEN TRACKING** (always active - executes every round, including resume):
+
+1. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md`
+2. **IF round_number == 0** (first round only):
+   - Execute "Script Location" section (verify script, store as TOKEN_SCRIPT)
+   - Execute "Session Start" section (init + display CONTEXT STATUS box)
+3. Execute "Per-Round Init" section (every round)
+
 #### Step 2.2: Facilitator Question
 
 **Check for resume capability:**
@@ -568,6 +600,8 @@ agent_state:
     last_action: "question"
 ```
 
+→ **Token checkpoint T1**: Execute "Capture T1" section from token-tracking.md
+
 #### Step 2.3: Participant Responses
 
 **Launch ALL participant agents in SINGLE message** (parallel execution):
@@ -801,6 +835,8 @@ agent_state:
       agent_id: "{agentId from devops-engineer response}"
       last_round: {round_number + 1}
 ```
+
+→ **Token checkpoint T2**: Execute "Capture T2" section from token-tracking.md
 
 #### Step 2.4: Facilitator Synthesis
 
@@ -1074,6 +1110,8 @@ agent_state:
     last_round: {round_number + 1}
     last_action: "synthesis"
 ```
+
+→ **Token checkpoint T3**: Execute "Capture T3" section, then "Round Recap" section from token-tracking.md
 
 #### Step 2.5: Process Artifacts
 
@@ -1450,6 +1488,25 @@ status: "closed"
 timing:
   closed_at: "{ISO timestamp}"
 ```
+
+**CORE: Clear active_session from state.json**
+
+**IF `.s2s/state.json` exists**: Read it first to get current `active_plan` value.
+
+**IMMEDIATELY** use Write tool to write `.s2s/state.json`:
+```json
+{
+  "active_session": null,
+  "active_plan": {existing active_plan value OR null if file didn't exist},
+  "last_activity": {
+    "timestamp": "{ISO timestamp}",
+    "action": "session_closed",
+    "session_id": "{session-id}"
+  }
+}
+```
+
+→ **Token tracking**: Execute "Session Complete" section from token-tracking.md
 
 ### Step 3.2: Read Session for Summary
 

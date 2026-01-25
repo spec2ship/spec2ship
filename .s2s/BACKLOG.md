@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-01-25
+**Updated**: 2026-01-25 (TECH-002 revised with skill analysis)
 **Format**: Work items for active development
 
 ---
@@ -497,25 +497,65 @@ What would you like to configure?
 
 ### TECH-002: Roundtable command unification
 
-**Status**: in_progress | **Created**: 2026-01-20 | **Updated**: 2026-01-21 | **Origin**: IDEA-008
+**Status**: in_progress | **Created**: 2026-01-20 | **Updated**: 2026-01-25 | **Origin**: IDEA-008
 **ADRs**:
 - [0011-roundtable-command-unification](decisions/0011-roundtable-command-unification.md)
 - [0012-output-generation-skill](decisions/0012-output-generation-skill.md)
 
-**Context**: specs.md, design.md, brainstorm.md have ~60% code duplication (~1600+ lines each). They claim to follow `roundtable-execution` skill but implement everything inline (and better). roundtable.md is underpowered in comparison.
+**Context**: specs.md, design.md, brainstorm.md have ~60% code duplication (~1600+ lines each). They claim to follow `roundtable-execution` and `roundtable-strategies` skills but implement everything inline. roundtable.md is underpowered in comparison.
 
-**Goal**: Unify execution logic, reduce duplication, align roundtable.md capabilities.
+**Analysis (2026-01-25, updated after Phase 6)**:
 
-**Phases**:
+| Command | Lines | roundtable-execution | roundtable-strategies | Token tracking | state.json |
+|---------|-------|---------------------|----------------------|----------------|------------|
+| specs.md | 1688 | Declared, not used (inline) | Declared, not used | ✅ Added | ✅ Added |
+| design.md | 1561 | Declared, not used (inline) | Declared, not used | ✅ Added | ✅ Added |
+| brainstorm.md | 1542 | Declared, not used (inline) | Declared, not used (Disney inline) | ✅ Added | ✅ Added |
+| roundtable.md | 372 | "Follow skill" + reminders | ✅ Reads reference | ✅ Reminders | ✅ Reminders |
 
-| Phase | Description | Depends on | Links to |
-|-------|-------------|------------|----------|
-| 0 | Test baseline | - | TEST-003 |
-| 1 | Output extraction | Phase 0 | ADR-0012 |
-| 2 | Validation in agent | Phase 0 | session-qa |
-| 3 | Phase 2 uniformization | Phase 1, 2 | - |
-| 4 | roundtable.md alignment | Phase 3 | - |
-| 5 | Skill cleanup | Phase 0 | DEBT-001 |
+**Root problems**:
+1. Skills declared in frontmatter but not actually used
+2. Duplicated content: workflow defaults, Disney phases, artifact types
+3. New guidelines (token tracking, state.json) not propagated to any command
+4. roundtable-strategies has useful content that's duplicated inline
+
+**Goal**: Unify execution logic with "Core Inline + Skill Reference" pattern.
+
+**Target architecture**:
+```
+commands/
+├── roundtable.md         # ~600 lines: full implementation, all workflows
+├── specs.md              # ~150 lines: thin launcher
+├── design.md             # ~150 lines: thin launcher
+├── brainstorm.md         # ~150 lines: thin launcher
+
+skills/
+├── roundtable-strategies/  # WHAT: phases, prompts, consensus
+│   ├── SKILL.md            # Strategy selection + workflow defaults
+│   └── references/{strategy}.md
+│
+└── roundtable-execution/   # HOW: execution loop, state, tracking
+    ├── SKILL.md            # Overview + core inline template
+    └── references/
+        ├── phase-2-core.md       # Round execution details
+        ├── token-tracking.md
+        ├── state-management.md
+        └── ...
+```
+
+**Phases** (revised 2026-01-25):
+
+| Phase | Description | Status | Depends on |
+|-------|-------------|--------|------------|
+| 0 | Test baseline | ✅ | - |
+| 1 | Output extraction | ✅ | Phase 0 |
+| 5 | Skill cleanup | ✅ | Phase 0 |
+| 6 | Critical guidelines propagation | ✅ | - |
+| 2 | Validation consolidation | **NEXT** | Phase 6 |
+| 3 | Phase 2 uniformization | planned | Phase 2 |
+| 7 | Strategy skill consolidation | planned | Phase 3 |
+| 4 | roundtable.md as master | planned | Phase 3, 7 |
+| 8 | Thin launcher conversion | planned | Phase 4 |
 
 **Phase 0: Test baseline** ✅
 - [x] Create `skills/dev-testing/references/roundtable-tests.md` with test cases
@@ -526,21 +566,23 @@ What would you like to configure?
 - [x] Create unified `skills/output-generation/` with SKILL.md + references/
 - [x] Reference files: specs-srs.md, design-arc42.md, brainstorm.md
 - [x] Modify commands to `Read` skill instead of inline
-- [x] Update roundtable-execution PHASE 3 to use output-generation
-- [x] Document in ADR-0012 and s2s-development.md
-- [x] Format consolidation review (2026-01-21):
-  - Fixed naming convention in verbose-dump-format.md
-  - Added `timestamp:`, `key_decisions:` to session-schema.md rounds[]
-  - Added `metrics_consistency` to verification checklist
-  - Added workflow-specific fields table
-  - Added "Authoritative Format References" to s2s-development.md
-- [ ] **NEXT**: Test output identical to current (run /s2s:specs, /s2s:design, /s2s:brainstorm)
+- [ ] Test output identical to current
 
-**Line count after Phase 1**:
-- specs.md: 1739 → 1631 (-108)
-- design.md: 1627 → 1504 (-123)
-- brainstorm.md: 1624 → 1485 (-139)
-- Total: 4990 → 4620 (-370)
+**Phase 5: Skill cleanup** ✅
+- [x] Slim SKILL.md to overview + references (2492 → 1912 words)
+- [x] Move verbose content to references/
+
+**Phase 6: Critical guidelines propagation** ✅ (completed 2026-01-25)
+
+Applied token tracking always-active, state.json, and checkpoint reminders to all commands.
+
+- [x] Add token tracking activation to specs.md Step 2.1
+- [x] Add token tracking activation to design.md Step 2.1
+- [x] Add token tracking activation to brainstorm.md Step 2.1
+- [x] Add token tracking reminders to roundtable.md CRITICAL REMINDERS section
+- [x] Add state.json updates to specs.md, design.md, brainstorm.md Step 2.1 and Step 3.1
+- [x] Add state.json reminders to roundtable.md
+- [x] Add checkpoint reminders (T1, T2, T3) to all 4 commands
 
 **Phase 2: Validation consolidation** (~120 lines simplified)
 - [ ] Verify session-qa can perform Step 2.6b checks
@@ -549,39 +591,64 @@ What would you like to configure?
 - [ ] Test: same warnings produced
 
 **Phase 3: Phase 2 uniformization**
-- [ ] Map ALL differences between commands in Phase 2
-- [ ] Classify: necessary (workflow-specific) vs accidental
+- [ ] Map ALL differences between commands in Phase 2 execution
+- [ ] Classify: necessary (workflow-specific) vs accidental (drift)
 - [ ] Eliminate accidental divergences
-- [ ] Parameterize necessary differences
-- [ ] Test: all workflows function correctly
+- [ ] Parameterize necessary differences via workflow_type
+- [ ] Create `roundtable-execution/references/phase-2-core.md` with unified logic
 
-**Phase 4: roundtable.md alignment**
-- [ ] Add resume/validation/diagnostic to roundtable.md
-- [ ] Verify `--workflow-type specs/design/brainstorm` produces correct output
-- [ ] Simplify workflow commands to wrappers
-- [ ] Test: identical behavior via roundtable.md
+**Phase 7: Strategy skill consolidation** (NEW)
 
-**Phase 5: Skill cleanup** (linked to DEBT-001) ✅
-- [x] Decide skill role: execution reference with extracted details
-- [x] Slim SKILL.md to overview + references (2492 → 1912 words)
-- [x] Move verbose content to references/ (verbose-dump-format.md, definition-of-done.md, workspace-scope.md)
-- [x] Target: under 2000 words (achieved: 1912)
+Make commands actually USE roundtable-strategies instead of duplicating.
 
-**Acceptance criteria**:
-- [ ] Commands reduced to ~600-800 lines each
+- [ ] Verify roundtable-strategies/SKILL.md has complete workflow defaults
+- [ ] Move Disney phase logic from brainstorm.md to disney.md (if missing)
+- [ ] Update specs.md to read strategy config from skill
+- [ ] Update design.md to read strategy config from skill
+- [ ] Update brainstorm.md to read strategy config from skill
+- [ ] Remove duplicated workflow defaults from commands
+- [ ] Test: strategy-specific behavior works correctly
+
+**Phase 4: roundtable.md as master** (revised)
+- [ ] Add full Phase 2 execution to roundtable.md (currently "follow skill")
+- [ ] Support `--workflow-type specs|design|brainstorm`
+- [ ] Verify all workflows produce correct output via roundtable.md
+- [ ] Add resume/validation/diagnostic (currently missing)
+- [ ] roundtable.md becomes ~600 lines with full capability
+
+**Phase 8: Thin launcher conversion** (NEW)
+- [ ] Convert specs.md to thin launcher (~150 lines):
+  - Validate environment
+  - Check prerequisites (CONTEXT.md)
+  - Set workflow defaults
+  - Invoke roundtable.md execution
+- [ ] Convert design.md to thin launcher
+- [ ] Convert brainstorm.md to thin launcher
+- [ ] Test: identical behavior via thin launchers
+- [ ] Document pattern in s2s-development.md
+
+**Line count targets**:
+| File | Before Phase 6 | After Phase 6 | After Phase 8 |
+|------|----------------|---------------|---------------|
+| specs.md | 1631 | 1688 (+57) | ~150 |
+| design.md | 1504 | 1561 (+57) | ~150 |
+| brainstorm.md | 1485 | 1542 (+57) | ~150 |
+| roundtable.md | 360 | 372 (+12) | ~600 (master) |
+| **Total** | 4980 | 5163 (+183) | ~1050 |
+
+**Acceptance criteria** (final):
+- [x] All 4 commands have token tracking and state.json (Phase 6)
 - [ ] roundtable.md can execute all workflows
+- [ ] specs/design/brainstorm are thin launchers (~150 lines each)
+- [ ] Skills actually used, not just declared
 - [ ] No behavioral regression (all tests pass)
-- [ ] roundtable-execution skill under 2000 words
+- [ ] Total command lines reduced from ~5000 to ~1050
 
-**Estimated impact**:
-- ~40% reduction in command lines
-- Centralized execution logic
-- Easier maintenance
-
-**Current state** (2026-01-24):
+**Current state** (2026-01-25):
 - Branch: `feature/TECH-002-roundtable-unification`
-- Token tracker v2.3.0 (session isolation, statusline, 60s fix)
-- Next action: Test Phase 1 output, then continue with Phase 2
+- Token tracker v4.1.0, statusline v3.1.0
+- Phase 6 complete: all 4 commands have token tracking and state.json
+- **Next action**: Phase 2 - validation consolidation
 
 ---
 
