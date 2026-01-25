@@ -1515,7 +1515,9 @@ metrics:
     total: {sum of all rounds}
     by_round:
       - round: {N}
-        tokens: {estimated for this round}
+        estimate: {ROUND_TOKENS_ESTIMATE}  # From recap output
+        actual: null                        # Updated next round
+        source: "estimated"
 ```
 
 #### Step 2.6b: Validate Round Output

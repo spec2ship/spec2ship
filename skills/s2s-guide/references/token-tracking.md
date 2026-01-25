@@ -33,7 +33,7 @@ If statusline is not configured, token-tracker.sh falls back to JSONL parsing:
 - `CONTEXT_SOURCE=statusline` = accurate, project-local
 - `CONTEXT_SOURCE=jsonl` = less accurate, may be stale after /compact
 
-## Architecture (v4.1.0)
+## Architecture (v5.0.0)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -60,7 +60,7 @@ If statusline is not configured, token-tracker.sh falls back to JSONL parsing:
 │           ▼                                               │
 │  ┌─────────────────┐    ┌─────────────────────────────────┐│
 │  │ token-tracker.sh│───▶│ .s2s/sessions/                  ││
-│  │ v4.1.0          │    │ {rt-session-id}.cache           ││
+│  │ v5.0.0          │    │ {rt-session-id}.cache           ││
 │  │                 │    │                                 ││
 │  │ Commands:       │    │ Stores:                         ││
 │  │ - init          │    │ - sessionStartTokens            ││
@@ -118,13 +118,36 @@ T0 (next round init)
 - Orchestrator gap = T0(next) - T3(previous)
 - Orchestrator total = Session consumed - Sum(round subagents)
 
+## Progressive Precision (TECH-009, v5.0.0)
+
+Token tracking uses **progressive precision** to measure per-round consumption:
+
+| Metric | Calculation | When Available | Precision |
+|--------|-------------|----------------|-----------|
+| `estimate` | T3 - T1 | End of round N | Underestimates (~) |
+| `actual` | T0_{n+1} - T1_n | Start of round N+1 | Precise |
+
+**Source values**:
+- `measured`: actual calculated with continuity
+- `estimated`: only estimate available (last round)
+- `interrupted`: /compact or /clear detected
+- `noisy`: actual >> estimate (user did other commands)
+
 ## Display Conventions
 
 - Values without prefix = measured directly from checkpoints
 - Values with `~` prefix = estimated/derived
 - Progress bar: `#` = used, `-` = available
-- Status: OK (<60%), WARNING (60-80%), CRITICAL (>80%)
+- Status: OK (<60%), WARNING (60-80%), CRITICAL (≥80%)
 - `[statusline]` or `[jsonl]` = data source indicator
+
+## Auto-Stop Thresholds
+
+| Condition | Action |
+|-----------|--------|
+| Projected ≥95% | **STOP** - pause session, suggest /compact |
+| Projected 85-95% | **WARNING** - display warning, continue |
+| Projected <85% | **OK** - proceed normally |
 
 ## Compact Detection
 
@@ -137,9 +160,9 @@ If `/compact` occurs between rounds, the gap calculation would be negative. Toke
 
 | File | Purpose |
 |------|---------|
-| `roundtable-execution/scripts/token-tracker.sh` | Bash script for tracking (v4.1.0) |
+| `roundtable-execution/scripts/token-tracker.sh` | Bash script for tracking (v5.0.0) |
 | `roundtable-execution/references/token-tracking.md` | Operational instructions |
-| `roundtable-execution/SKILL.md` | State management inline (v2.1.0) |
+| `roundtable-execution/SKILL.md` | State management inline (v2.5.0) |
 | `templates/statusline/statusline.sh` | Statusline template (v3.1.0) |
 | `.s2s/context-window.json` | Context data (project-local) |
 | `.s2s/state.json` | Active session state (project-local) |
