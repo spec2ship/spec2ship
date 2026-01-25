@@ -688,9 +688,8 @@ chmod +x .claude/context-reset.sh
 ```
 
 **Note**: The context hook handles `/clear` and `/compact` events:
-1. Resets token tracking state appropriately
+1. Updates `.s2s/state.json` with context event (last_activity)
 2. Shows resume command if roundtable was interrupted
-3. Updates `.s2s/state.json` with context event
 
 ### 5.6 Generate BACKLOG.md
 
