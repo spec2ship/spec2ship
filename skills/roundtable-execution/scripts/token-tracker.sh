@@ -277,9 +277,11 @@ case "$ACTION" in
             SESSION_FILE=".s2s/sessions/${SESSION_ID}.yaml"
             if [[ -f "$SESSION_FILE" ]]; then
                 # Extract actuals where source=measured (not interrupted/noisy)
+                # YAML order: round, estimate, actual, source - so actual is BEFORE source
                 # Using grep/awk for cross-platform compatibility
-                ACTUALS=$(grep -A3 "source: \"measured\"" "$SESSION_FILE" 2>/dev/null | grep "actual:" | awk '{print $2}' | grep -v "null")
-                ESTIMATES=$(grep "estimate:" "$SESSION_FILE" 2>/dev/null | awk '{print $2}')
+                ACTUALS=$(grep -B2 "source: \"measured\"" "$SESSION_FILE" 2>/dev/null | grep "actual:" | awk '{print $2}' | grep -v "null")
+                # Extract estimates only from metrics.tokens.by_round (not other estimate: fields)
+                ESTIMATES=$(grep -A20 "by_round:" "$SESSION_FILE" 2>/dev/null | grep "estimate:" | awk '{print $2}')
 
                 if [[ -n "$ACTUALS" ]]; then
                     SAMPLE_COUNT=$(echo "$ACTUALS" | wc -l | tr -d ' ')

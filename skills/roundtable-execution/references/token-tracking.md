@@ -148,7 +148,7 @@ Session saved at round {round_number}. Progress preserved.
 ├─────────────────────────────────────────────────────────────┤
 │ Current usage:     {CURRENT_K}k tokens ({CURRENT_PCT}%)     │
 {if round > 1 and PREV_ROUND_ACTUAL_K}
-│ Previous round:    {PREV_ROUND_ACTUAL_K}k (actual, was ~{estimate}k est) │
+│ Previous round:    {PREV_ROUND_ACTUAL_K}k actual [{PREV_ROUND_SOURCE}] │
 {/if}
 │ Avg per round:     {AVG_ACTUAL_K}k ({SAMPLE_COUNT} samples) │
 │ Next estimate:     ~{NEXT_ESTIMATE_K}k                      │
