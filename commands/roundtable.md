@@ -283,6 +283,10 @@ metrics:
     total: 0
     by_type: {}
   consensus_rate: 0.0
+  # TECH-009: Token tracking
+  tokens:
+    total: 0        # TECH-009
+    by_round: []
 
 # Linked sessions (optional)
 linked_sessions: {}
