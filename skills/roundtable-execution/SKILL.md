@@ -224,9 +224,11 @@ validation:
 ### Loop Variables
 
 ```
-round_number = 0
+round_number = metrics.rounds_completed  # From session file (0 for new session)
 session_folder = ".s2s/sessions/{session-id}/"
 ```
+
+**IMPORTANT**: On resume, `round_number` MUST be initialized from the session file's `metrics.rounds_completed` value, NOT hardcoded to 0.
 
 ---
 

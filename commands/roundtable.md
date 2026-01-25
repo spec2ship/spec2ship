@@ -346,6 +346,7 @@ Pass these values to the skill execution:
 - **strategy**: {selected strategy}
 - **output_type**: {--output-type or "summary"}
 - **participants**: {selected participant list}
+- **round_number**: {metrics.rounds_completed from session file, 0 for new session}
 - **verbose**: {verbose_flag}
 - **interactive**: {interactive_flag}
 - **diagnostic**: {diagnostic_flag}

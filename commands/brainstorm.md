@@ -327,8 +327,8 @@ validation:
 **Follow the `roundtable-execution` skill instructions with Disney strategy phases.**
 
 Initialize:
-- `round_number = 0`
-- `current_phase = "dreamer"`
+- `round_number = metrics.rounds_completed` (from session file, 0 for new session)
+- `current_phase = "dreamer"` (or from session file on resume)
 - `session_folder = ".s2s/sessions/{session-id}/"`
 
 ### Round Loop (cycle through Disney phases)

@@ -454,7 +454,7 @@ validation:
 **Follow the `roundtable-execution` skill instructions EXACTLY.**
 
 Initialize:
-- `round_number = 0`
+- `round_number = metrics.rounds_completed` (from session file, 0 for new session)
 - `session_folder = ".s2s/sessions/{session-id}/"`
 
 ### Round Loop (repeat until conclusion)
