@@ -104,7 +104,7 @@ commands/dev/test.md         # /s2s:dev:test
 
 **Status**: planned | **Created**: 2026-01-25 | **Priority**: medium
 
-**Context**: Optional features (`--tokens`, `--verbose`, `--diagnostic`) require LLM to follow distributed conditional instructions. Even with the "Feature Activation Pattern" (s2s-development.md), compliance may not be 100%. Need post-hoc evidence-based validation.
+**Context**: Token tracking is always active (v2.3.0). Optional features (`--verbose`, `--diagnostic`) still require LLM to follow instructions. Post-hoc evidence-based validation catches skipped instructions.
 
 **Principle**: Verify AFTER execution by checking artifacts, not DURING (inline validation adds skippable instructions).
 
@@ -112,7 +112,7 @@ commands/dev/test.md         # /s2s:dev:test
 
 | Check | Applies When | Evidence |
 |-------|--------------|----------|
-| EXEC-001 | tokens_flag used | `.s2s/sessions/{id}.cache` has entries per round |
+| EXEC-001 | always (token tracking) | `.s2s/sessions/{id}.cache` has entries per round |
 | EXEC-002 | verbose_flag used | `rounds/*.yaml` dump files exist for each round |
 | EXEC-003 | diagnostic_flag used | session-observer findings in session file |
 
@@ -124,11 +124,42 @@ commands/dev/test.md         # /s2s:dev:test
 - [ ] Update `/s2s:session:validate` to show EXEC-* results
 
 **Acceptance criteria**:
-- [ ] `/s2s:session:validate` reports if optional features were properly executed
+- [ ] `/s2s:session:validate` reports if features were properly executed
 - [ ] Evidence files include EXEC-* results
 - [ ] Clear indication when compliance failed
 
-**Related**: s2s-development.md → "Feature Activation Pattern" and "Validation Strategy: Post-Hoc Evidence-Based"
+**Related**: s2s-development.md → "Validation Strategy: Post-Hoc Evidence-Based"
+
+---
+
+### TECH-008: Config-based feature toggles
+
+**Status**: planned | **Created**: 2026-01-25 | **Priority**: low
+
+**Context**: Token tracking and statusline setup are now always active. Some users may want to disable them for performance or simplicity. Add config options to toggle features.
+
+**Proposed config.yaml additions**:
+```yaml
+features:
+  token_tracking: true    # Enable/disable token tracking during roundtables
+  statusline_setup: true  # Enable/disable statusline auto-setup in /s2s:init
+```
+
+**Implementation notes**:
+- Default: both true (current behavior)
+- If `token_tracking: false`, skip all token-tracking.md sections in SKILL.md
+- If `statusline_setup: false`, skip Phase 5.5b in init.md
+
+**Tasks**:
+- [ ] Add `features:` section to templates/project/config.yaml
+- [ ] Update SKILL.md to check config before token tracking
+- [ ] Update init.md to check config before statusline setup
+- [ ] Document in s2s-guide
+
+**Acceptance criteria**:
+- [ ] Token tracking can be disabled via config
+- [ ] Statusline setup can be disabled via config
+- [ ] Existing projects without `features:` section use defaults
 
 ---
 
@@ -618,8 +649,8 @@ Bug fixes from v2.3.0:
 - [x] Session isolation with CC session ID
 - [x] Token tracker v3.0.0 with temp directory
 - [ ] Test session isolation (requires restart)
-- [ ] Remove `--tokens` flag from roundtable commands
-- [ ] Create `/s2s:config` for token tracking toggle (see FEAT-003)
+- [x] Remove `--tokens` flag (token tracking now always active - v2.3.0)
+- [ ] Create config toggle for token tracking (see TECH-008)
 
 **Files created/updated**:
 - `templates/statusline/statusline.sh` - v3.0.2 (visual bar, correct token calc, no cost)

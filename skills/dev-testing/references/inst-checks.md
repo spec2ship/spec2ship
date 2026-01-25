@@ -696,7 +696,10 @@ Skills should separate always-executed instructions (inline) from optional funct
 **IMMEDIATELY** update `.s2s/state.json`:   ← Core: inline
 {json content}
 
-**IF `--tokens`**: Read `references/token-tracking.md#round-init` → Execute  ← Optional: reference
+**Token tracking** (always-active):  ← Unconditional, executes every round
+Read `references/token-tracking.md` → Execute
+
+**IF `--verbose`**: Read `references/verbose-dump-format.md` → Execute  ← Optional: reference
 ```
 
 **Explicit anchor alignment:**
@@ -718,7 +721,7 @@ Skills should separate always-executed instructions (inline) from optional funct
 
 Read `references/state-manager.md` → Execute  ← WRONG: core in reference
 
-**IF `--tokens`**: Read `references/token-tracking.md` → Execute
+**IF `--verbose`**: Read `references/verbose-dump-format.md` → Execute
 ```
 
 **Reference chain (gets lost):**
@@ -768,9 +771,10 @@ Look for these patterns that indicate **core** (should be inline):
 Look for these patterns that indicate **optional** (should be reference):
 
 - `IF --verbose`
-- `IF --tokens`
 - `IF --diagnostic`
 - `IF {flag}`
+
+Note: Token tracking is now **always-active** (v2.3.0), not optional.
 
 ### Evidence Schema
 

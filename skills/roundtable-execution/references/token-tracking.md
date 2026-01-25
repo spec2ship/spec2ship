@@ -1,10 +1,10 @@
 # Token Tracking Instructions
 
-Only read this file when `--tokens` flag is passed.
+Token tracking is always active during roundtable sessions. This file is read at Step 2.1 of each round.
 
 ---
 
-## Script Location (execute ONCE at session start)
+## Script Location (execute ONCE at first round)
 
 Script path:
 ```

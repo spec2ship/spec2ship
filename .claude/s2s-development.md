@@ -461,8 +461,10 @@ Skills should separate **always-executed** instructions from **optional** functi
 2. Prepare context
 3. **IMMEDIATELY** update `.s2s/state.json` with active_session  ← Core, inline
 
+**Always-active features**:
+- **Token tracking**: Read `references/token-tracking.md` → Execute (every round)
+
 **Extensions** (loaded on demand):
-- **IF `--tokens`**: Read `references/token-tracking.md#round-init` → Execute
 - **IF `--verbose`**: Read `references/verbose-dump-format.md` → Write dump
 ```
 
@@ -516,16 +518,13 @@ State management is **always needed** (for resume suggestion, statusline), so it
 }
 ```⁣
 
-**IF `--tokens`**: Read `references/token-tracking.md#round-init` → Execute
-```
-
-Token tracking is **optional**, so it stays in a **reference**.
+Token tracking is **always-active** (v2.3.0), so it executes unconditionally at Step 2.1.
 
 ---
 
 ### Optional Feature Hooks Pattern
 
-Optional features (like `--diagnostic`, `--tokens`, `--verbose`) should be activated via **hooks in the skill**, not in commands.
+Optional features (like `--diagnostic`, `--verbose`) should be activated via **hooks in the skill**, not in commands.
 
 **Why hooks in SKILL.md (not in commands):**
 - Single source of truth for execution flow
@@ -546,72 +545,56 @@ Optional features (like `--diagnostic`, `--tokens`, `--verbose`) should be activ
 ```markdown
 ### Step 2.4: Facilitator Synthesis
 ...
-**IF tokens_flag**: Read `${CLAUDE_PLUGIN_ROOT}/.../token-tracking.md` → Execute "Capture T3" section
-**IF diagnostic_flag**: Read `${CLAUDE_PLUGIN_ROOT}/.../diagnostic.md` → Execute "Per-Round Diagnostic" section
+→ **Token checkpoint T3**: Execute "Capture T3" section from token-tracking.md  ← Always-active
+**IF diagnostic_flag**: Read `${CLAUDE_PLUGIN_ROOT}/.../diagnostic.md` → Execute "Per-Round Diagnostic" section  ← Optional
 ```
 
-**Verified**: 2026-01-22 - Aligned --tokens and --diagnostic in roundtable-execution SKILL.md
+**Verified**: 2026-01-25 - Token tracking always-active, diagnostic still optional
 
 ---
 
-### Feature Activation Pattern for LLM Compliance (CRITICAL)
+### Always-Active Features vs Optional Features
 
-The "Optional Feature Hooks Pattern" above describes WHERE to place hooks. This section describes HOW to structure them so LLMs reliably execute them.
+Features fall into two categories:
 
-**Problem**: Distributed conditional instructions (`IF flag: Read → Execute` at 6+ points) have low compliance rate because:
-1. Main flow dominates LLM attention
-2. Each file read is a cognitive break
-3. No commitment mechanism
-4. No accountability if skipped
+| Category | Execution | Resume Behavior | Examples |
+|----------|-----------|-----------------|----------|
+| **Always-active** | Unconditional, every round | Works automatically | Token tracking |
+| **Optional** | Conditional on flag | Must re-check flag | `--verbose`, `--diagnostic` |
 
-**Solution**: Feature Activation + Section References
+**Token tracking** (v2.3.0): Now always active. No `--tokens` flag. Eliminates resume gap where Feature Activation might be skipped.
+
+**Optional features**: Still use the "Optional Feature Hooks Pattern" above with `IF flag:` conditionals.
+
+---
+
+### Per-Round Activation Pattern (for Always-Active Features)
+
+For features that must work on resume, activate at the START of each round (Step 2.1), not once before the first round.
 
 **Pattern**:
 
 ```markdown
-## PHASE 2: Execution
+### Step 2.1: Display Round Start
 
-### Feature Activation (execute ONCE at phase start)
+[... display round info ...]
 
-**IF tokens_flag**:
-1. Read `references/token-tracking.md` NOW
-2. Execute "Script Location" section
-3. **CHECKPOINT CONTRACT**: Execute these sections at each step:
-   - "Capture T1" → after Step 2.2
-   - "Capture T2" → after Step 2.3
-   - "Capture T3" + "Round Recap" → after Step 2.4
+**TOKEN TRACKING** (always active - executes every round, including resume):
 
-### Step 2.2: Facilitator Question
-[... main instructions ...]
+1. Read `references/token-tracking.md`
+2. **IF round_number == 0** (first round only):
+   - Execute "Script Location" section
+   - Execute "Session Start" section
+3. Execute "Per-Round Init" section (every round)
 
-→ **IF tokens_flag**: Execute "Capture T1" section from token-tracking.md
+[... rest of step ...]
 
-### Step 2.3: Participants
-[... main instructions ...]
-
-→ **IF tokens_flag**: Execute "Capture T2" section from token-tracking.md
+→ **Token checkpoint T1**: Execute "Capture T1" section from token-tracking.md
 ```
 
-**Key elements**:
+**Key insight**: By executing at Step 2.1 (which runs every round), the feature survives resume. First-round-only setup uses a simple `IF round == 0` check.
 
-| Element | Purpose |
-|---------|---------|
-| Feature Activation block | Creates explicit commitment at phase start |
-| Single file read | Loads reference once, not at each checkpoint |
-| Checkpoint Contract | Lists all execution points upfront |
-| Section reference at step | Lightweight reminder (no file read) |
-
-**Why this works for LLMs**:
-- Commitment upfront increases follow-through
-- Single load reduces friction
-- Inline reminders provide proximity
-- Contract creates accountability (can be verified post-hoc)
-
-**Trade-off accepted**: Section names appear in two places (Feature Activation + step). This mild DRY violation is intentional for LLM reliability.
-
-**Verification**: Use post-hoc evidence-based validation (EXEC-* checks in session-qa) rather than inline checkpoints. Inline validation adds instructions that may themselves be skipped.
-
-**Verified**: 2026-01-25 - Pattern documented based on LLM compliance analysis
+**Verified**: 2026-01-25 - Token tracking made always-active, activation moved to Step 2.1
 
 ---
 
@@ -629,7 +612,7 @@ The "Optional Feature Hooks Pattern" above describes WHERE to place hooks. This 
 
 | Feature | Evidence to Check |
 |---------|-------------------|
-| `--tokens` | `.s2s/sessions/{id}.cache` has entries per round |
+| Token tracking | `.s2s/sessions/{id}.cache` has entries per round |
 | `--verbose` | `rounds/*.yaml` dump files exist |
 | `--diagnostic` | session-observer findings in session file |
 
@@ -639,12 +622,14 @@ The "Optional Feature Hooks Pattern" above describes WHERE to place hooks. This 
 
 **Workflow**:
 ```
-Normal use:     /s2s:specs --tokens
-Development:    /s2s:specs --tokens --diagnostic
+Normal use:     /s2s:specs
+Development:    /s2s:specs --diagnostic
 Verification:   /s2s:session:validate {session-id}
 ```
 
-**See also**: BACKLOG.md → QUAL-002 for EXEC-* check implementation status.
+Token tracking is always active (no flag needed).
+
+**See also**: BACKLOG.md → QUAL-002 for EXEC-* check implementation status, TECH-008 for future config toggles.
 
 ---
 

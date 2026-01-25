@@ -1,7 +1,7 @@
 ---
 description: Start or resume a roundtable discussion with AI expert participants. Use for technical decisions, architecture reviews, or requirements refinement.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Bash(grep:*), Read, Write, Edit, Glob, Task, AskUserQuestion
-argument-hint: "topic" [--strategy standard|disney|debate|consensus-driven|six-hats] [--participants list] [--workflow-type specs|design|brainstorm] [--output-type adr|requirements|architecture|summary] [--verbose] [--interactive] [--diagnostic] [--tokens] [--pro list] [--con list] [--new] [--session <id>]
+argument-hint: "topic" [--strategy standard|disney|debate|consensus-driven|six-hats] [--participants list] [--workflow-type specs|design|brainstorm] [--output-type adr|requirements|architecture|summary] [--verbose] [--interactive] [--diagnostic] [--pro list] [--con list] [--new] [--session <id>]
 skills: roundtable-execution, roundtable-strategies
 ---
 
@@ -44,11 +44,10 @@ Extract from $ARGUMENTS:
 - **--output-type**: Optional (adr|requirements|architecture|summary). Default: based on workflow
 - **--verbose**: Optional. Include full participant responses in session file
 - **--interactive**: Optional. Ask user after each round
-- **--tokens**: Optional. Enable token tracking and display per-round breakdown
 - **--new**: Optional. Force create new session (skip auto-detect)
 - **--session**: Optional. Resume specific session by ID
 
-**Boolean flags**: `--verbose`, `--interactive`, `--diagnostic`, and `--tokens` → parse as `true` if present, `false` if absent.
+**Boolean flags**: `--verbose`, `--interactive`, `--diagnostic` → parse as `true` if present, `false` if absent.
 
 **IF --diagnostic is true**: Force `verbose_flag = true` (diagnostic mode requires verbose dumps for analysis).
 
@@ -320,7 +319,6 @@ Pass these values to the skill execution:
 - **verbose**: {verbose_flag}
 - **interactive**: {interactive_flag}
 - **diagnostic**: {diagnostic_flag}
-- **tokens**: {tokens_flag}
 
 ## Execute roundtable
 

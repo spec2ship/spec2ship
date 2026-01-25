@@ -857,23 +857,24 @@ recommendations:
 
 > **Status**: Planned (QUAL-002 in BACKLOG.md)
 
-These checks will validate that optional feature instructions were executed when flags were active.
+These checks validate that feature instructions were executed correctly.
 
-**Rationale**: Optional features (`--tokens`, `--verbose`, `--diagnostic`) require LLM to follow distributed conditional instructions. Post-hoc evidence-based validation is more reliable than inline checkpoints (which may themselves be skipped).
+**Rationale**: Token tracking is always active (v2.3.0). Optional features (`--verbose`, `--diagnostic`) require LLM to follow conditional instructions. Post-hoc evidence-based validation catches skipped instructions.
 
 **Proposed checks**:
 
 | Check | Applies When | Evidence to Check |
 |-------|--------------|-------------------|
-| EXEC-001 | `tokens_flag` was used | `.s2s/sessions/{id}.cache` has T1, T2, T3 entries per round |
+| EXEC-001 | always (token tracking) | `.s2s/sessions/{id}.cache` has T1, T2, T3 entries per round |
 | EXEC-002 | `verbose_flag` was used | `rounds/*.yaml` dump files exist for each round |
 | EXEC-003 | `diagnostic_flag` was used | session-observer findings present in session file |
 
 **Evidence principle**: If the instruction was followed, the artifact exists. No artifact = instruction was skipped.
 
 **Implementation notes**:
-- Add `tokens_flag`, `verbose_flag`, `diagnostic_flag` to input YAML
-- Checks are skipped if flag was not used (not a failure)
+- EXEC-001 runs unconditionally (token tracking is always active)
+- EXEC-002/003 require `verbose_flag`, `diagnostic_flag` in input YAML
+- Optional checks are skipped if flag was not used (not a failure)
 - Include in evidence file under `execution_compliance` section
 
-**See also**: `.claude/s2s-development.md` → "Feature Activation Pattern" and "Validation Strategy: Post-Hoc Evidence-Based"
+**See also**: `.claude/s2s-development.md` → "Always-Active Features vs Optional Features"

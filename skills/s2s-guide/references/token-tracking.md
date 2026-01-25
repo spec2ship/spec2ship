@@ -4,7 +4,7 @@ Token tracking monitors context usage during roundtable sessions, providing visi
 
 ## Overview
 
-When `--tokens` flag is passed to roundtable commands, the system tracks token usage at key checkpoints and displays breakdown information.
+Token tracking is **always active** (v2.3.0+) during roundtable sessions. The system tracks token usage at key checkpoints and displays breakdown information automatically.
 
 ## Automatic Setup (v3.1.0+)
 
