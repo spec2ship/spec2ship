@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-01-25 (TECH-002 revised with skill analysis)
+**Updated**: 2026-01-26 (TECH-009 round token tracking)
 **Format**: Work items for active development
 
 ---
@@ -160,6 +160,271 @@ features:
 - [ ] Token tracking can be disabled via config
 - [ ] Statusline setup can be disabled via config
 - [ ] Existing projects without `features:` section use defaults
+
+---
+
+### TECH-009: Round token tracking con precisione progressiva
+
+**Status**: planned | **Created**: 2026-01-26 | **Priority**: high | **Depends on**: TECH-002 Phase 6
+
+**Context**: Token tracking attuale salva solo dati temporanei nel cache file (`.s2s/sessions/{id}.cache`). I dati per-round NON vengono persistiti nel session file. Serve persistere il consumo di token di ogni round per:
+1. Stimare se il prossimo round supererà la soglia (95%)
+2. Calcolare media token/round per decisioni intelligenti
+3. Visualizzare nella statusline
+4. Analisi post-sessione
+
+**Problema attuale**: Il valore `T3-T1` (delta subagent) sottostima il consumo reale perché esclude l'overhead dell'orchestrator tra T3 di un round e T1 del successivo.
+
+**Soluzione**: Precisione progressiva con due misurazioni:
+- `estimate`: T3_n - T1_n (disponibile subito, sottostima, mostrato con ~)
+- `actual`: T1_{n+1} - T1_n (disponibile al round successivo, preciso)
+
+---
+
+**Schema dati session file** (aggiungere a `metrics:`):
+
+```yaml
+metrics:
+  rounds_completed: 3
+  tokens:
+    total: 45000           # Totale accumulato finale
+    by_round:              # Array con dettaglio per round
+      - round: 1
+        estimate: 12000    # T3-T1 (immediato, con ~)
+        actual: 14500      # T1_2 - T1_1 (calcolato al round 2)
+        source: "measured" # measured | estimated | interrupted
+      - round: 2
+        estimate: 15000
+        actual: 17200
+        source: "measured"
+      - round: 3
+        estimate: 18000
+        actual: null       # Non ancora calcolato (ultimo round o sessione chiusa)
+        source: "estimated"
+
+    # Statistiche aggregate (calcolate dallo script)
+    stats:
+      avg_actual: 15850        # Media dei soli "actual" (più precisa)
+      avg_estimate: 15000      # Media dei soli "estimate"
+      overhead_delta: 2200     # Media(actual - estimate) = overhead orchestrator tipico
+      sample_count: 2          # Quanti round hanno "actual" valido
+```
+
+---
+
+**Logica di aggiornamento** (tutto in token-tracker.sh):
+
+**1. Fine round N (comando `recap`)**:
+```bash
+# Calcola estimate del round corrente
+round_estimate = T3 - T1
+
+# Output nuova variabile per SKILL.md
+echo "ROUND_TOKENS_ESTIMATE=${round_estimate}"
+```
+
+SKILL.md scrive nel session file:
+```yaml
+rounds:
+  - round: N
+    # ... altri campi ...
+    tokens_estimate: {ROUND_TOKENS_ESTIMATE}  # Nuovo campo
+```
+
+E aggiorna `metrics.tokens.by_round` (append o update).
+
+**2. Inizio round N+1 (comando `init`)**:
+
+Lo script deve:
+1. Leggere `lastT1` dal cache file (T1 del round precedente)
+2. Leggere `lastT3` dal cache file (T3 del round precedente)
+3. Confrontare T1_new con T3_old per detect interruzioni
+
+```bash
+# Detect interruzione
+if [[ $T1_NEW -lt $T3_OLD ]]; then
+    # /compact o /clear detected - gap negativo impossibile
+    PREV_ROUND_SOURCE="interrupted"
+    PREV_ROUND_ACTUAL=""
+elif [[ -z "$LAST_T1" ]]; then
+    # Primo round o cache mancante
+    PREV_ROUND_SOURCE="estimated"
+    PREV_ROUND_ACTUAL=""
+else
+    # Continuità normale - calcola actual
+    PREV_ROUND_ACTUAL=$((T1_NEW - LAST_T1))
+    PREV_ROUND_SOURCE="measured"
+fi
+
+# Output per SKILL.md
+echo "PREV_ROUND_ACTUAL=${PREV_ROUND_ACTUAL}"
+echo "PREV_ROUND_SOURCE=${PREV_ROUND_SOURCE}"
+```
+
+SKILL.md aggiorna il round N-1 nel session file:
+```yaml
+metrics:
+  tokens:
+    by_round:
+      - round: N-1
+        estimate: 15000
+        actual: 17200        # ← aggiornato
+        source: "measured"   # ← aggiornato
+```
+
+**3. Calcolo statistiche (comando `init` o nuovo `stats`)**:
+
+```bash
+# Legge by_round dal session file (o cache)
+# Calcola medie solo sui valori validi
+
+actuals=(lista di actual dove source=="measured")
+estimates=(lista di estimate)
+
+if [[ ${#actuals[@]} -ge 2 ]]; then
+    AVG_ACTUAL=$(media actuals)
+    OVERHEAD_DELTA=$(media (actual - estimate per ogni round measured))
+    NEXT_ESTIMATE=$AVG_ACTUAL
+elif [[ ${#actuals[@]} -eq 1 ]]; then
+    AVG_ACTUAL=${actuals[0]}
+    NEXT_ESTIMATE=$AVG_ACTUAL
+else
+    # Solo stime disponibili
+    AVG_ESTIMATE=$(media estimates)
+    NEXT_ESTIMATE=$(awk "BEGIN {print int($AVG_ESTIMATE * 1.2)}")  # +20% buffer
+fi
+
+echo "AVG_ACTUAL_K=$(($AVG_ACTUAL / 1000))"
+echo "AVG_ESTIMATE_K=$(($AVG_ESTIMATE / 1000))"
+echo "OVERHEAD_DELTA_K=$(($OVERHEAD_DELTA / 1000))"
+echo "NEXT_ESTIMATE_K=$(($NEXT_ESTIMATE / 1000))"
+echo "SAMPLE_COUNT=${#actuals[@]}"
+```
+
+**4. Stima prossimo round e soglie**:
+
+```bash
+PROJECTED_TOTAL=$((CURRENT_TOKENS + NEXT_ESTIMATE))
+PROJECTED_PCT=$(awk "BEGIN {printf \"%.0f\", ($PROJECTED_TOTAL / 200000) * 100}")
+
+if [[ $PROJECTED_PCT -ge 95 ]]; then
+    SHOULD_STOP=true
+    SHOULD_WARN=false
+elif [[ $PROJECTED_PCT -ge 85 ]]; then
+    SHOULD_STOP=false
+    SHOULD_WARN=true
+else
+    SHOULD_STOP=false
+    SHOULD_WARN=false
+fi
+
+echo "PROJECTED_TOTAL_K=$(($PROJECTED_TOTAL / 1000))"
+echo "PROJECTED_PCT=${PROJECTED_PCT}"
+echo "SHOULD_STOP=${SHOULD_STOP}"
+echo "SHOULD_WARN=${SHOULD_WARN}"
+```
+
+---
+
+**Euristica "altri comandi utente"** (opzionale, fase 2):
+
+Se `actual - estimate > 3 * overhead_delta` potrebbe indicare che l'utente ha fatto altri comandi tra i round. In tal caso:
+- Marcare `source: "noisy"` invece di `measured`
+- Escludere dal calcolo della media actual
+- Usare estimate per quel round
+
+```bash
+if [[ $PREV_ROUND_ACTUAL -gt 0 && $OVERHEAD_DELTA -gt 0 ]]; then
+    THRESHOLD=$((3 * OVERHEAD_DELTA))
+    DELTA=$((PREV_ROUND_ACTUAL - PREV_ROUND_ESTIMATE))
+    if [[ $DELTA -gt $THRESHOLD ]]; then
+        PREV_ROUND_SOURCE="noisy"
+    fi
+fi
+```
+
+---
+
+**Modifiche ai file**:
+
+1. **`skills/roundtable-execution/scripts/token-tracker.sh`**:
+   - Aggiungere `lastT1` al cache file (oltre a lastT3)
+   - `init`: calcolare e outputtare PREV_ROUND_ACTUAL, PREV_ROUND_SOURCE, NEXT_ESTIMATE_K, SHOULD_STOP, SHOULD_WARN
+   - `recap`: outputtare ROUND_TOKENS_ESTIMATE
+   - Nuovo comando `stats` (opzionale): calcolare statistiche standalone
+
+2. **`skills/roundtable-execution/SKILL.md`**:
+   - Step 2.1: usare PREV_ROUND_ACTUAL/SOURCE per aggiornare round precedente
+   - Step 2.1: usare SHOULD_STOP/SHOULD_WARN per decidere se continuare
+   - Step 2.7: salvare ROUND_TOKENS_ESTIMATE nel session file
+
+3. **`skills/roundtable-execution/references/session-schema.md`**:
+   - Aggiornare schema `metrics.tokens` con nuovo formato
+
+4. **`skills/roundtable-execution/references/token-tracking.md`**:
+   - Documentare nuovo flusso di precisione progressiva
+   - Aggiornare box output con statistiche
+
+---
+
+**Display boxes aggiornati**:
+
+**Init (Round > 1)**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│ CONTEXT STATUS (Round 3 Start)              [statusline]    │
+├─────────────────────────────────────────────────────────────┤
+│ Current usage:     78k tokens (39%)                         │
+│ Previous round:    17.2k (actual, updated from ~15k est)    │
+│ Avg per round:     16.5k (2 samples)                        │
+│ Next estimate:     ~16.5k                                   │
+│ Projected:         94.5k (47%) ✓ OK                         │
+│ Status:            [######----------] [OK]                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Recap (fine round)**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│ TOKEN BREAKDOWN (Round 3)                   [statusline]    │
+├─────────────────────────────────────────────────────────────┤
+│ Facilitator (question):     2.1k tokens                     │
+│ Participants (4):           8.2k tokens (2.1k avg)          │
+│ Facilitator (synthesis):    3.8k tokens                     │
+│ ─────────────────────────────────────────────────────────── │
+│ Round subagents:            14.1k tokens                    │
+│ ~Orchestrator gap:          ~2.4k tokens                    │
+│ Round estimate:             ~16.5k (will refine next round) │
+│ ─────────────────────────────────────────────────────────── │
+│ Context total:              94.5k tokens (47%)              │
+│ Status:                     [#########-------] [OK]         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+**Tasks**:
+- [ ] Aggiornare token-tracker.sh con lastT1 nel cache
+- [ ] Aggiungere output PREV_ROUND_ACTUAL, PREV_ROUND_SOURCE a init
+- [ ] Aggiungere output ROUND_TOKENS_ESTIMATE a recap
+- [ ] Aggiungere calcolo statistiche (AVG_ACTUAL, NEXT_ESTIMATE) a init
+- [ ] Aggiungere output SHOULD_STOP, SHOULD_WARN a init
+- [ ] Aggiornare SKILL.md Step 2.1 per salvare actual del round precedente
+- [ ] Aggiornare SKILL.md Step 2.7 per salvare estimate del round corrente
+- [ ] Aggiornare session-schema.md con nuovo formato metrics.tokens
+- [ ] Aggiornare token-tracking.md con documentazione
+- [ ] Test: verificare che estimate viene salvato
+- [ ] Test: verificare che actual viene aggiornato al round successivo
+- [ ] Test: verificare SHOULD_STOP quando proiezione > 95%
+- [ ] Test: verificare detect /compact (gap negativo)
+
+**Acceptance criteria**:
+- [ ] Ogni round ha `estimate` salvato nel session file
+- [ ] Round precedenti hanno `actual` aggiornato (quando continuità)
+- [ ] Sessione si ferma automaticamente se SHOULD_STOP=true
+- [ ] Warning mostrato se SHOULD_WARN=true
+- [ ] Interruzioni (/compact, /clear) correttamente rilevate
+- [ ] Statistiche `avg_actual`, `overhead_delta` calcolate correttamente
 
 ---
 
