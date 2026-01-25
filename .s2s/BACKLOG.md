@@ -508,10 +508,10 @@ What would you like to configure?
 
 | Command | Lines | roundtable-execution | roundtable-strategies | Token tracking | state.json |
 |---------|-------|---------------------|----------------------|----------------|------------|
-| specs.md | 1688 | Declared, not used (inline) | Declared, not used | ✅ Added | ✅ Added |
-| design.md | 1561 | Declared, not used (inline) | Declared, not used | ✅ Added | ✅ Added |
-| brainstorm.md | 1542 | Declared, not used (inline) | Declared, not used (Disney inline) | ✅ Added | ✅ Added |
-| roundtable.md | 372 | "Follow skill" + reminders | ✅ Reads reference | ✅ Reminders | ✅ Reminders |
+| specs.md | 1717 | Declared, not used (inline) | Declared, not used | ✅ Added | ✅ Read+Write |
+| design.md | 1590 | Declared, not used (inline) | Declared, not used | ✅ Added | ✅ Read+Write |
+| brainstorm.md | 1571 | Declared, not used (inline) | Declared, not used (Disney inline) | ✅ Added | ✅ Read+Write |
+| roundtable.md | 402 | "Follow skill" + reminders | ✅ Reads reference | ✅ Reminders | ✅ Read+Write |
 
 **Root problems**:
 1. Skills declared in frontmatter but not actually used
@@ -583,6 +583,7 @@ Applied token tracking always-active, state.json, and checkpoint reminders to al
 - [x] Add state.json updates to specs.md, design.md, brainstorm.md Step 2.1 and Step 3.1
 - [x] Add state.json reminders to roundtable.md
 - [x] Add checkpoint reminders (T1, T2, T3) to all 4 commands
+- [x] Add state.json fast-path read in auto-detect (all 4 commands) - hybrid approach per TECH-007
 
 **Phase 2: Validation consolidation** (~120 lines simplified)
 - [ ] Verify session-qa can perform Step 2.6b checks
@@ -628,13 +629,13 @@ Make commands actually USE roundtable-strategies instead of duplicating.
 - [ ] Document pattern in s2s-development.md
 
 **Line count targets**:
-| File | Before Phase 6 | After Phase 6 | After Phase 8 |
-|------|----------------|---------------|---------------|
-| specs.md | 1631 | 1688 (+57) | ~150 |
-| design.md | 1504 | 1561 (+57) | ~150 |
-| brainstorm.md | 1485 | 1542 (+57) | ~150 |
-| roundtable.md | 360 | 372 (+12) | ~600 (master) |
-| **Total** | 4980 | 5163 (+183) | ~1050 |
+| File | Before Phase 6 | After Phase 6 (complete) | After Phase 8 |
+|------|----------------|--------------------------|---------------|
+| specs.md | 1631 | 1717 (+86) | ~150 |
+| design.md | 1504 | 1590 (+86) | ~150 |
+| brainstorm.md | 1485 | 1571 (+86) | ~150 |
+| roundtable.md | 360 | 402 (+42) | ~600 (master) |
+| **Total** | 4980 | 5280 (+300) | ~1050 |
 
 **Acceptance criteria** (final):
 - [x] All 4 commands have token tracking and state.json (Phase 6)
@@ -647,7 +648,7 @@ Make commands actually USE roundtable-strategies instead of duplicating.
 **Current state** (2026-01-25):
 - Branch: `feature/TECH-002-roundtable-unification`
 - Token tracker v4.1.0, statusline v3.1.0
-- Phase 6 complete: all 4 commands have token tracking and state.json
+- Phase 6 complete: all 4 commands have token tracking, state.json write (Step 2.1/3.1), AND state.json read (auto-detect fast path)
 - **Next action**: Phase 2 - validation consolidation
 
 ---
@@ -873,14 +874,14 @@ This is an acceptable trade-off because:
 - [x] Update token-tracking.md documentation
 - [x] Test: statusline writes context-window.json correctly
 - [x] Test: token-tracker reads from statusline
-- [ ] Add state.json check to command auto-detect sections (future enhancement)
+- [x] Add state.json check to command auto-detect sections (TECH-002 Phase 6)
 - [ ] Implement resume suggestion on s2s command startup (future enhancement)
 - [ ] Test: statusline shows RT info (requires Claude restart)
 - [ ] Test: resume suggestion works after interrupt
 
 **Acceptance criteria**:
 - [ ] Statusline displays roundtable info from state.json
-- [ ] Resume suggestion shown for interrupted sessions
+- [x] Resume suggestion shown for interrupted sessions (TECH-002 Phase 6)
 - [ ] Session close clears state.json.active_session
 - [ ] Fallback to grep scan works when state.json missing
 - [ ] .gitignore includes ephemeral state files

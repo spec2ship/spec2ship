@@ -68,7 +68,37 @@ Other optional arguments:
 - Skip auto-detect
 - Jump to **PHASE 1: SETUP**
 
-## Auto-detect active sessions
+## Fast path: Check state.json
+
+**IF** `.s2s/state.json` exists:
+1. Read the file and check `active_session`
+2. **IF** `active_session` is not null AND `active_session.workflow_type == "roundtable"`:
+   - Extract session_id from `active_session.id`
+   - Verify session file exists: `.s2s/sessions/{session_id}.yaml`
+   - Read session file and check `status`
+   - **IF** session status is "active":
+     - Display:
+       ```
+       Resume active roundtable session?
+       ═══════════════════════════════════
+
+       Session: {session_id}
+       Topic: {topic from session file}
+       Strategy: {strategy from session file}
+       Progress: Round {round from state.json}
+       ```
+     - Ask using AskUserQuestion:
+       - "Resume this session" (recommended)
+       - "Start new session"
+       - "Show all sessions"
+     - **IF** "Resume" → Jump to **PHASE 2: RESUME SESSION**
+     - **IF** "Start new" → Jump to **PHASE 1: SETUP**
+     - **IF** "Show all" → Fall through to grep scan below
+   - **IF** session status is NOT "active" (stale state.json):
+     - Clear `active_session` in state.json (write null)
+     - Fall through to grep scan
+
+## Fallback: Grep scan for active sessions
 
 **YOU MUST use Bash tool** to find active roundtable sessions:
 
