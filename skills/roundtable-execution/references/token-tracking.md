@@ -18,12 +18,15 @@ Store as `TOKEN_SCRIPT`. Verify exists:
 
 If not found: skip all token tracking, proceed normally.
 
+**Claude Code Session ID**: `${CLAUDE_SESSION_ID}` is automatically substituted by Claude Code.
+Store as `CC_SESSION_ID` for all subsequent calls.
+
 ---
 
 ## Session Start (before first round)
 
 ```bash
-eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed})
+eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed} "${CLAUDE_SESSION_ID}")
 ```
 
 **Print this box to the user** (substitute variables from eval):
@@ -33,6 +36,7 @@ eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed})
 ├─────────────────────────────────────────────────────────────┤
 │ Current usage:     {CURRENT_K}k tokens ({CURRENT_PCT}%)     │
 │ Available:         ~{AVAILABLE_K}k tokens remaining         │
+│ Statusline:        {STATUSLINE_ACTIVE ? "active" : "not configured (using jsonl fallback)"} │
 │ Status:            {PROGRESS_BAR} [{CONTEXT_STATUS}]        │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -42,7 +46,7 @@ eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed})
 ## Per-Round Init (Step 2.1)
 
 ```bash
-eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed})
+eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed} "${CLAUDE_SESSION_ID}")
 ```
 
 **Print this box to the user** (for round > 1, include orchestrator gap if > 0):
@@ -54,6 +58,9 @@ eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed})
 │ ~Orchestrator:     ~{ORCHESTRATOR_GAP_K}k (since last round)│
 │ Available:         ~{AVAILABLE_K}k tokens remaining         │
 │ Status:            {PROGRESS_BAR} [{CONTEXT_STATUS}]        │
+{if COMPACT_DETECTED}
+│ Note:              /compact detected - gap reset            │
+{/if}
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -62,7 +69,7 @@ eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed})
 ## Capture T1 (after facilitator question - Step 2.2)
 
 ```bash
-bash "<TOKEN_SCRIPT>" capture "{session-id}" T1
+bash "<TOKEN_SCRIPT>" capture "{session-id}" T1 "${CLAUDE_SESSION_ID}"
 ```
 
 ---
@@ -70,7 +77,7 @@ bash "<TOKEN_SCRIPT>" capture "{session-id}" T1
 ## Capture T2 (after participants - Step 2.3)
 
 ```bash
-bash "<TOKEN_SCRIPT>" capture "{session-id}" T2
+bash "<TOKEN_SCRIPT>" capture "{session-id}" T2 "${CLAUDE_SESSION_ID}"
 ```
 
 ---
@@ -78,7 +85,7 @@ bash "<TOKEN_SCRIPT>" capture "{session-id}" T2
 ## Capture T3 (after synthesis - Step 2.4)
 
 ```bash
-bash "<TOKEN_SCRIPT>" capture "{session-id}" T3
+bash "<TOKEN_SCRIPT>" capture "{session-id}" T3 "${CLAUDE_SESSION_ID}"
 ```
 
 ---
@@ -86,7 +93,7 @@ bash "<TOKEN_SCRIPT>" capture "{session-id}" T3
 ## Round Recap (Step 2.7)
 
 ```bash
-eval $(bash "<TOKEN_SCRIPT>" recap "{session-id}" {participant_count})
+eval $(bash "<TOKEN_SCRIPT>" recap "{session-id}" {participant_count} "${CLAUDE_SESSION_ID}")
 ```
 
 **Print this box to the user** (substitute variables from eval):
@@ -114,7 +121,7 @@ eval $(bash "<TOKEN_SCRIPT>" recap "{session-id}" {participant_count})
 ## Session Complete (Step 3.1)
 
 ```bash
-eval $(bash "<TOKEN_SCRIPT>" summary "{session-id}")
+eval $(bash "<TOKEN_SCRIPT>" summary "{session-id}" "${CLAUDE_SESSION_ID}")
 ```
 
 **Print this box to the user** (substitute variables from eval):
@@ -132,7 +139,8 @@ eval $(bash "<TOKEN_SCRIPT>" summary "{session-id}")
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Cleanup:
+Cleanup (cache file is in project, kept for debugging):
 ```bash
-bash "<TOKEN_SCRIPT>" cleanup "{session-id}"
+# Optional: bash "<TOKEN_SCRIPT>" cleanup "{session-id}"
+# Cache file: .s2s/sessions/{session-id}.cache
 ```

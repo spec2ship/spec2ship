@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-01-21
+**Updated**: 2026-01-24
 **Format**: Work items for active development
 
 ---
@@ -229,6 +229,55 @@ Compare with session file writes which use "YOU MUST use Edit tool **NOW**".
 
 ---
 
+### BUG-006: Token tracker compact detection missing
+
+**Status**: completed | **Created**: 2026-01-24 | **Completed**: 2026-01-24
+
+**Context**: When `/compact` occurs between rounds, the token tracker calculates a negative orchestrator gap because current tokens (post-compact) are lower than lastT3 (pre-compact).
+
+**Resolution**: Fixed in token-tracker.sh v3.0.0 (lines 241-245):
+```bash
+if [[ $ORCHESTRATOR_GAP -lt 0 ]]; then
+    ORCHESTRATOR_GAP=0
+    COMPACT_DETECTED="true"
+fi
+```
+Script now outputs `COMPACT_DETECTED=true` and UI shows "[compact detected]" note.
+
+**Error observed**:
+```
+Round 1: T3 = 156k, saved in lastT3
+/compact → context reduced to 42k
+Round 2: init → orchestratorGapThisRound = 42k - 156k = -114k ❌
+```
+
+**Root cause**: The init command (lines 209-213) calculates `ORCHESTRATOR_GAP=$((ROUND_START_TOKENS - LAST_T3))` without checking if the result is negative, which indicates a compact occurred.
+
+**Fix proposed**:
+```bash
+# In token-tracker.sh, init command, after calculating ORCHESTRATOR_GAP
+if [[ $ORCHESTRATOR_GAP -lt 0 ]]; then
+    # Compact detected - reset gap and flag it
+    ORCHESTRATOR_GAP=0
+    COMPACT_DETECTED=true
+fi
+```
+
+**Tasks**:
+- [ ] Add compact detection to init command
+- [ ] Reset orchestratorGapThisRound to 0 when compact detected
+- [ ] Optionally display "[compact detected]" indicator in output
+- [ ] Update session file to note compact occurred
+
+**Acceptance criteria**:
+- [ ] No negative gap values after /compact
+- [ ] Token tracking continues correctly post-compact
+- [ ] User informed that compact was detected
+
+**Related**: TECH-004 (token tracker improvements)
+
+---
+
 ### BUG-005: Participant verbose dumps missing full context
 
 **Status**: planned | **Created**: 2026-01-22 | **Priority**: high
@@ -289,6 +338,44 @@ Fix: Replace placeholder with explicit template matching verbose-dump-format.md.
 - [ ] CTX-002 and CTX-003 checks pass on new sessions
 
 **Related**: BUG-003, BUG-004, TEST-003, CTX-*
+
+---
+
+### FEAT-003: Configuration command (/s2s:config)
+
+**Status**: planned | **Created**: 2026-01-24 | **Priority**: medium | **Depends on**: TECH-005
+
+**Context**: Need a unified way to view and modify s2s configurations, including token tracking setup, roundtable defaults, and session settings.
+
+**Proposed UX**: Menu-driven interaction using AskUserQuestion tool:
+```
+s2s Configuration
+═════════════════
+
+What would you like to configure?
+
+○ Token tracking setup
+○ Roundtable defaults
+○ Session settings
+○ View current configuration
+```
+
+**Features**:
+- Token tracking: enable/disable, statusline status, install/update
+- Roundtable defaults: strategy, max rounds, participants
+- Session settings: verbose mode, interactive mode
+- View: show all current config values
+
+**Tasks**:
+- [ ] Create `commands/config.md` with menu structure
+- [ ] Integrate statusline setup from TECH-005
+- [ ] Add config.yaml toggle for token_tracking
+- [ ] Support viewing merged config (global + project)
+
+**Acceptance criteria**:
+- [ ] `/s2s:config` shows interactive menu
+- [ ] Token tracking can be enabled/disabled
+- [ ] Statusline setup automated via menu option
 
 ---
 
@@ -428,9 +515,9 @@ Fix: Replace placeholder with explicit template matching verbose-dump-format.md.
 - Centralized execution logic
 - Easier maintenance
 
-**Current state** (2026-01-23):
+**Current state** (2026-01-24):
 - Branch: `feature/TECH-002-roundtable-unification`
-- Token tracker v2.2.0 pushed (session isolation, statusline integration)
+- Token tracker v2.3.0 (session isolation, statusline, 60s fix)
 - Next action: Test Phase 1 output, then continue with Phase 2
 
 ---
@@ -451,6 +538,66 @@ Fix: Replace placeholder with explicit template matching verbose-dump-format.md.
 - v1.0 release planned
 - Release workflow stable
 - At least 3 contributors using dev tools
+
+---
+
+### TECH-005: Token tracking auto-setup via per-project statusline
+
+**Status**: in_progress | **Created**: 2026-01-24 | **Priority**: high
+
+**Context**: Token tracking requires statusline configuration to save `context-window.json`. Previously this required manual user setup. Now using per-project statusline with chain to global.
+
+**Approach** (validated 2026-01-24):
+- Per-project `.claude/settings.json` with statusLine config
+- Per-project `.claude/statusline-command.sh` that:
+  1. Saves context_window.json (s2s requirement)
+  2. Chains to user's global statusline if exists (preserves user's display)
+  3. Falls back to minimal statusline with context % display
+
+**Benefits**:
+- No modification to global `~/.claude/` files
+- Works automatically for all s2s projects
+- Preserves user's existing statusline customizations
+- Self-contained per project
+
+**Token tracker v3.0.0** (2026-01-24):
+
+Architecture changes:
+- Session-specific context files: `$TMPDIR/s2s-context-window-{cc-session-id}.json`
+- Project-local cache: `.s2s/sessions/{rt-session}.cache` instead of global
+- CC session ID passed via `${CLAUDE_SESSION_ID}` substitution
+- Compact detection (BUG-006 fix): negative gap reset to 0
+
+Bug fixes from v2.3.0:
+| Issue | Resolution |
+|-------|------------|
+| lastT3 not updated | Fixed in recap command |
+| roundsDeltaAccum not incremented | Fixed in recap command |
+| contextSource unstable | Removed 60s check, now uses session-specific files |
+| Stale data from other sessions | Session isolation via temp files |
+| BUG-006 compact detection | Negative gap check added |
+
+**Current state** (2026-01-24):
+- [x] Prototype created in spec2ship project
+- [x] Manual test passed (context-window.json updated, chain works)
+- [x] Test with real Claude Code session (restart confirmed working)
+- [x] Integrate into `/s2s:init` (Phase 5.5b added)
+- [x] Create statusline templates in `templates/statusline/`
+- [x] Session isolation with CC session ID
+- [x] Token tracker v3.0.0 with temp directory
+- [ ] Test session isolation (requires restart)
+- [ ] Remove `--tokens` flag from roundtable commands
+- [ ] Create `/s2s:config` for token tracking toggle (see FEAT-003)
+
+**Files created/updated**:
+- `templates/statusline/statusline-command.sh` - v2.0.0 with session isolation
+- `templates/statusline/settings.json` - Settings template
+- `skills/roundtable-execution/scripts/token-tracker.sh` - v3.0.0
+- `skills/roundtable-execution/references/token-tracking.md` - Updated with CC session ID
+- `commands/init.md` - Phase 5.5b for statusline setup
+- `.claude/statusline-command.sh` - Updated to v2.0.0
+
+**Related**: TECH-004 (token tracker history)
 
 ---
 
@@ -485,7 +632,7 @@ Fix: Replace placeholder with explicit template matching verbose-dump-format.md.
 
 | ID | Description | Completed |
 |----|-------------|-----------|
-| TECH-004 | Token tracker v2.2.0 - session isolation + statusline | 2026-01-23 |
+| TECH-004 | Token tracker v2.3.0 - session isolation + statusline + 60s fix | 2026-01-24 |
 | FLOW-001 | Ideas and artifact traceability | 2026-01-19 |
 | TEST-002 | Progressive disclosure for diagnostic | 2026-01-18 |
 | WORK-002 | Roundtable scope awareness | 2026-01-17 |
