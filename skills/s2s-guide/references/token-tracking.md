@@ -118,14 +118,14 @@ T0 (next round init)
 - Orchestrator gap = T0(next) - T3(previous)
 - Orchestrator total = Session consumed - Sum(round subagents)
 
-## Progressive Precision (TECH-009, v5.0.0)
+## Progressive Precision (TECH-009, v5.1.0)
 
 Token tracking uses **progressive precision** to measure per-round consumption:
 
 | Metric | Calculation | When Available | Precision |
 |--------|-------------|----------------|-----------|
-| `estimate` | T3 - T1 | End of round N | Underestimates (~) |
-| `actual` | T0_{n+1} - T1_n | Start of round N+1 | Precise |
+| `estimate` | T3 - T0 | End of round N | Immediate |
+| `actual` | T0_{n+1} - T0_n | Start of round N+1 | Precise |
 
 **Source values**:
 - `measured`: actual calculated with continuity
@@ -160,7 +160,7 @@ If `/compact` occurs between rounds, the gap calculation would be negative. Toke
 
 | File | Purpose |
 |------|---------|
-| `roundtable-execution/scripts/token-tracker.sh` | Bash script for tracking (v5.0.0) |
+| `roundtable-execution/scripts/token-tracker.sh` | Bash script for tracking (v5.1.0) |
 | `roundtable-execution/references/token-tracking.md` | Operational instructions |
 | `roundtable-execution/SKILL.md` | State management inline (v2.6.0) |
 | `templates/statusline/statusline.sh` | Statusline template (v3.1.0) |

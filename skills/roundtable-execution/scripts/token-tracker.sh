@@ -2,7 +2,7 @@
 # token-tracker.sh - Token tracking for roundtable sessions
 # Works on: Linux, Windows (Git Bash), macOS
 #
-# Version: 5.0.0 - Progressive precision token tracking (TECH-009)
+# Version: 5.1.0 - Fix estimate formula T3-T0 (was T3-T1)
 #
 # Usage:
 #   token-tracker.sh init <session-id> <round-number> [workflow-type] [strategy] [phase] [participants-count]
@@ -18,12 +18,12 @@
 #   summary: SESSION_CONSUMED_K, ROUNDS_TOTAL_K, ORCHESTRATOR_ESTIMATED_K, FINAL_TOTAL_K
 #
 # Token tracking model (TECH-009 - Progressive Precision):
-#   - estimate: T3-T1 (immediate, underestimates, shown with ~)
-#   - actual: T1_{n+1} - T1_n (calculated next round, precise)
+#   - estimate: T3-T0 (immediate, full round subagents)
+#   - actual: T0_{n+1} - T0_n (calculated next round, includes orchestrator overhead)
 #   - source: "measured" | "estimated" | "interrupted" | "noisy"
 #
 # Per-round tracking:
-#   - lastT1: saved after recap for next round's actual calculation
+#   - lastT0: saved after recap for next round's actual calculation
 #   - lastT3: saved after recap for orchestrator gap detection
 #   - roundsDeltaAccum: accumulator of all round deltas
 #   - Orchestrator overhead = actual - estimate (measured when continuity)
@@ -214,7 +214,7 @@ case "$ACTION" in
 
         # Preserve session-level values across rounds
         SESSION_START_TOKENS=$ROUND_START_TOKENS
-        LAST_T1=0
+        LAST_T0=0
         LAST_T3=0
         ROUNDS_DELTA_ACCUM=0
         ORCHESTRATOR_GAP=0
@@ -230,7 +230,7 @@ case "$ACTION" in
 
         if [[ $ROUND_NUMBER -gt 0 && -f "$CACHE_FILE" ]]; then
             PREV_SESSION_START=$(grep "^sessionStartTokens=" "$CACHE_FILE" 2>/dev/null | cut -d= -f2)
-            PREV_LAST_T1=$(grep "^lastT1=" "$CACHE_FILE" 2>/dev/null | cut -d= -f2)
+            PREV_LAST_T0=$(grep "^lastT0=" "$CACHE_FILE" 2>/dev/null | cut -d= -f2)
             PREV_LAST_T3=$(grep "^lastT3=" "$CACHE_FILE" 2>/dev/null | cut -d= -f2)
             PREV_ROUNDS_ACCUM=$(grep "^roundsDeltaAccum=" "$CACHE_FILE" 2>/dev/null | cut -d= -f2)
             PREV_ROUND_ESTIMATE=$(grep "^lastRoundEstimate=" "$CACHE_FILE" 2>/dev/null | cut -d= -f2)
@@ -243,8 +243,8 @@ case "$ACTION" in
             fi
 
             # TECH-009: Calculate actual for previous round
-            if [[ -n "$PREV_LAST_T1" && "$PREV_LAST_T1" -gt 0 ]]; then
-                LAST_T1=$PREV_LAST_T1
+            if [[ -n "$PREV_LAST_T0" && "$PREV_LAST_T0" -gt 0 ]]; then
+                LAST_T0=$PREV_LAST_T0
             fi
             if [[ -n "$PREV_LAST_T3" && "$PREV_LAST_T3" -gt 0 ]]; then
                 LAST_T3=$PREV_LAST_T3
@@ -255,9 +255,9 @@ case "$ACTION" in
                     ORCHESTRATOR_GAP=0
                     COMPACT_DETECTED="true"
                     PREV_ROUND_SOURCE="interrupted"
-                elif [[ $LAST_T1 -gt 0 ]]; then
-                    # Calculate actual: T0_new - T1_prev
-                    PREV_ROUND_ACTUAL=$((ROUND_START_TOKENS - LAST_T1))
+                elif [[ $LAST_T0 -gt 0 ]]; then
+                    # Calculate actual: T0_new - T0_prev (full round + orchestrator)
+                    PREV_ROUND_ACTUAL=$((ROUND_START_TOKENS - LAST_T0))
                     PREV_ROUND_SOURCE="measured"
 
                     # TECH-009: Detect noisy measurement (user did other commands)
@@ -371,7 +371,7 @@ jsonlFile=${JSONL_FILE}
 contextSource=${CONTEXT_SOURCE}
 statuslineActive=${STATUSLINE_ACTIVE}
 timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-lastT1=${LAST_T1}
+lastT0=${LAST_T0}
 lastT3=${LAST_T3}
 lastRoundEstimate=${PREV_ROUND_ESTIMATE}
 roundsDeltaAccum=${ROUNDS_DELTA_ACCUM}
@@ -506,16 +506,16 @@ EOF
         EMPTY=$((16 - FILLED))
         PROGRESS_BAR=$(printf '%*s' "$FILLED" '' | tr ' ' '#')$(printf '%*s' "$EMPTY" '' | tr ' ' '-')
 
-        # TECH-009: Calculate round estimate (T3 - T1, subagent-only)
+        # TECH-009: Calculate round estimate (T3 - T0, full round subagents)
         # This is the immediate estimate, will be refined to "actual" next round
-        ROUND_TOKENS_ESTIMATE=$((T3_TOKENS - T1_TOKENS))
+        ROUND_TOKENS_ESTIMATE=$((T3_TOKENS - T0_TOKENS))
         ROUND_TOKENS_ESTIMATE_K=$(awk "BEGIN {printf \"%.1f\", $ROUND_TOKENS_ESTIMATE / 1000}")
 
-        # Update cache file with lastT1, lastT3, lastRoundEstimate
+        # Update cache file with lastT0, lastT3, lastRoundEstimate
         if [[ -f "$CACHE_FILE" ]]; then
-            # TECH-009: Save T1 for next round's actual calculation
-            sed -i.bak "s/^lastT1=.*/lastT1=${T1_TOKENS}/" "$CACHE_FILE" 2>/dev/null || \
-                sed -i '' "s/^lastT1=.*/lastT1=${T1_TOKENS}/" "$CACHE_FILE"
+            # TECH-009: Save T0 for next round's actual calculation
+            sed -i.bak "s/^lastT0=.*/lastT0=${T0_TOKENS}/" "$CACHE_FILE" 2>/dev/null || \
+                sed -i '' "s/^lastT0=.*/lastT0=${T0_TOKENS}/" "$CACHE_FILE"
             sed -i.bak "s/^lastT3=.*/lastT3=${T3_TOKENS}/" "$CACHE_FILE" 2>/dev/null || \
                 sed -i '' "s/^lastT3=.*/lastT3=${T3_TOKENS}/" "$CACHE_FILE"
             sed -i.bak "s/^lastRoundEstimate=.*/lastRoundEstimate=${ROUND_TOKENS_ESTIMATE}/" "$CACHE_FILE" 2>/dev/null || \

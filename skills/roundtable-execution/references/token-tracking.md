@@ -10,8 +10,8 @@ Token tracking uses **progressive precision** to accurately measure per-round co
 
 | Metric | Calculation | When Available | Precision |
 |--------|-------------|----------------|-----------|
-| `estimate` | T3 - T1 (subagent-only) | End of round N | Underestimates (~) |
-| `actual` | T1_{n+1} - T1_n (includes orchestrator) | Start of round N+1 | Precise |
+| `estimate` | T3 - T0 (full round subagents) | End of round N | Immediate |
+| `actual` | T0_{n+1} - T0_n (includes orchestrator) | Start of round N+1 | Precise |
 
 **Source values**:
 - `measured`: actual calculated with continuity (precise)

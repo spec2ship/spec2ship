@@ -142,8 +142,8 @@ metrics:
     total: 45000              # Final accumulated total
     by_round:                 # Per-round detail with progressive precision
       - round: 1
-        estimate: 12000       # T3-T1 (immediate, underestimates)
-        actual: 14500         # T1_2 - T1_1 (calculated at round 2, precise)
+        estimate: 12000       # T3-T0 (immediate, full round subagents)
+        actual: 14500         # T0_2 - T0_1 (calculated at round 2, includes orchestrator)
         source: "measured"    # measured | estimated | interrupted | noisy
       - round: 2
         estimate: 15000
