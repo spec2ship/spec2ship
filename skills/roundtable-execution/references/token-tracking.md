@@ -26,9 +26,9 @@ Token tracking uses **progressive precision** to accurately measure per-round co
 
 ---
 
-## Script Location (execute ONCE at Step 2.0 of first round)
+## Script Location (resolve ONCE, then reuse)
 
-**Use the Read tool** to get the resolved script path:
+**At first round or after resume**, use the Read tool to get the resolved script path:
 
 ```
 Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/token-tracker.sh`
@@ -36,9 +36,11 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/toke
 
 The Read tool response shows the actual resolved path in its header (e.g., `File: /path/to/.../token-tracker.sh`).
 
-**Extract that full path** and store it as `TOKEN_SCRIPT`.
+**Extract that full path** and store it as `TOKEN_SCRIPT`. Reuse this path for all subsequent rounds.
 
 If Read fails (file not found): skip all token tracking, proceed normally.
+
+> **Note**: The script path resolution happens once. The script itself (`token-tracker init`) runs at EVERY round's Step 2.0.
 
 ---
 
@@ -53,21 +55,26 @@ No session ID needed in filenames - one state per project.
 
 ---
 
-## Session Start (before first round)
+## Context Capacity Check (Step 2.0) - runs EVERY round
+
+> **Purpose**: Before starting each round, verify there's enough context capacity.
+> If projected usage exceeds 95%, stop and guide user to /compact or /clear.
+
+**Execute at EVERY round** (including first and resume):
 
 ```bash
 eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed} "{workflow_type}" "{strategy}" "{phase}" {participants_count})
 ```
 
 **Parameters**:
+- `session-id`: current session ID
+- `rounds_completed`: from session file's `metrics.rounds_completed`
 - `workflow_type`: specs | design | brainstorm | roundtable
 - `strategy`: standard | consensus-driven | debate | disney | six-hats
 - `phase`: current phase (e.g., "discussion", "dreamer", "opening")
 - `participants_count`: number of participants
 
-These are used to update `.s2s/state.json` for statusline display.
-
-**Print this box to the user** (substitute variables from eval):
+**For first round (rounds_completed == 0)**, display initial status box:
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ CONTEXT STATUS (Initial)                      [{CONTEXT_SOURCE}] │
@@ -77,17 +84,6 @@ These are used to update `.s2s/state.json` for statusline display.
 │ Statusline:        {STATUSLINE_ACTIVE ? "active" : "not configured (using jsonl fallback)"} │
 │ Status:            {PROGRESS_BAR} [{CONTEXT_STATUS}]        │
 └─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Context Capacity Check (Step 2.0)
-
-> **Purpose**: Before starting each round, verify there's enough context capacity.
-> If projected usage exceeds 95%, stop and guide user to /compact or /clear.
-
-```bash
-eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed} "{workflow_type}" "{strategy}" "{phase}" {participants_count})
 ```
 
 **Check SHOULD_STOP and SHOULD_WARN from output** (TECH-009):
@@ -101,8 +97,21 @@ eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed} "{workflow_t
 **TECH-009: Update previous round's actual** (if PREV_ROUND_ACTUAL is set):
 
 The script outputs `PREV_ROUND_ACTUAL` and `PREV_ROUND_SOURCE` when it can calculate
-the precise token consumption for the previous round. SKILL.md should update the
-session file's `metrics.tokens.by_round[N-1]` with these values.
+the precise token consumption for the previous round.
+
+**YOU MUST** use Edit tool to update `.s2s/sessions/{session-id}.yaml`:
+
+Find the entry in `metrics.tokens.by_round` where `round: {rounds_completed - 1}` and update:
+
+```yaml
+metrics:
+  tokens:
+    by_round:
+      - round: {rounds_completed - 1}
+        estimate: {keep existing value}
+        actual: {PREV_ROUND_ACTUAL}      # ← update from null
+        source: "{PREV_ROUND_SOURCE}"    # ← update from "estimated"
+```
 
 **On STOP** - display:
 ```
@@ -215,20 +224,23 @@ eval $(bash "<TOKEN_SCRIPT>" recap "{session-id}" {participant_count})
 
 **TECH-009: Save estimate to session file**:
 
-After displaying the recap, SKILL.md should save `ROUND_TOKENS_ESTIMATE` to the session file:
+After displaying the recap, **YOU MUST** use Edit tool to append to `.s2s/sessions/{session-id}.yaml`:
+
 ```yaml
 metrics:
   tokens:
     by_round:
       - round: {round_number}
-        estimate: {ROUND_TOKENS_ESTIMATE}
+        estimate: {ROUND_TOKENS_ESTIMATE}  # value WITHOUT "k" suffix
         actual: null
         source: "estimated"
 ```
 
+If `by_round` doesn't exist yet, create it as an empty array first.
+
 ---
 
-## Session Complete (Step 3.1)
+## Session Complete (Step 3.0)
 
 ```bash
 eval $(bash "<TOKEN_SCRIPT>" summary "{session-id}")
@@ -247,6 +259,17 @@ eval $(bash "<TOKEN_SCRIPT>" summary "{session-id}")
 │ Final total:       {FINAL_TOTAL_K}k tokens ({CONTEXT_PCT}%) │
 │ Context status:    {PROGRESS_BAR} [{CONTEXT_STATUS}]        │
 └─────────────────────────────────────────────────────────────┘
+```
+
+**Update session file with total** (TECH-009):
+
+**YOU MUST** use Edit tool to update `.s2s/sessions/{session-id}.yaml`:
+
+```yaml
+metrics:
+  tokens:
+    total: {SESSION_CONSUMED}  # ← update from 0 (value WITHOUT "k" suffix)
+    by_round: [...]            # keep existing
 ```
 
 Cleanup (cache file is in project, kept for debugging):

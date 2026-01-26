@@ -4,7 +4,7 @@ description: "This skill provides instructions for executing multi-agent roundta
   Use when a command needs to run discussion rounds with facilitator and participants.
   Referenced by: specs.md, design.md, brainstorm.md.
   Trigger: 'execute roundtable', 'run discussion rounds', 'multi-agent discussion'."
-version: 2.5.0
+version: 2.6.0
 ---
 
 # Roundtable Execution Instructions
@@ -238,34 +238,45 @@ session_folder = ".s2s/sessions/{session-id}/"
 > **Purpose**: Before starting each round, verify there's enough context capacity to complete it.
 > If capacity is insufficient, stop gracefully and guide user to resume after /compact or /clear.
 
-**TOKEN TRACKING SETUP** (execute ONCE per session, including resume):
+#### Step 2.0a: Token tracking setup (execute EVERY round)
 
-1. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md`
-2. Execute "Script Location" section to get TOKEN_SCRIPT path
-3. If script not found: skip token tracking, proceed to Step 2.1
+1. **IF first round OR TOKEN_SCRIPT not set**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md` and execute "Script Location" section to get TOKEN_SCRIPT path
+2. **IF script not found**: Skip token tracking, proceed to Step 2.1
 
-**Execute token tracker init**:
+#### Step 2.0b: Execute token tracker init
 
 ```bash
 eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed} "{workflow_type}" "{strategy}" "{phase}" {participants_count})
 ```
 
-**TECH-009: Update previous round's actual** (if round > 0 and PREV_ROUND_ACTUAL is set):
+The script outputs these variables (store them for later steps):
+- `CURRENT_K`, `CURRENT_PCT` - current context usage
+- `NEXT_ESTIMATE_K` - projected next round consumption
+- `SHOULD_STOP`, `SHOULD_WARN` - capacity decision flags
+- `PREV_ROUND_ACTUAL`, `PREV_ROUND_SOURCE` - previous round measurement (if available)
 
-The script outputs `PREV_ROUND_ACTUAL` and `PREV_ROUND_SOURCE` when it can calculate
-the precise token consumption for the previous round. Update the session file:
+#### Step 2.0c: Update previous round actual (TECH-009)
+
+**IF** `round_number > 0` **AND** `PREV_ROUND_ACTUAL` is set (not empty):
+
+**YOU MUST** use Edit tool to update `.s2s/sessions/{session-id}.yaml`.
+Find the entry in `metrics.tokens.by_round` where `round: {round_number - 1}` and update:
 
 ```yaml
 metrics:
   tokens:
     by_round:
       - round: {round_number - 1}
-        estimate: {existing estimate}
-        actual: {PREV_ROUND_ACTUAL}      # ← update this
-        source: "{PREV_ROUND_SOURCE}"    # ← update this (measured/interrupted/noisy)
+        estimate: {keep existing value}
+        actual: {PREV_ROUND_ACTUAL}      # ← update from null
+        source: "{PREV_ROUND_SOURCE}"    # ← update from "estimated"
 ```
 
-**Check capacity using SHOULD_STOP/SHOULD_WARN** (TECH-009):
+**Definition of Done**: The previous round's entry shows `actual: {value}` and `source: "measured"` (or "interrupted"/"noisy").
+
+#### Step 2.0d: Check capacity (TECH-009)
+
+Check `SHOULD_STOP` and `SHOULD_WARN` from Step 2.0b output:
 
 **IF `SHOULD_STOP == true`** (next round would exceed 95% capacity):
 
@@ -766,18 +777,21 @@ Next: {next_focus or "Conclusion pending"}
 
 **TECH-009: Save round estimate to session file**:
 
-After displaying the recap, update the session file with token estimate for this round:
+After displaying the recap, **YOU MUST** use Edit tool to append to `.s2s/sessions/{session-id}.yaml`:
+
 ```yaml
 metrics:
   tokens:
     by_round:
-      - round: {round_number}
-        estimate: {ROUND_TOKENS_ESTIMATE}  # From recap output
+      - round: {round_number + 1}
+        estimate: {ROUND_TOKENS_ESTIMATE}  # Value WITHOUT "k" suffix
         actual: null                        # Will be calculated next round
         source: "estimated"
 ```
 
 If `metrics.tokens.by_round` doesn't exist yet, create it as an empty array first.
+
+**Definition of Done**: The session file has a new entry in `by_round` for this round.
 
 ### Step 2.8: Handle Interactive Mode
 
@@ -836,7 +850,24 @@ After each major step (2.2, 2.3, 2.4, 2.5), verify correct execution using the c
 
 **IF diagnostic_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/diagnostic.md` → Execute "End-Session Diagnostic Report" section
 
-→ **Token tracking**: Execute "Session Complete" section from token-tracking.md
+### Step 3.0: Token tracking summary
+
+Execute "Session Complete" section from token-tracking.md:
+
+```bash
+eval $(bash "<TOKEN_SCRIPT>" summary "{session-id}")
+```
+
+Display the session summary box (see token-tracking.md for format).
+
+**YOU MUST** update `metrics.tokens.total` in session file with `SESSION_CONSUMED` value:
+
+```yaml
+metrics:
+  tokens:
+    total: {SESSION_CONSUMED}  # ← update from 0
+    by_round: [...]            # keep existing
+```
 
 ### Step 3.1: Update Session Status {#session-close}
 

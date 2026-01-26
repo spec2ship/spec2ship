@@ -162,7 +162,7 @@ If `/compact` occurs between rounds, the gap calculation would be negative. Toke
 |------|---------|
 | `roundtable-execution/scripts/token-tracker.sh` | Bash script for tracking (v5.0.0) |
 | `roundtable-execution/references/token-tracking.md` | Operational instructions |
-| `roundtable-execution/SKILL.md` | State management inline (v2.5.0) |
+| `roundtable-execution/SKILL.md` | State management inline (v2.6.0) |
 | `templates/statusline/statusline.sh` | Statusline template (v3.1.0) |
 | `.s2s/context-window.json` | Context data (project-local) |
 | `.s2s/state.json` | Active session state (project-local) |
