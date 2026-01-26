@@ -1,6 +1,6 @@
 # Token Tracking Instructions
 
-Token tracking is always active during roundtable sessions. This file is read at Step 2.0 (context check) and Step 2.1 (round start) of each round.
+Token tracking is always active during roundtable sessions. This file is read at Step 2.0 (context check) and Step 2.7 (round recap) of each round.
 
 ---
 
@@ -74,18 +74,6 @@ eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed} "{workflow_t
 - `phase`: current phase (e.g., "discussion", "dreamer", "opening")
 - `participants_count`: number of participants
 
-**For first round (rounds_completed == 0)**, display initial status box:
-```
-┌─────────────────────────────────────────────────────────────┐
-│ CONTEXT STATUS (Initial)                      [{CONTEXT_SOURCE}] │
-├─────────────────────────────────────────────────────────────┤
-│ Current usage:     {CURRENT_K}k tokens ({CURRENT_PCT}%)     │
-│ Available:         ~{AVAILABLE_K}k tokens remaining         │
-│ Statusline:        {STATUSLINE_ACTIVE ? "active" : "not configured (using jsonl fallback)"} │
-│ Status:            {PROGRESS_BAR} [{CONTEXT_STATUS}]        │
-└─────────────────────────────────────────────────────────────┘
-```
-
 **Check SHOULD_STOP and SHOULD_WARN from output** (TECH-009):
 
 | Variable | Action |
@@ -145,32 +133,6 @@ Session saved at round {round_number}. Progress preserved.
 
 ---
 
-## Per-Round Display (Step 2.1)
-
-> Note: `token-tracker init` was already executed in Step 2.0.
-> Use those results to display the context status box.
-
-**Print this box to the user** (for round > 1, include previous round actual if available):
-```
-┌─────────────────────────────────────────────────────────────┐
-│ CONTEXT STATUS (Round {round_number} Start)   [{CONTEXT_SOURCE}] │
-├─────────────────────────────────────────────────────────────┤
-│ Current usage:     {CURRENT_K}k tokens ({CURRENT_PCT}%)     │
-{if round > 1 and PREV_ROUND_ACTUAL_K}
-│ Previous round:    {PREV_ROUND_ACTUAL_K}k actual [{PREV_ROUND_SOURCE}] │
-{/if}
-│ Avg per round:     {AVG_ACTUAL_K}k ({SAMPLE_COUNT} samples) │
-│ Next estimate:     ~{NEXT_ESTIMATE_K}k                      │
-│ Projected:         {PROJECTED_TOTAL_K}k ({PROJECTED_PCT}%)  │
-│ Status:            {PROGRESS_BAR} [{CONTEXT_STATUS}]        │
-{if COMPACT_DETECTED}
-│ Note:              /compact detected - previous round interrupted │
-{/if}
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
 ## Capture T1 (after facilitator question - Step 2.2)
 
 ```bash
@@ -201,26 +163,37 @@ bash "<TOKEN_SCRIPT>" capture "{session-id}" T3
 eval $(bash "<TOKEN_SCRIPT>" recap "{session-id}" {participant_count})
 ```
 
-**Print this box to the user** (substitute variables from eval):
+**Add token section at the end of the round recap display** (integrated, not separate box):
+
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ TOKEN BREAKDOWN (Round {round_number})        [{CONTEXT_SOURCE}] │
-├─────────────────────────────────────────────────────────────┤
-│ Facilitator (question):     {QUESTION_K}k tokens            │
-│ Participants ({PARTICIPANT_COUNT}): {PARTICIPANTS_K}k tokens ({PARTICIPANT_AVG_K}k avg) │
-│ Facilitator (synthesis):    {SYNTHESIS_K}k tokens           │
-│ ─────────────────────────────────────────────────────────── │
-│ Round subagents:            {ROUND_DELTA_K}k tokens         │
-│ ~Orchestrator gap:          ~{ORCHESTRATOR_GAP_K}k tokens   │
-│ Round estimate:             ~{ROUND_TOKENS_ESTIMATE_K}k (will refine next round) │
-│ ─────────────────────────────────────────────────────────── │
-│ Rounds total (accum):       {ROUNDS_ACCUM_K}k tokens        │
-│ Context total:              {ROUND_END_K}k tokens           │
-│ Context usage:              {CONTEXT_PCT}% {PROGRESS_BAR} [{CONTEXT_STATUS}] │
-└─────────────────────────────────────────────────────────────┘
+───────────────────────────────────────────────────────────────
+Tokens:
+  Facilitator question:      {QUESTION_K}k
+  Participants ({count}):    {PARTICIPANTS_K}k  ({PARTICIPANT_AVG_K}k avg)
+  Facilitator synthesis:     {SYNTHESIS_K}k
+  Round subtotal:           {ROUND_DELTA_K}k
+
+{if round_number > 0}
+  Avg per round:            {AVG_ACTUAL_K}k  ({SAMPLE_COUNT + 1} rounds)
+{/if}
+  Roundtable total:         {ROUNDS_ACCUM_K}k
+
+  Context consumed:         {CURRENT_K}k ({CURRENT_PCT}%)
+  Context remaining:        {REMAINING_K}k ({REMAINING_PCT}%)
+{if SHOULD_WARN}
+
+  ⚠️  Low context - consider /compact after this round
+{/if}
+───────────────────────────────────────────────────────────────
 ```
 
-`~` prefix = estimated value.
+**Values from script output**:
+- `QUESTION_K`, `PARTICIPANTS_K`, `SYNTHESIS_K`: breakdown per actor
+- `ROUND_DELTA_K`: round subtotal (T3 - T0)
+- `ROUNDS_ACCUM_K`: roundtable total (accumulated)
+- `CURRENT_K`, `CURRENT_PCT`: context consumed
+- `REMAINING_K = 200 - CURRENT_K`, `REMAINING_PCT = 100 - CURRENT_PCT`
+- `AVG_ACTUAL_K`, `SAMPLE_COUNT`: for rounds > 1
 
 **TECH-009: Save estimate to session file**:
 
@@ -246,19 +219,18 @@ If `by_round` doesn't exist yet, create it as an empty array first.
 eval $(bash "<TOKEN_SCRIPT>" summary "{session-id}")
 ```
 
-**Print this box to the user** (substitute variables from eval):
+**Add session summary to completion display**:
+
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ SESSION TOKEN SUMMARY                         [{CONTEXT_SOURCE}] │
-├─────────────────────────────────────────────────────────────┤
-│ Session start:     {SESSION_START_K}k tokens                │
-│ Session consumed:  {SESSION_CONSUMED_K}k tokens             │
-│   ├─ Subagents:    {ROUNDS_TOTAL_K}k tokens (measured)      │
-│   └─ ~Orchestrator: ~{ORCHESTRATOR_ESTIMATED_K}k (estimated)│
-│ ─────────────────────────────────────────────────────────── │
-│ Final total:       {FINAL_TOTAL_K}k tokens ({CONTEXT_PCT}%) │
-│ Context status:    {PROGRESS_BAR} [{CONTEXT_STATUS}]        │
-└─────────────────────────────────────────────────────────────┘
+───────────────────────────────────────────────────────────────
+Session Tokens:
+  Roundtable total:         {ROUNDS_TOTAL_K}k  (subagents)
+  Orchestrator overhead:    {ORCHESTRATOR_ESTIMATED_K}k  (estimated)
+  Session consumed:         {SESSION_CONSUMED_K}k
+
+  Context consumed:         {FINAL_TOTAL_K}k ({CONTEXT_PCT}%)
+  Context remaining:        {REMAINING_K}k ({REMAINING_PCT}%)
+───────────────────────────────────────────────────────────────
 ```
 
 **Update session file with total** (TECH-009):

@@ -2,7 +2,7 @@
 # token-tracker.sh - Token tracking for roundtable sessions
 # Works on: Linux, Windows (Git Bash), macOS
 #
-# Version: 5.1.0 - Fix estimate formula T3-T0 (was T3-T1)
+# Version: 5.2.0 - Simplified display format, add REMAINING_K/REMAINING_PCT
 #
 # Usage:
 #   token-tracker.sh init <session-id> <round-number> [workflow-type] [strategy] [phase] [participants-count]
@@ -539,6 +539,11 @@ EOF
         echo "ROUND_END_COST=${ROUND_END_COST}"
         echo "PARTICIPANT_COUNT=${PARTICIPANT_COUNT}"
         echo "CONTEXT_PCT=${CONTEXT_PCT}"
+        REMAINING_PCT=$((100 - CONTEXT_PCT))
+        REMAINING_K=$(( (CONTEXT_LIMIT - T3_TOKENS) / 1000 ))
+        echo "REMAINING_PCT=${REMAINING_PCT}"
+        echo "REMAINING_K=${REMAINING_K}"
+        echo "CURRENT_K=${ROUND_END_K}"
         echo "CONTEXT_STATUS=${CONTEXT_STATUS}"
         echo "PROGRESS_BAR=${PROGRESS_BAR}"
         echo "ORCHESTRATOR_GAP_K=${ORCH_GAP_K}"
@@ -588,12 +593,18 @@ EOF
 
         # Note: state.json is cleared by SKILL.md inline, not by token-tracker
 
+        REMAINING_PCT=$((100 - CONTEXT_PCT))
+        REMAINING_K=$(( (CONTEXT_LIMIT - CURRENT_TOKENS) / 1000 ))
+
         echo "SESSION_START_K=${SESSION_START_K}"
         echo "SESSION_CONSUMED_K=${SESSION_CONSUMED_K}"
+        echo "SESSION_CONSUMED=${SESSION_CONSUMED}"
         echo "ROUNDS_TOTAL_K=${ROUNDS_TOTAL_K}"
         echo "ORCHESTRATOR_ESTIMATED_K=${ORCHESTRATOR_ESTIMATED_K}"
         echo "FINAL_TOTAL_K=${FINAL_TOTAL_K}"
         echo "CONTEXT_PCT=${CONTEXT_PCT}"
+        echo "REMAINING_PCT=${REMAINING_PCT}"
+        echo "REMAINING_K=${REMAINING_K}"
         echo "CONTEXT_STATUS=${CONTEXT_STATUS}"
         echo "PROGRESS_BAR=${PROGRESS_BAR}"
         echo "CONTEXT_SOURCE=${contextSource:-jsonl}"

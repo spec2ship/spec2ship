@@ -33,7 +33,7 @@ If statusline is not configured, token-tracker.sh falls back to JSONL parsing:
 - `CONTEXT_SOURCE=statusline` = accurate, project-local
 - `CONTEXT_SOURCE=jsonl` = less accurate, may be stale after /compact
 
-## Architecture (v5.0.0)
+## Architecture (v5.2.0)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -60,7 +60,7 @@ If statusline is not configured, token-tracker.sh falls back to JSONL parsing:
 │           ▼                                               │
 │  ┌─────────────────┐    ┌─────────────────────────────────┐│
 │  │ token-tracker.sh│───▶│ .s2s/sessions/                  ││
-│  │ v5.0.0          │    │ {rt-session-id}.cache           ││
+│  │ v5.2.0          │    │ {rt-session-id}.cache           ││
 │  │                 │    │                                 ││
 │  │ Commands:       │    │ Stores:                         ││
 │  │ - init          │    │ - sessionStartTokens            ││
@@ -118,7 +118,7 @@ T0 (next round init)
 - Orchestrator gap = T0(next) - T3(previous)
 - Orchestrator total = Session consumed - Sum(round subagents)
 
-## Progressive Precision (TECH-009, v5.1.0)
+## Progressive Precision (TECH-009, v5.2.0)
 
 Token tracking uses **progressive precision** to measure per-round consumption:
 
@@ -133,13 +133,32 @@ Token tracking uses **progressive precision** to measure per-round consumption:
 - `interrupted`: /compact or /clear detected
 - `noisy`: actual >> estimate (user did other commands)
 
-## Display Conventions
+## Display Format (v5.2.0)
 
-- Values without prefix = measured directly from checkpoints
-- Values with `~` prefix = estimated/derived
-- Progress bar: `#` = used, `-` = available
-- Status: OK (<60%), WARNING (60-80%), CRITICAL (≥80%)
-- `[statusline]` or `[jsonl]` = data source indicator
+Token information is displayed at the end of each round recap (not in separate boxes):
+
+```
+───────────────────────────────────────────────────────────────
+Tokens:
+  Facilitator question:      2k
+  Participants (4):          8k  (2k avg)
+  Facilitator synthesis:     2k
+  Round subtotal:           12k
+
+  Avg per round:            12k  (3 rounds)
+  Roundtable total:         36k
+
+  Context consumed:         86k (43%)
+  Context remaining:       114k (57%)
+───────────────────────────────────────────────────────────────
+```
+
+For round 1, "Avg per round" is omitted (only 1 sample).
+
+Warning displayed when context >= 85%:
+```
+  ⚠️  Low context - consider /compact after this round
+```
 
 ## Auto-Stop Thresholds
 
@@ -160,9 +179,9 @@ If `/compact` occurs between rounds, the gap calculation would be negative. Toke
 
 | File | Purpose |
 |------|---------|
-| `roundtable-execution/scripts/token-tracker.sh` | Bash script for tracking (v5.1.0) |
+| `roundtable-execution/scripts/token-tracker.sh` | Bash script for tracking (v5.2.0) |
 | `roundtable-execution/references/token-tracking.md` | Operational instructions |
-| `roundtable-execution/SKILL.md` | State management inline (v2.6.0) |
+| `roundtable-execution/SKILL.md` | State management inline (v2.7.0) |
 | `templates/statusline/statusline.sh` | Statusline template (v3.1.0) |
 | `.s2s/context-window.json` | Context data (project-local) |
 | `.s2s/state.json` | Active session state (project-local) |

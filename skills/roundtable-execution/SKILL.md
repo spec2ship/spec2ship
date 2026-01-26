@@ -4,7 +4,7 @@ description: "This skill provides instructions for executing multi-agent roundta
   Use when a command needs to run discussion rounds with facilitator and participants.
   Referenced by: specs.md, design.md, brainstorm.md.
   Trigger: 'execute roundtable', 'run discussion rounds', 'multi-agent discussion'."
-version: 2.6.0
+version: 2.7.0
 ---
 
 # Roundtable Execution Instructions
@@ -371,15 +371,6 @@ ARTIFACTS: {count} requirements, {count} conflicts, {count} open questions
 }
 ```
 
-**TOKEN TRACKING DISPLAY** (using values from Step 2.0):
-
-Display context status box using CURRENT_K, CURRENT_PCT, etc. from Step 2.0's token-tracker init:
-
-- **IF round_number == 0**: Display "CONTEXT STATUS (Initial)" box
-- **IF round_number > 0**: Display "CONTEXT STATUS (Round N Start)" box
-
-See token-tracking.md "Per-Round Display" section for box format.
-
 ### Step 2.2: Facilitator Question
 
 **Use the roundtable-facilitator agent** with this input:
@@ -659,7 +650,7 @@ escalation_reason: null
 
 **IF --verbose**: Write dump file `rounds/{NNN}-03-facilitator-synthesis.yaml`
 
-→ **Token checkpoint T3**: Execute "Capture T3" section, then "Round Recap" section from token-tracking.md
+→ **Token checkpoint T3**: Execute "Capture T3" section from token-tracking.md
 
 **IF diagnostic_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/diagnostic.md` → Execute "Per-Round Diagnostic" section
 
@@ -745,6 +736,12 @@ metrics:
 
 ### Step 2.7: Display Round Recap
 
+→ **Token checkpoint T3**: Execute "Capture T3" from token-tracking.md
+
+→ **Token recap**: Execute "Round Recap" from token-tracking.md to get token values
+
+Display the round recap with integrated token section:
+
 ```
 ───────────────────────────────────────────────────────────────
 ROUND {round_number + 1} COMPLETE
@@ -772,6 +769,25 @@ Agenda:
 {/for}
 
 Next: {next_focus or "Conclusion pending"}
+
+───────────────────────────────────────────────────────────────
+Tokens:
+  Facilitator question:      {QUESTION_K}k
+  Participants ({count}):    {PARTICIPANTS_K}k  ({PARTICIPANT_AVG_K}k avg)
+  Facilitator synthesis:     {SYNTHESIS_K}k
+  Round subtotal:           {ROUND_DELTA_K}k
+
+{if round_number > 0}
+  Avg per round:            {AVG_ACTUAL_K}k  ({SAMPLE_COUNT + 1} rounds)
+{/if}
+  Roundtable total:         {ROUNDS_ACCUM_K}k
+
+  Context consumed:         {CURRENT_K}k ({CURRENT_PCT}%)
+  Context remaining:        {REMAINING_K}k ({REMAINING_PCT}%)
+{if SHOULD_WARN}
+
+  ⚠️  Low context - consider /compact after this round
+{/if}
 ───────────────────────────────────────────────────────────────
 ```
 
@@ -928,7 +944,7 @@ The output-generation skill handles:
 | `references/verbose-dump-format.md` | Verbose dump file naming and content |
 | `references/definition-of-done.md` | Step validation checklist |
 | `references/diagnostic.md` | Diagnostic mode (hooks at Step 2.4 and PHASE 3) |
-| `references/token-tracking.md` | Token tracking (setup at Step 2.0, display at 2.1, captures at 2.2-2.4, summary at PHASE 3) |
+| `references/token-tracking.md` | Token tracking (setup at Step 2.0, captures at 2.2-2.4, recap at 2.7, summary at PHASE 3) |
 
 ---
 
