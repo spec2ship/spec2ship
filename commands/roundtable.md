@@ -422,10 +422,10 @@ Pass these values to the skill execution:
 **TOKEN TRACKING CHECKPOINTS** (after Step 2.0 setup is complete):
 
 - **Step 2.0**: TOKEN TRACKING SETUP - Read token-tracking.md, execute "Script Location" to get TOKEN_SCRIPT
-- **Step 2.1**: Display context status box (using values from Step 2.0 init)
 - **After Step 2.2**: Execute "Capture T1" from token-tracking.md
 - **After Step 2.3**: Execute "Capture T2" from token-tracking.md
-- **After Step 2.4**: Execute "Capture T3" and "Round Recap" from token-tracking.md
+- **After Step 2.4**: Execute "Capture T3" from token-tracking.md
+- **Step 2.7**: Execute "Round Recap" and display token section in round recap
 - **At Step 3.1**: Execute "Session Complete" from token-tracking.md
 
 **ADDITIONAL REMINDERS:**

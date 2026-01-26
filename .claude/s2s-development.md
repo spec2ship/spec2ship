@@ -582,19 +582,18 @@ For features that must work on resume, activate at the START of each round (Step
 **TOKEN TRACKING** (always active - executes every round, including resume):
 
 1. Read `references/token-tracking.md`
-2. **IF round_number == 0** (first round only):
-   - Execute "Script Location" section
-   - Execute "Session Start" section
-3. Execute "Per-Round Init" section (every round)
+2. Execute "Script Location" section (first round or after resume)
+3. Execute "Context Capacity Check" section (every round, checks SHOULD_STOP/SHOULD_WARN)
 
 [... rest of step ...]
 
 → **Token checkpoint T1**: Execute "Capture T1" section from token-tracking.md
+→ **Step 2.7**: Token info displayed in round recap (no separate box)
 ```
 
-**Key insight**: By executing at Step 2.1 (which runs every round), the feature survives resume. First-round-only setup uses a simple `IF round == 0` check.
+**Key insight**: Token display is now integrated into the round recap (Step 2.7), not shown in separate boxes at round start. This simplifies the output and reduces visual clutter.
 
-**Verified**: 2026-01-25 - Token tracking made always-active, activation moved to Step 2.1
+**Verified**: 2026-01-26 - Token display simplified to single section in round recap
 
 ---
 

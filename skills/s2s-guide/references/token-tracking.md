@@ -114,7 +114,7 @@ T0 (next round init)
 - Round subagents = T3 - T0
 - Session consumed = Final - sessionStartTokens
 
-**Estimated values** (derived, shown with `~` prefix):
+**Derived values** (calculated, not directly measured):
 - Orchestrator gap = T0(next) - T3(previous)
 - Orchestrator total = Session consumed - Sum(round subagents)
 
