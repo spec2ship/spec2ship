@@ -347,6 +347,23 @@ Initialize:
 
 ### Round Loop (cycle through Disney phases)
 
+#### Step 2.0: Context Capacity Check
+
+**TOKEN TRACKING** (always active - executes every round, including resume):
+
+1. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md`
+2. **ALWAYS** execute "Script Location" section (verify script exists, store path as TOKEN_SCRIPT)
+3. Execute "Context Capacity Check" section (every round, checks SHOULD_STOP/SHOULD_WARN)
+
+**TOKEN TRACKING CHECKPOINTS** (after Step 2.0 setup is complete):
+
+- **Step 2.0**: TOKEN TRACKING SETUP - Read token-tracking.md, execute "Script Location" to get TOKEN_SCRIPT
+- **After Step 2.2**: Execute "Capture T1" from token-tracking.md
+- **After Step 2.3**: Execute "Capture T2" from token-tracking.md
+- **After Step 2.4**: Execute "Capture T3" from token-tracking.md
+- **Step 2.7**: Execute "Round Recap" and display token section in round recap
+- **At Step 3.1**: Execute "Session Complete" from token-tracking.md
+
 #### Step 2.1: Display Phase Status
 
 ```
@@ -391,12 +408,6 @@ ARTIFACTS: {count} ideas, {count} risks, {count} mitigations
   }
 }
 ```
-
-**TOKEN TRACKING** (always active - executes every round, including resume):
-
-1. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md`
-2. **ALWAYS** execute "Script Location" section (verify script exists, store path as TOKEN_SCRIPT)
-3. Execute "Context Capacity Check" section (every round, checks SHOULD_STOP/SHOULD_WARN)
 
 #### Step 2.2: Facilitator Question
 
