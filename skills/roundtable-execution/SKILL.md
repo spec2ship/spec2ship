@@ -874,7 +874,7 @@ Execute "Session Complete" section from token-tracking.md:
 eval $(bash "<TOKEN_SCRIPT>" summary "{session-id}")
 ```
 
-Display the session summary box (see token-tracking.md for format).
+Display the session token summary (see token-tracking.md for format).
 
 **YOU MUST** update `metrics.tokens.total` in session file with `SESSION_CONSUMED` value:
 
