@@ -1163,7 +1163,7 @@ agent_state:
     last_action: "synthesis"
 ```
 
-→ **Token checkpoint T3**: Execute "Capture T3" section, then "Round Recap" section from token-tracking.md
+→ **Token checkpoint T3**: Execute "Capture T3" section from token-tracking.md
 
 #### Step 2.5: Process Artifacts
 
@@ -1536,6 +1536,8 @@ The observer will return a final diagnostic summary.
 
 ### Step 3.1: Update Session Status
 
+→ **Token tracking**: Execute "Session Complete" section from token-tracking.md (updates `metrics.tokens.total`)
+
 **YOU MUST use Edit tool NOW** to update session file:
 ```yaml
 status: "closed"
@@ -1559,8 +1561,6 @@ timing:
   }
 }
 ```
-
-→ **Token tracking**: Execute "Session Complete" section from token-tracking.md
 
 ### Step 3.2: Read Session for Summary
 

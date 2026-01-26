@@ -399,7 +399,8 @@ Pass these values to the skill execution:
    - REPEAT until: next_action == "conclude" AND round >= min_rounds
 
 2. PHASE 3 of skill: Completion
-   - Step 3.1: Update session status to "closed"
+   - Step 3.0: Final Diagnostic Report (IF --diagnostic)
+   - Step 3.1: Update session status (token tracking summary, then close session)
    - Step 3.2: Read session for summary
    - Step 3.4-3.5: Generate output file (based on output_type)
 

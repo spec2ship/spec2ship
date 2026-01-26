@@ -213,7 +213,7 @@ If `by_round` doesn't exist yet, create it as an empty array first.
 
 ---
 
-## Session Complete (Step 3.0)
+## Session Complete (Step 3.1)
 
 ```bash
 eval $(bash "<TOKEN_SCRIPT>" summary "{session-id}")

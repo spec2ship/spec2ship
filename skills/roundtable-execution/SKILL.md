@@ -736,8 +736,6 @@ metrics:
 
 ### Step 2.7: Display Round Recap
 
-→ **Token checkpoint T3**: Execute "Capture T3" from token-tracking.md
-
 → **Token recap**: Execute "Round Recap" from token-tracking.md to get token values
 
 Display the round recap with integrated token section:
@@ -864,11 +862,13 @@ After each major step (2.2, 2.3, 2.4, 2.5), verify correct execution using the c
 
 ## PHASE 3: Completion
 
+### Step 3.0: Final Diagnostic Report (IF --diagnostic)
+
 **IF diagnostic_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/diagnostic.md` → Execute "End-Session Diagnostic Report" section
 
-### Step 3.0: Token tracking summary
+### Step 3.1: Update Session Status {#session-close}
 
-Execute "Session Complete" section from token-tracking.md:
+→ **Token tracking**: Execute "Session Complete" section from token-tracking.md:
 
 ```bash
 eval $(bash "<TOKEN_SCRIPT>" summary "{session-id}")
@@ -885,7 +885,7 @@ metrics:
     by_round: [...]            # keep existing
 ```
 
-### Step 3.1: Update Session Status {#session-close}
+**YOU MUST use Edit tool NOW** to update session file:
 
 ```yaml
 status: "closed"
@@ -944,7 +944,7 @@ The output-generation skill handles:
 | `references/verbose-dump-format.md` | Verbose dump file naming and content |
 | `references/definition-of-done.md` | Step validation checklist |
 | `references/diagnostic.md` | Diagnostic mode (hooks at Step 2.4 and PHASE 3) |
-| `references/token-tracking.md` | Token tracking (setup at Step 2.0, captures at 2.2-2.4, recap at 2.7, summary at PHASE 3) |
+| `references/token-tracking.md` | Token tracking (setup at Step 2.0, captures at 2.2-2.4, recap at 2.7, summary at Step 3.1) |
 
 ---
 
