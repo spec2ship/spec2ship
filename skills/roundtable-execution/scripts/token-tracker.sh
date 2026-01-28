@@ -2,7 +2,7 @@
 # token-tracker.sh - Token tracking for roundtable sessions
 # Works on: Linux, Windows (Git Bash), macOS
 #
-# Version: 5.2.0 - Simplified display format, add REMAINING_K/REMAINING_PCT
+# Version: 5.3.0 - Fix CURRENT_PCT alias, add AVG_ACTUAL_K/SAMPLE_COUNT to recap
 #
 # Usage:
 #   token-tracker.sh init <session-id> <round-number> [workflow-type] [strategy] [phase] [participants-count]
@@ -14,7 +14,7 @@
 # Output (eval-able):
 #   init:    CURRENT_K, NEXT_ESTIMATE_K, SHOULD_STOP, SHOULD_WARN, PREV_ROUND_ACTUAL, PREV_ROUND_SOURCE
 #   capture: (appends to cache file)
-#   recap:   ROUND_TOKENS_ESTIMATE, QUESTION_K, PARTICIPANTS_K, SYNTHESIS_K, ROUND_DELTA_K
+#   recap:   ROUND_TOKENS_ESTIMATE, QUESTION_K, PARTICIPANTS_K, SYNTHESIS_K, ROUND_DELTA_K, AVG_ACTUAL_K, SAMPLE_COUNT
 #   summary: SESSION_CONSUMED_K, ROUNDS_TOTAL_K, ORCHESTRATOR_ESTIMATED_K, FINAL_TOTAL_K
 #
 # Token tracking model (TECH-009 - Progressive Precision):
@@ -539,6 +539,7 @@ EOF
         echo "ROUND_END_COST=${ROUND_END_COST}"
         echo "PARTICIPANT_COUNT=${PARTICIPANT_COUNT}"
         echo "CONTEXT_PCT=${CONTEXT_PCT}"
+        echo "CURRENT_PCT=${CONTEXT_PCT}"  # Alias for display format compatibility
         REMAINING_PCT=$((100 - CONTEXT_PCT))
         REMAINING_K=$(( (CONTEXT_LIMIT - T3_TOKENS) / 1000 ))
         echo "REMAINING_PCT=${REMAINING_PCT}"
@@ -550,6 +551,24 @@ EOF
         echo "ROUNDS_ACCUM_K=${ROUNDS_ACCUM_K}"
         echo "CONTEXT_SOURCE=${contextSource:-jsonl}"
         echo "STATUSLINE_ACTIVE=${statuslineActive:-false}"
+
+        # TECH-009: Calculate AVG_ACTUAL_K and SAMPLE_COUNT from session file
+        # These are needed for "Avg per round" display in recap
+        ROUND_NUMBER=${round:-1}
+        AVG_ACTUAL=0
+        SAMPLE_COUNT=0
+        SESSION_FILE=".s2s/sessions/${SESSION_ID}.yaml"
+        if [[ -f "$SESSION_FILE" && $ROUND_NUMBER -gt 1 ]]; then
+            # Extract actuals where source=measured (not interrupted/noisy)
+            ACTUALS=$(grep -B2 "source: \"measured\"" "$SESSION_FILE" 2>/dev/null | grep "actual:" | awk '{print $2}' | grep -v "null")
+            if [[ -n "$ACTUALS" ]]; then
+                SAMPLE_COUNT=$(echo "$ACTUALS" | wc -l | tr -d ' ')
+                AVG_ACTUAL=$(echo "$ACTUALS" | awk '{sum+=$1; count++} END {if(count>0) print int(sum/count); else print 0}')
+            fi
+        fi
+        AVG_ACTUAL_K=$(awk "BEGIN {printf \"%.1f\", $AVG_ACTUAL / 1000}")
+        echo "AVG_ACTUAL_K=${AVG_ACTUAL_K}"
+        echo "SAMPLE_COUNT=${SAMPLE_COUNT}"
         ;;
 
     summary)

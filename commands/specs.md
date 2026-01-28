@@ -779,7 +779,7 @@ agent_state:
     last_action: "question"
 ```
 
-→ **Token checkpoint T1**: Execute "Capture T1" section from token-tracking.md
+→ **Token checkpoint T1** (MANDATORY): `bash "<TOKEN_SCRIPT>" capture "{session-id}" T1`
 
 #### Step 2.3: Participant Responses
 
@@ -1008,7 +1008,7 @@ agent_state:
       last_round: {round_number + 1}
 ```
 
-→ **Token checkpoint T2**: Execute "Capture T2" section from token-tracking.md
+→ **Token checkpoint T2** (MANDATORY): `bash "<TOKEN_SCRIPT>" capture "{session-id}" T2`
 
 #### Step 2.4: Facilitator Synthesis
 
@@ -1297,7 +1297,7 @@ agent_state:
     last_action: "synthesis"
 ```
 
-→ **Token checkpoint T3**: Execute "Capture T3" section from token-tracking.md
+→ **Token checkpoint T3** (MANDATORY): `bash "<TOKEN_SCRIPT>" capture "{session-id}" T3`
 
 #### Step 2.5: Process Artifacts
 
@@ -1610,7 +1610,11 @@ Show synthesis, new artifacts, resolved conflicts, agenda status.
 #### Step 2.8: Handle Interactive Mode
 
 **IF interactive_flag == true**: Ask user to continue, skip, or exit.
+
 **IF interactive_flag == false**: Proceed automatically.
+> **"Proceed automatically" means**: Do NOT stop, do NOT ask confirmation, do NOT display status messages asking if user wants to continue. After Step 2.7 recap, immediately proceed to Step 2.1 for next round.
+>
+> **The ONLY stop conditions are**: `SHOULD_STOP == true` (context), `round_number >= max_rounds`, `next == "escalate"`, or `interactive_flag == true`.
 
 #### Step 2.9: Evaluate Next Action
 

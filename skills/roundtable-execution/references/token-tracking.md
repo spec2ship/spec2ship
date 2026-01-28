@@ -82,12 +82,14 @@ eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed} "{workflow_t
 | `SHOULD_WARN=true` | **WARNING** - display warning but continue |
 | Both false | **OK** - proceed normally |
 
-**TECH-009: Update previous round's actual** (if PREV_ROUND_ACTUAL is set):
+**TECH-009: Update previous round's actual** (MANDATORY if PREV_ROUND_ACTUAL is set):
 
 The script outputs `PREV_ROUND_ACTUAL` and `PREV_ROUND_SOURCE` when it can calculate
 the precise token consumption for the previous round.
 
-**YOU MUST** use Edit tool to update `.s2s/sessions/{session-id}.yaml`:
+> **WARNING**: Skipping this step causes `actual: null` in session file and breaks avg calculations!
+
+**YOU MUST IMMEDIATELY** use Edit tool to update `.s2s/sessions/{session-id}.yaml`:
 
 Find the entry in `metrics.tokens.by_round` where `round: {rounds_completed - 1}` and update:
 
@@ -100,6 +102,8 @@ metrics:
         actual: {PREV_ROUND_ACTUAL}      # ← update from null
         source: "{PREV_ROUND_SOURCE}"    # ← update from "estimated"
 ```
+
+**Verify** the edit was applied before proceeding to the next step.
 
 **On STOP** - display:
 ```
@@ -133,7 +137,9 @@ Session saved at round {round_number}. Progress preserved.
 
 ---
 
-## Capture T1 (after facilitator question - Step 2.2)
+## Capture T1 (after facilitator question - Step 2.2) - MANDATORY
+
+> **Do not skip!** Required for breakdown display (Facilitator question, Participants, Synthesis).
 
 ```bash
 bash "<TOKEN_SCRIPT>" capture "{session-id}" T1
@@ -141,7 +147,9 @@ bash "<TOKEN_SCRIPT>" capture "{session-id}" T1
 
 ---
 
-## Capture T2 (after participants - Step 2.3)
+## Capture T2 (after participants - Step 2.3) - MANDATORY
+
+> **Do not skip!** Required for breakdown display.
 
 ```bash
 bash "<TOKEN_SCRIPT>" capture "{session-id}" T2
@@ -149,7 +157,9 @@ bash "<TOKEN_SCRIPT>" capture "{session-id}" T2
 
 ---
 
-## Capture T3 (after synthesis - Step 2.4)
+## Capture T3 (after synthesis - Step 2.4) - MANDATORY
+
+> **Do not skip!** Required for breakdown display and round estimate.
 
 ```bash
 bash "<TOKEN_SCRIPT>" capture "{session-id}" T3

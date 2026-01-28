@@ -231,6 +231,38 @@ session_folder = ".s2s/sessions/{session-id}/"
 
 **IMPORTANT**: On resume, `round_number` MUST be initialized from the session file's `metrics.rounds_completed` value, NOT hardcoded to 0.
 
+### Automatic Continuation Rules (MANDATORY)
+
+The round loop **MUST continue WITHOUT user interaction** until a stop condition is met.
+
+**STOP CONDITIONS (user interaction required):**
+
+| Condition | When | Action |
+|-----------|------|--------|
+| Context capacity | `SHOULD_STOP == true` (Step 2.0d) | Pause session, guide to /compact |
+| Max rounds | `round_number >= max_rounds` | Force conclude (Step 2.11) |
+| Escalation | `next == "escalate"` from facilitator | Ask user decision (Step 2.10) |
+| Interactive mode | `interactive_flag == true` | Ask continue/skip/exit (Step 2.8) |
+
+**DO NOT STOP for any of these reasons:**
+- min_rounds reached but agenda is incomplete → **continue**
+- A topic changed from "open" to "partial" → **continue**
+- An open question was resolved → **continue**
+- Progress made but more work remains → **continue**
+- After displaying round recap → **immediately proceed to Step 2.1**
+
+**After Step 2.7 (Round Recap), IF all these are true:**
+- `interactive_flag == false`
+- `SHOULD_STOP == false`
+- `next == "continue"`
+
+**→ IMMEDIATELY proceed to Step 2.1 without any status message or user confirmation.**
+
+The roundtable concludes ONLY when:
+- Facilitator returns `next: "conclude"` (all conclude criteria met)
+- `round_number >= max_rounds` (forced conclude)
+- User decides to conclude after escalation
+
 ---
 
 ### Step 2.0: Context Capacity Check {#context-check}
@@ -255,11 +287,14 @@ The script outputs these variables (store them for later steps):
 - `SHOULD_STOP`, `SHOULD_WARN` - capacity decision flags
 - `PREV_ROUND_ACTUAL`, `PREV_ROUND_SOURCE` - previous round measurement (if available)
 
-#### Step 2.0c: Update previous round actual (TECH-009)
+#### Step 2.0c: Update previous round actual (TECH-009) - MANDATORY
 
 **IF** `round_number > 0` **AND** `PREV_ROUND_ACTUAL` is set (not empty):
 
-**YOU MUST** use Edit tool to update `.s2s/sessions/{session-id}.yaml`.
+**YOU MUST IMMEDIATELY** use Edit tool to update `.s2s/sessions/{session-id}.yaml`.
+
+> **WARNING**: Skipping this step causes `actual: null` in session file and breaks avg calculations!
+
 Find the entry in `metrics.tokens.by_round` where `round: {round_number - 1}` and update:
 
 ```yaml
@@ -272,7 +307,7 @@ metrics:
         source: "{PREV_ROUND_SOURCE}"    # ← update from "estimated"
 ```
 
-**Definition of Done**: The previous round's entry shows `actual: {value}` and `source: "measured"` (or "interrupted"/"noisy").
+**Definition of Done**: The previous round's entry shows `actual: {value}` and `source: "measured"` (or "interrupted"/"noisy"). Verify the edit was applied before proceeding.
 
 #### Step 2.0d: Check capacity (TECH-009)
 
@@ -468,7 +503,10 @@ participant_context:
 
 **IF --verbose**: Write dump file `rounds/{NNN}-01-facilitator-question.yaml` (see `references/verbose-dump-format.md` for naming and content format)
 
-→ **Token checkpoint T1**: Execute "Capture T1" section from token-tracking.md
+→ **Token checkpoint T1** (MANDATORY - do not skip):
+```bash
+bash "<TOKEN_SCRIPT>" capture "{session-id}" T1
+```
 
 ### Step 2.3: Participant Responses (PARALLEL)
 
@@ -548,7 +586,10 @@ references:
 
 **IF --verbose**: Write dump files `rounds/{NNN}-02-{participant-id}.yaml` for each
 
-→ **Token checkpoint T2**: Execute "Capture T2" section from token-tracking.md
+→ **Token checkpoint T2** (MANDATORY - do not skip):
+```bash
+bash "<TOKEN_SCRIPT>" capture "{session-id}" T2
+```
 
 ### Step 2.4: Facilitator Synthesis
 
@@ -650,7 +691,10 @@ escalation_reason: null
 
 **IF --verbose**: Write dump file `rounds/{NNN}-03-facilitator-synthesis.yaml`
 
-→ **Token checkpoint T3**: Execute "Capture T3" section from token-tracking.md
+→ **Token checkpoint T3** (MANDATORY - do not skip):
+```bash
+bash "<TOKEN_SCRIPT>" capture "{session-id}" T3
+```
 
 **IF diagnostic_flag**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/diagnostic.md` → Execute "Per-Round Diagnostic" section
 
