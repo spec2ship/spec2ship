@@ -1384,38 +1384,9 @@ metrics:
 
 #### Step 2.6b: Validate Round Output
 
-**Non-blocking validation** - display warnings but continue execution.
+**Read** `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/round-validation.md` and execute the checks.
 
-1. **Verify session file structure** (Read session file):
-   - Check `rounds[]` contains entry for round N
-   - Check `rounds[N]` has required fields: `timestamp`, `disney_phase`, `synthesis_summary`, `artifacts_created`
-   - Check all IDs in `artifacts_created` exist in `artifacts.{type}` maps
-   - Check `phases[current_phase].status` is correct
-
-2. **Verify embedded artifacts**:
-   - For each ID in `proposed_artifacts`: verify key exists in `artifacts.{type}`
-   - Verify artifact has required fields: `state`, `title`, `created_round`
-   - Verify `created_round` matches current round N
-
-3. **Verify metrics consistency**:
-   - `metrics.rounds_completed` equals length of `rounds[]`
-   - `metrics.artifacts.total` equals sum of all artifact maps
-   - Phase round counts match
-
-4. **Verify verbose dumps** (if --verbose):
-   - Check `rounds/{NNN}-*.yaml` files exist for this round
-   - Expected: `{NNN}-01-facilitator-question.yaml`, `{NNN}-02-{participant}.yaml` (×4), `{NNN}-03-facilitator-synthesis.yaml`
-
-5. **If validation fails**:
-   ```
-   ⚠️ VALIDATION WARNING
-   Round {N} issues found:
-   - {list of issues}
-
-   Continuing execution...
-   ```
-   - Update session file `validation.warnings[]` with issue details
-   - Continue to next step (non-blocking)
+Non-blocking - display warnings but continue execution.
 
 #### Step 2.6c: Diagnostic Observation (IF --diagnostic)
 

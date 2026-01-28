@@ -778,6 +778,12 @@ metrics:
   consensus_rate: {consensus_reached rounds / total rounds}
 ```
 
+### Step 2.6b: Validate Round Output
+
+**Read** `references/round-validation.md` and execute the checks.
+
+Non-blocking - display warnings but continue execution.
+
 ### Step 2.7: Display Round Recap
 
 → **Token recap**: Execute "Round Recap" from token-tracking.md to get token values
@@ -989,6 +995,7 @@ The output-generation skill handles:
 | `references/definition-of-done.md` | Step validation checklist |
 | `references/diagnostic.md` | Diagnostic mode (hooks at Step 2.4 and PHASE 3) |
 | `references/token-tracking.md` | Token tracking (setup at Step 2.0, captures at 2.2-2.4, recap at 2.7, summary at Step 3.1) |
+| `references/round-validation.md` | Per-round validation checks (Step 2.6b) |
 
 ---
 

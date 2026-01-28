@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-01-26 (TECH-009 round token tracking)
+**Updated**: 2026-01-28 (TECH-002 Phase 6b complete, automatic continuation rules)
 **Format**: Work items for active development
 
 ---
@@ -834,8 +834,8 @@ skills/
 | 1 | Output extraction | ✅ | Phase 0 |
 | 5 | Skill cleanup | ✅ | Phase 0 |
 | 6 | Critical guidelines propagation | ✅ | - |
-| 2 | Validation consolidation | **NEXT** | Phase 6 |
-| 3 | Phase 2 uniformization | planned | Phase 2 |
+| 2 | Validation consolidation | ✅ | Phase 6 |
+| 3 | Phase 2 uniformization | **NEXT** | Phase 2 |
 | 7 | Strategy skill consolidation | planned | Phase 3 |
 | 4 | roundtable.md as master | planned | Phase 3, 7 |
 | 8 | Thin launcher conversion | planned | Phase 4 |
@@ -868,7 +868,7 @@ Applied token tracking always-active, state.json, and checkpoint reminders to al
 - [x] Add checkpoint reminders (T1, T2, T3) to all 4 commands
 - [x] Add state.json fast-path read in auto-detect (all 4 commands) - hybrid approach per TECH-007
 
-**Phase 6b: Token tracking edge cases** ✅ (completed 2026-01-25)
+**Phase 6b: Token tracking edge cases** ✅ (completed 2026-01-28)
 
 Handle /clear, /compact, and context capacity limits.
 
@@ -881,14 +881,28 @@ Handle /clear, /compact, and context capacity limits.
 - [x] Update `commands/init.md` to copy hook during initialization
 - [x] Add Step 2.0 Context Capacity Check to SKILL.md (threshold 95%)
 - [x] Update token-tracking.md with capacity check documentation
-- [ ] Propagate Step 2.0 to specs.md, design.md, brainstorm.md (defer to Phase 3)
+- [x] Propagate Step 2.0 to specs.md, design.md, brainstorm.md (2026-01-28)
 - [x] Test hook with real /compact event (hook fires, state.json updated)
+- [x] Fix token tracking display issues (script v5.3.0, 2026-01-28):
+  - Add CURRENT_PCT alias (was CONTEXT_PCT mismatch)
+  - Add AVG_ACTUAL_K and SAMPLE_COUNT to recap output
+  - Make T1/T2/T3 captures MANDATORY with inline bash commands
+  - Strengthen Step 2.0c with WARNING for actual update
+- [x] Add automatic continuation rules to SKILL.md and commands (2026-01-28):
+  - Explicit STOP CONDITIONS table (context, max_rounds, escalate, interactive)
+  - DO NOT STOP list for common cases (min_rounds reached, topic partial, etc.)
+  - Prevents LLM from stopping mid-session to ask confirmation
 
-**Phase 2: Validation consolidation** (~120 lines simplified)
-- [ ] Verify session-qa can perform Step 2.6b checks
-- [ ] Modify commands to call `Task(session-qa)` for validation
-- [ ] Remove inline validation from commands
+**Phase 2: Validation consolidation** ✅ (~88 lines simplified, 2026-01-28)
+
+Consolidated per-round validation into shared reference file.
+
+- [x] Create `references/round-validation.md` with standardized checks
+- [x] Update specs.md, design.md, brainstorm.md to reference shared file
+- [x] Add Step 2.6b to SKILL.md
 - [ ] Test: same warnings produced
+
+**Note**: Did NOT use session-qa agent (too heavy for per-round). Created lightweight reference instead.
 
 **Phase 3: Phase 2 uniformization**
 - [ ] Map ALL differences between commands in Phase 2 execution
