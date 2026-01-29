@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-01-28 (TECH-002 Phase 6b complete, automatic continuation rules)
+**Updated**: 2026-01-29 (FEAT-004, FEAT-005 from Vektra feedback)
 **Format**: Work items for active development
 
 ---
@@ -684,6 +684,244 @@ Fix: Replace placeholder with explicit template matching verbose-dump-format.md.
 - [ ] CTX-002 and CTX-003 checks pass on new sessions
 
 **Related**: BUG-003, BUG-004, TEST-003, CTX-*
+
+---
+
+### BUG-007: Internal ADR references leak into user project templates
+
+**Status**: planned | **Created**: 2026-01-28 | **Priority**: low
+
+**Context**: The workspace and project templates contain references to internal Spec2Ship ADRs (ADR-0009, ADR-0010). When a user runs `/s2s:init`, these references end up in the generated files. Users have no access to these ADRs and the references are meaningless outside of s2s development.
+
+**Note**: `ADR-001` in workspace.yaml line 31 is NOT a leak - it's a generic example showing the user how cross_cutting entries will look for their own project ADRs.
+
+**Affected files**:
+- `templates/workspace/workspace.yaml` (line 75, `context_note` block) - ADR-0009
+- `templates/workspace/CONTEXT.md` (line 17) - ADR-0009
+- `templates/project/CONTEXT.md` (line 17) - ADR-0009
+- `templates/project/config.yaml` (line 35, consensus comment) - ADR-0010
+
+**Tasks**:
+- [ ] Remove ADR-0009 reference from `templates/workspace/workspace.yaml` context_note
+- [ ] Remove ADR-0009 reference from `templates/workspace/CONTEXT.md`
+- [ ] Remove ADR-0009 reference from `templates/project/CONTEXT.md`
+- [ ] Remove ADR-0010 reference from `templates/project/config.yaml` consensus comment
+
+**Acceptance criteria**:
+- [ ] Generated user files contain no references to internal s2s ADRs (ADR-0009, ADR-0010)
+- [ ] context_note in workspace.yaml retains its useful operational lines (71-74)
+- [ ] config.yaml consensus section remains functional without the ADR comment
+
+---
+
+### BUG-008: init does not configure .gitignore for s2s artifacts
+
+**Status**: planned | **Created**: 2026-01-28 | **Priority**: medium
+
+**Context**: `/s2s:init` creates the `.s2s/` directory with config, context, and session files, but never touches `.gitignore`. This means session files, `state.json`, verbose dumps, and other transient artifacts end up tracked (or shown as untracked noise) in git. The init command should append s2s-specific rules to `.gitignore`, whether git was already initialized or not.
+
+**Proposed .gitignore block**:
+```gitignore
+# Spec2Ship - local state and sessions
+.s2s/*
+
+# Track project artifacts (specs, decisions, backlog, architecture)
+!.s2s/BACKLOG.md
+!.s2s/CONTEXT.md
+!.s2s/README.md
+!.s2s/config.yaml
+!.s2s/workspace.yaml
+!.s2s/requirements.md
+!.s2s/architecture.md
+!.s2s/ideas.md
+!.s2s/decisions/
+!.s2s/decisions/**
+!.s2s/plans/
+!.s2s/plans/**
+# sessions/ intentionally NOT tracked - temporary working artifacts
+```
+
+**Tasks**:
+- [ ] Add gitignore update step to `commands/init.md`
+- [ ] If `.gitignore` exists, append the block (with a blank line separator); if not, create it
+- [ ] Make the step idempotent (skip if s2s block already present)
+- [ ] Handle `--workspace` mode (workspace.yaml is only relevant there)
+
+**Acceptance criteria**:
+- [ ] After `init`, `.gitignore` contains the s2s block
+- [ ] Running `init` twice does not duplicate the block
+- [ ] `git status` shows no s2s transient files (state.json, sessions/*, verbose dumps)
+- [ ] Project artifacts (BACKLOG.md, CONTEXT.md, plans/, decisions/) remain trackable
+
+---
+
+### FEAT-004: Enhanced hybrid workspace support
+
+**Status**: planned | **Created**: 2026-01-29 | **Priority**: medium | **Origin**: Vektra project feedback
+
+**Context**: Workspace mode supports hybrid monorepo/multi-repo structures via `has_own_git` field, but lacks metadata for real-world hybrid scenarios: external repos referenced by GitHub path instead of relative path, component development phases, tech stack info, and lifecycle status tracking.
+
+**Use case** (Vektra): Modular RAG platform with:
+- Monorepo components: vektra-core, vektra-ingest, etc. (Python, share types)
+- External repos: vektra-moodle (PHP plugin), vektra-sdk-py, vektra-sdk-js (published packages)
+
+**Current limitations**:
+1. External repos require relative paths (`../vektra-moodle`) - only works if cloned as siblings
+2. No formal way to track component existence (planned vs created)
+3. No phase metadata for staged development
+4. No language/stack info for agent context
+5. Component notes require YAML comments
+
+**Proposed schema extensions** (additive, backward-compatible):
+
+```yaml
+components:
+  - id: "vektra-moodle"
+    name: "Moodle LMS Adapter"           # NEW: human-readable name
+    # Existing fields
+    path: "../vektra-moodle"
+    type: "service"
+    has_own_git: true
+    depends_on: ["vektra-learn"]
+    # New optional fields
+    repo: "vektralabs/vektra-moodle"     # NEW: GitHub reference (org/repo)
+    language: "php"                       # NEW: primary language
+    phase: 2                              # NEW: development phase (integer)
+    status: "planned"                     # NEW: planned | in_progress | stable
+    notes: "PHP plugin for Moodle LMS"   # NEW: free-form description
+```
+
+**Validation behavior**:
+- `repo`: If provided, `/s2s:init --workspace` can warn when not cloned
+- `status: planned` + missing directory: no warning (expected)
+- `status: in_progress|stable` + missing directory: warning
+- `language`: Informational, used for agent context selection
+
+**Impact on roundtable**:
+- Facilitator can filter/group by phase
+- Participants understand tech stack per component
+- Strategy can prioritize by phase
+
+**Tasks**:
+- [ ] Extend workspace.yaml schema with new optional fields
+- [ ] Update `templates/workspace/workspace.yaml` with documented examples
+- [ ] Update `/s2s:init --workspace` to validate component status vs existence
+- [ ] Update roundtable facilitator to expose component metadata in context
+- [ ] Document in s2s-guide skill
+
+**Acceptance criteria**:
+- [ ] New fields are optional (existing workspaces unchanged)
+- [ ] `repo` field parsed and validated (format: `org/repo`)
+- [ ] `/s2s:init` warns on status/path inconsistencies
+- [ ] Roundtable sessions receive component metadata
+- [ ] s2s-guide documents workspace schema extensions
+
+**Related**: FEAT-001 (decision propagation), FEAT-002 (dependency graph)
+
+---
+
+### FEAT-005: Setup workflow structured output
+
+**Status**: planned | **Created**: 2026-01-29 | **Priority**: medium | **Origin**: Vektra project feedback
+
+**Context**: `/s2s:roundtable --workflow setup` produces session artifacts (requirements, decisions) but no formal output files. Unlike `specs` (SRS) and `design` (arc42), setup workflow outputs remain in session files requiring manual extraction.
+
+**Problem**: After a setup roundtable, users must manually create:
+- `GOVERNANCE.md` (from governance requirements)
+- `ROADMAP.md` (from roadmap requirements)
+- `CONTRIBUTING.md` updates (from contribution process reqs)
+- `README.md` updates (from positioning reqs)
+- `ADR-*.md` files (from architectural decisions)
+
+**Proposed solution**: Output mapping by requirement category.
+
+```yaml
+# In output-generation skill or setup workflow config
+output_mapping:
+  setup:
+    categories:
+      governance:
+        target: "GOVERNANCE.md"
+        topics: ["community-governance", "license", "contribution"]
+      roadmap:
+        target: "ROADMAP.md"
+        topics: ["project-roadmap", "milestones", "phases"]
+      documentation:
+        target: "docs/README.md"
+        topics: ["documentation-strategy", "diataxis"]
+      positioning:
+        target: "README.md"
+        sections: ["overview", "audience", "differentiation"]
+      architecture:
+        target: ".s2s/decisions/ADR-{NNN}-{slug}.md"
+        topics: ["architecture-decision", "technical-decision"]
+```
+
+**Output location**: Project root (not `.s2s/`). These are standard OSS project files required by GitHub and similar platforms. The setup workflow defines the one-time project structure for a proper OSS project.
+
+**New vs existing project handling**:
+
+| Scenario | Behavior |
+|----------|----------|
+| New project (file missing) | Generate file from template + roundtable decisions |
+| Existing project (file exists) | Analyze current content, suggest merge/update strategy |
+| Structure mismatch | Warn and propose migration (e.g., flat → `docs/` hierarchy) |
+
+For existing projects, output generation should:
+1. Detect existing files (GOVERNANCE.md, CONTRIBUTING.md, etc.)
+2. Compare roundtable decisions against current content
+3. Present diff or integration suggestions (not blind overwrite)
+4. Allow user to accept, modify, or skip each file
+
+**Classification approach**:
+1. Primary: Match requirement `topic_id` to category topics
+2. Fallback: Pattern match on requirement title/description
+3. Unclassified: Remain in session summary (manual review)
+
+**Output templates** (new directory):
+```
+templates/setup/
+├── GOVERNANCE.md.template
+├── ROADMAP.md.template
+├── CONTRIBUTING.md.template
+└── README-section.md.template
+```
+
+**Design decision needed**: First-class workflow vs enhanced output generation
+
+| Approach | Pros | Cons |
+|----------|------|------|
+| First-class `workflow_type: setup` | Clear semantics, dedicated participants, full parity with specs/design | More code, another workflow to maintain |
+| Enhanced output-generation | Lighter, reuses generic roundtable | Less discoverable, classification heuristics needed |
+
+**Recommended**: Start with enhanced output-generation (detects setup sessions, prompts for file generation). Promote to first-class workflow if usage pattern stabilizes.
+
+**Participant considerations**:
+- Current setup mix: product-manager, documentation-specialist, oss-community-manager
+- May need: architect (for ADR generation), tech-lead (for roadmap feasibility)
+- Config in roundtable-strategies or dedicated setup.md reference
+
+**Tasks**:
+- [ ] Define setup output categories in output-generation skill
+- [ ] Create templates/setup/ with standard OSS templates
+- [ ] Add setup detection to `/s2s:output-generation` (or auto-trigger on close)
+- [ ] Implement requirement classification by topic_id
+- [ ] Generate GOVERNANCE.md from governance requirements
+- [ ] Generate ROADMAP.md from roadmap requirements
+- [ ] Generate/update ADRs from architecture requirements
+- [ ] Implement existing file detection and diff/merge suggestions
+- [ ] Implement structure analysis (detect current layout, suggest migrations)
+- [ ] Add `--workflow setup` documentation to s2s-guide
+
+**Acceptance criteria**:
+- [ ] Setup roundtable session produces classified requirements
+- [ ] `/s2s:output-generation` (or session close) offers file generation
+- [ ] GOVERNANCE.md generated with license, governance model, contribution process
+- [ ] ROADMAP.md generated with phases and milestones
+- [ ] ADRs generated for architecture decisions
+- [ ] Generated files reference source session and requirement IDs
+
+**Related**: TECH-002 Phase 1 (output-generation skill), output-generation/SKILL.md
 
 ---
 
