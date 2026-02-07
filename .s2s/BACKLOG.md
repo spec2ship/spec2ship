@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-01-29 (FEAT-004, FEAT-005 from Vektra feedback)
+**Updated**: 2026-02-03 (FEAT-007 doc completeness - needs review)
 **Format**: Work items for active development
 
 ---
@@ -428,6 +428,49 @@ fi
 
 ---
 
+### TECH-010: Evaluate compact option in mid-round user prompts
+
+**Status**: planned | **Created**: 2026-02-02 | **Priority**: low
+
+**Context**: During a design session at round 3 completion, the system detected:
+- `min_rounds` reached (3/3)
+- Context at 72% (56k remaining)
+- Session had 4 architecture decisions, 3 component specs, 2 open questions
+
+The system presented 4 options to the user:
+1. Continue (1-2 more rounds)
+2. Conclude now
+3. Quick round then conclude
+4. Type something
+
+**Observation**: No "compact" option was offered. At 72% context usage, this is a first warning level (not critical), so the compact mechanism may not have triggered. However, offering compact as a proactive option could help users manage context before hitting critical thresholds.
+
+**Questions to investigate**:
+1. Should "Compact and continue" be a standard option in mid-round prompts?
+2. At what context % threshold should compact be suggested (70%? 80%)?
+3. Should compact be automatic at certain thresholds vs user-initiated?
+4. What happens to session state after compact? (Round continuity, artifact retention)
+
+**Other commands to check**: specs.md, brainstorm.md, roundtable.md may have similar mid-round prompts that don't offer compact option.
+
+**Tasks**:
+- [ ] Review mid-round prompt logic in design.md
+- [ ] Review mid-round prompt logic in specs.md
+- [ ] Review mid-round prompt logic in brainstorm.md
+- [ ] Review mid-round prompt logic in roundtable.md (SKILL.md)
+- [ ] Determine if compact option should be added to standard options
+- [ ] Define context threshold for suggesting compact (if applicable)
+- [ ] Document decision (ADR if significant change)
+
+**Acceptance criteria**:
+- [ ] Mid-round options behavior documented for all commands
+- [ ] Decision made: add compact option or document why not needed
+- [ ] If adding: consistent implementation across all commands
+
+**Related**: TECH-002 (roundtable unification), Phase 6b (context capacity check)
+
+---
+
 ### DOC-001: Document jq as recommended dependency
 
 **Status**: planned | **Created**: 2026-01-25 | **Priority**: low
@@ -537,39 +580,67 @@ Error: No transcript found for agent ID: aaf0f99
 
 ### BUG-004: Verbose dumps not written incrementally during round
 
-**Status**: planned | **Created**: 2026-01-22 | **Priority**: medium
+**Status**: planned | **Created**: 2026-01-22 | **Priority**: high
 
 **Context**: Verbose dump files (`rounds/{NNN}-01-*.yaml`, `rounds/{NNN}-02-*.yaml`, `rounds/{NNN}-03-*.yaml`) are not written immediately after each phase. The command waits until the round completes before writing to disk.
 
 **Root cause**: Instructions for verbose dump writes do NOT include "NOW" or "IMMEDIATELY":
-- specs.md:619 - "IF verbose_flag == true: Write dump..." (no NOW)
-- specs.md:871 - "IF verbose_flag == true: Write dump for each..." (no NOW)
-- specs.md:1124 - "IF verbose_flag == true: Write dump..." (no NOW)
+- specs.md:703 - "IF verbose_flag == true: Write dump..." (no NOW)
+- specs.md:957 - "IF verbose_flag == true: Write dump for each..." (no NOW)
+- specs.md:1212 - "IF verbose_flag == true: Write dump..." (no NOW)
 
 Compare with session file writes which use "YOU MUST use Edit tool **NOW**".
 
+**Critical finding (2026-01-30)**: `--interactive` mode causes **complete dump loss**, not just delayed writes.
+
+When `--interactive` is true:
+1. Round executes (Steps 2.1-2.7), dump writes are "planned" but not executed
+2. Step 2.8 calls `AskUserQuestion` - this **interrupts the LLM turn**
+3. User responds, LLM resumes from new context
+4. Planned writes from previous turn are **lost**
+5. Result: `rounds/` directory exists but is empty after N completed rounds
+
+**Evidence** (Vektra project, session `20260129-specs-vektra`):
+- `config-snapshot.yaml` shows `verbose: true`, `interactive: true`
+- `rounds/` directory created (mkdir worked in Phase 1)
+- 7 rounds completed (`agent_state.*.last_round: 7`)
+- `rounds/` directory is **empty** - zero dump files
+
+Without `--interactive`, all rounds execute in one LLM turn, so deferred writes may still occur.
+
 **Impact**:
+- **CRITICAL**: With `--interactive`, verbose dumps are **never written** (not just delayed)
 - If execution interrupted mid-round, verbose dumps for completed phases may be lost
 - No incremental visibility into round progress
 - Resume cannot recover partial round data from disk
+- EXEC-002 validation fails for interactive sessions with verbose flag
 
 **Affected files**:
-- `commands/specs.md` (~lines 619, 871, 1124)
-- `commands/design.md` (equivalent lines)
-- `commands/brainstorm.md` (equivalent lines)
-- `skills/roundtable-execution/SKILL.md` (lines 342, 420, 520)
+- `commands/specs.md` (lines 703, 957, 1212)
+- `commands/design.md` (lines 595, 845, 1094)
+- `commands/brainstorm.md` (lines 588, 841, 1082)
+- `skills/roundtable-execution/SKILL.md` (lines 504, 587, 692)
 
 **Fix**: Add "YOU MUST use Write tool NOW" to verbose dump instructions for each phase.
 
 **Tasks**:
-- [ ] Update specs.md verbose write instructions with "NOW"
-- [ ] Update design.md verbose write instructions with "NOW"
-- [ ] Update brainstorm.md verbose write instructions with "NOW"
-- [ ] Update roundtable-execution/SKILL.md verbose write instructions with "NOW"
+- [ ] Update specs.md verbose write instructions with "YOU MUST use Write tool NOW"
+- [ ] Update design.md verbose write instructions with "YOU MUST use Write tool NOW"
+- [ ] Update brainstorm.md verbose write instructions with "YOU MUST use Write tool NOW"
+- [ ] Update roundtable-execution/SKILL.md verbose write instructions with "YOU MUST use Write tool NOW"
 
 **Acceptance criteria**:
 - [ ] Verbose dumps written immediately after each phase (2.2, 2.3, 2.4)
 - [ ] Partial round data recoverable if interrupted
+- [ ] **With `--verbose --interactive`**: dumps exist in `rounds/` after user continues
+- [ ] Each dump file written before proceeding to next step (not batched)
+
+**Test scenario**:
+```bash
+/s2s:specs --verbose --interactive
+# Complete 2+ rounds with "Continue" responses
+# Verify: .s2s/sessions/{id}/rounds/ contains 6+ files (3 per round)
+```
 
 **Related**: TEST-003 (session resilience)
 
@@ -621,6 +692,82 @@ fi
 - [ ] User informed that compact was detected
 
 **Related**: TECH-004 (token tracker improvements)
+
+---
+
+### BUG-012: Token tracker non si riattiva dopo compact + resume
+
+**Status**: planned | **Created**: 2026-02-02 | **Priority**: high
+
+**Context**: Dopo `/compact`, quando si fa resume di una sessione roundtable, il token tracker non si riattiva. Di conseguenza, non tracciando più i token, il roundtable non è in grado di fermarsi quando sta per finire il contesto.
+
+**Scenario**:
+1. Roundtable in corso, round 2 completato
+2. Utente esegue `/compact` (o auto-compact triggered)
+3. Utente fa resume: `/s2s:specs --session {id}`
+4. Token tracker NON si riattiva
+5. Step 2.0d (context capacity check) non funziona
+6. Roundtable continua fino a esaurimento contesto
+
+**Root cause**: SKILL.md Step 2.0a ha questa condizione:
+
+```
+IF first round OR TOKEN_SCRIPT not set: resolve script path
+```
+
+Dopo compact + resume:
+- `round_number` viene letto dal session file (es. 2) → NON è "first round"
+- `TOKEN_SCRIPT` dovrebbe essere "not set" perché il contesto LLM è stato compattato
+- Ma il LLM potrebbe non valutare correttamente "not set" (variabile non esiste vs variabile vuota vs "ricordo" residuo)
+
+Il token-tracking.md (riga 31) dice:
+> **At first round or after resume**, use the Read tool to get the resolved script path
+
+Ma questa condizione "after resume" non è esplicitamente implementata in SKILL.md.
+
+**Impatto**:
+- Token tracking silenziosamente disabilitato dopo compact
+- SHOULD_STOP mai true → sessione continua oltre capacità
+- Context overflow → comportamento imprevedibile o errore
+
+**Fix proposto**:
+
+Opzione A - Controllo esplicito resume:
+```markdown
+#### Step 2.0a: Token tracking setup (execute EVERY round)
+
+1. **IF first round OR is_resume OR TOKEN_SCRIPT not set**:
+   Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md`
+   and execute "Script Location" section to get TOKEN_SCRIPT path
+
+**Detect resume**: `is_resume = true` if session file exists AND `metrics.rounds_completed > 0`
+```
+
+Opzione B - Setup incondizionato (più robusto):
+```markdown
+#### Step 2.0a: Token tracking setup (ALWAYS execute)
+
+**ALWAYS** read the script path at the start of EVERY round, regardless of whether
+TOKEN_SCRIPT appears to be set. After /compact or /clear, LLM context variables
+are lost and must be re-initialized.
+```
+
+**Raccomandazione**: Opzione B - setup incondizionato. Il costo di una Read aggiuntiva è trascurabile rispetto al rischio di token tracking silenziosamente disabilitato.
+
+**Tasks**:
+- [ ] Update SKILL.md Step 2.0a to always resolve TOKEN_SCRIPT
+- [ ] Remove conditional "IF first round OR TOKEN_SCRIPT not set"
+- [ ] Add comment explaining why unconditional (compact/clear resilience)
+- [ ] Update token-tracking.md to match
+- [ ] Test: verify token tracking works after compact + resume
+
+**Acceptance criteria**:
+- [ ] Token tracking active after `/compact` + resume
+- [ ] Token tracking active after `/clear` + resume
+- [ ] SHOULD_STOP correctly evaluated at every round
+- [ ] No performance regression (Read is fast)
+
+**Related**: BUG-006 (compact detection for gap), TECH-009 (progressive precision), Phase 6b (context reset hook)
 
 ---
 
@@ -752,6 +899,268 @@ Fix: Replace placeholder with explicit template matching verbose-dump-format.md.
 - [ ] Running `init` twice does not duplicate the block
 - [ ] `git status` shows no s2s transient files (state.json, sessions/*, verbose dumps)
 - [ ] Project artifacts (BACKLOG.md, CONTEXT.md, plans/, decisions/) remain trackable
+
+---
+
+### BUG-009: Facilitator concludes despite unmet criteria
+
+**Status**: planned | **Created**: 2026-01-30 | **Priority**: high
+
+**Context**: During a roundtable session (round 4), the facilitator returned `next: "conclude"` despite the agenda showing:
+
+```
+[partial] Project vision and positioning (CRITICAL)
+[CLOSED] Documentation structure and strategy (CRITICAL)
+[open]    Open-source governance and community
+[open]    Development phases and priorities
+```
+
+The facilitator's conclude criteria (facilitator.md:391-398) require ALL of these to be true:
+
+| Criterion | Required | Actual |
+|-----------|----------|--------|
+| `rounds_completed >= min_rounds` | 4 >= 3 | **MET** |
+| ALL critical topics are `closed` | "Project vision" is `partial` | **NOT MET** |
+| At least 50% of other topics `closed` or deferred | 0/2 = 0% | **NOT MET** |
+| No unresolved blocking conflicts | None blocking | **MET** |
+| At least `sum(min_requirements)` artifacts | 13 requirements | **MET** |
+
+Criteria 2 and 3 are NOT met, yet the facilitator decided to conclude.
+
+**Root cause**: The conclude decision is entirely delegated to the facilitator agent (an LLM) with no validation by the command. The `constraints_check.can_conclude` field is self-reported by the facilitator - the command trusts it without verification. If the facilitator gets it wrong (e.g., due to context pressure at 77%), the error propagates.
+
+**Possible solutions**:
+
+1. **Command-side validation** (recommended): After receiving `next: "conclude"`, the command verifies agenda status before accepting:
+   ```markdown
+   IF next == "conclude":
+     Read session file agenda
+     IF any critical topic != "closed":
+       Override next = "continue"
+       Log: "Facilitator wanted to conclude but critical topic X is not closed"
+     IF closed_non_critical / total_non_critical < 0.5:
+       Override next = "continue"
+       Log: "Facilitator wanted to conclude but only N% of topics closed"
+   ```
+
+2. **Stricter facilitator instructions**: Add explicit checklist with numbered verification steps that must be logged in output.
+
+3. **User confirmation on conclude**: See BUG-010 (separate issue).
+
+**Impact**: Sessions may close prematurely with incomplete coverage, requiring manual session continuation or new session creation.
+
+**Tasks**:
+- [ ] Add command-side conclude validation in SKILL.md Step 2.9
+- [ ] Check critical topic closure before accepting conclude
+- [ ] Check 50% non-critical closure before accepting conclude
+- [ ] Log override reason when conclude is rejected
+- [ ] Consider adding `validation_override` field to round record for audit
+
+**Acceptance criteria**:
+- [ ] Command rejects premature conclude when critical topics are not closed
+- [ ] Command rejects premature conclude when <50% of other topics closed
+- [ ] Override is logged in session file for debugging
+- [ ] Facilitator instructions remain unchanged (defense in depth)
+
+**Related**: BUG-010 (user confirmation), TECH-002 Phase 3
+
+---
+
+### BUG-010: No user confirmation when facilitator decides to conclude
+
+**Status**: planned | **Created**: 2026-01-30 | **Priority**: medium
+
+**Context**: When the facilitator returns `next: "conclude"`, the command exits the round loop and proceeds directly to Phase 3 without any user interaction. The user has no opportunity to say "no, keep going - there are still open topics."
+
+Current flow (SKILL.md Step 2.9):
+```
+next == "continue" → repeat loop
+next == "conclude" → EXIT loop, proceed to PHASE 3  ← no confirmation
+next == "escalate" → Step 2.10: AskUserQuestion
+```
+
+The automatic continuation rules (added in Phase 6b) list "Facilitator returns `next: conclude`" as a valid exit, not as a user confirmation point. This design trusts the facilitator's judgment completely.
+
+**Root cause**: Design decision - conclude was treated as a facilitator prerogative, not a user decision point. This made sense when assuming the facilitator always follows its criteria correctly, but BUG-009 shows that assumption is flawed.
+
+**Possible solutions**:
+
+1. **Always confirm conclude** (recommended):
+   ```markdown
+   IF next == "conclude" AND interactive_flag == false:
+     Display agenda summary
+     Use AskUserQuestion:
+       - "Accept conclusion (proceed to output generation)"
+       - "Continue discussion (more rounds needed)"
+       - "Review agenda before deciding"
+     IF user chooses "Continue":
+       Override next = "continue"
+   ```
+
+2. **Confirm only when agenda incomplete**:
+   Only ask if any topic is not closed. Silent conclude when all topics closed.
+
+3. **Add --auto-conclude flag**:
+   New flag to opt into current behavior. Default becomes confirm.
+
+**Trade-offs**:
+
+| Approach | Pros | Cons |
+|----------|------|------|
+| Always confirm | User always in control | Extra interaction even for valid concludes |
+| Confirm when incomplete | Balances automation and control | Still trusts "closed" status accuracy |
+| --auto-conclude flag | Backward compatible | Another flag to remember |
+
+**Recommendation**: Option 1 (always confirm) is safest. The conclude moment is significant - the session is about to close and output generated. A single confirmation is reasonable.
+
+---
+
+**Enhancement (2026-02-02): Summary checkpoint before output generation**
+
+The confirmation should include a **session summary** that serves multiple purposes:
+
+1. **User checkpoint**: Human-readable recap of decisions before committing
+2. **Context compression**: Output generator uses summary (~50 lines) instead of full session file (~500 lines)
+3. **Error detection**: User can spot missing items that BUG-009 validation might miss
+
+**Why summary is NOT redundant with session YAML:**
+
+| Aspect | Session YAML | Summary |
+|--------|--------------|---------|
+| Purpose | Machine processing, resume, audit | Human review, LLM context efficiency |
+| Size | Grows with rounds (BUG-011) | Fixed ~50 lines |
+| Content | Full artifact details, all rounds | Key decisions, coverage, open items |
+| Optimized for | State reconstruction | Decision validation |
+
+**Proposed Phase 3 flow:**
+
+```
+Phase 3: Completion
+├── Step 3.0: Generate Session Summary
+│   └── Compile from session file:
+│       - Decisions made (approved artifacts)
+│       - Coverage achieved (agenda status)
+│       - Open items (draft artifacts, unresolved questions)
+│       - Key trade-offs discussed
+├── Step 3.1: Display Summary + Confirm Conclude
+│   └── Show summary to user
+│   └── AskUserQuestion:
+│       - "Proceed to output generation"
+│       - "Continue discussion (more rounds)"
+│       - "Close without output"
+│   └── IF "Continue": override next = "continue", return to Phase 2
+├── Step 3.2: Update Session Status (status: "closed")
+└── Step 3.3: Generate Outputs
+    └── Use summary as primary context (not full session re-read)
+    └── Write {session-id}-summary.md (already exists, now generated earlier)
+    └── Generate workflow-specific outputs (requirements.md, etc.)
+```
+
+**Benefits:**
+
+- Addresses BUG-009: User sees coverage gaps before confirming
+- Addresses BUG-011: Output generator reads compact summary, not large session file
+- Single mechanism solves multiple issues
+- Summary file already exists in current design, just generated at better time
+
+**Tasks**:
+- [ ] Add Step 3.0: Generate Session Summary in SKILL.md
+- [ ] Define summary format (decisions, coverage, open items, trade-offs)
+- [ ] Add Step 3.1: Display summary + AskUserQuestion
+- [ ] Update automatic continuation rules to exclude conclude from "no stop" conditions
+- [ ] Modify Step 3.3 to use summary as context for output generation
+- [ ] Update commands (specs, design, brainstorm) with new steps
+- [ ] Move summary.md generation from current location to Step 3.0
+
+**Acceptance criteria**:
+- [ ] User sees session summary before confirming conclude
+- [ ] Summary includes: approved artifacts, agenda coverage, open items
+- [ ] User can choose to continue discussion instead of concluding
+- [ ] Output generator uses summary as context (not full session re-read)
+- [ ] Summary file written at Step 3.0 (before confirmation)
+- [ ] Works in both interactive and non-interactive modes
+
+**Related**: BUG-009 (facilitator criteria), BUG-011 (session file size), TECH-002 Phase 3
+
+---
+
+### BUG-011: Session file grows large with embedded artifacts
+
+**Status**: planned | **Created**: 2026-01-30 | **Priority**: low
+
+**Context**: During a roundtable session (round 4 with 13 requirements and 6 open questions), the LLM executing the command commented "The session file is large" and decided to use "targeted edits" instead of a full file operation. This suggests the embedded artifacts design may have scaling concerns.
+
+**Observed behavior**: The LLM's message:
+> "The session file is large. I'll make targeted edits to add round 4 data and close the session."
+
+At that point:
+- 4 rounds completed
+- 13 requirements with full descriptions and acceptance criteria
+- 6 open questions
+- 4 rounds of audit trail (facilitator questions, participant positions, synthesis, artifacts)
+- Context usage at 77%
+
+The session YAML file was likely 400-600+ lines.
+
+**Potential issues**:
+
+1. **Context pressure**: Reading large session file for editing at high context % reduces remaining capacity, potentially contributing to facilitator errors (BUG-009).
+
+2. **Edit reliability**: "Targeted edits" on YAML require exact string matching. On large files, the LLM may:
+   - Target the wrong section
+   - Introduce indentation errors
+   - Skip updates (e.g., forgetting metrics)
+   - Create invalid YAML structure
+
+3. **Compound effect**: Every round, the command reads the session file (facilitator input), writes to it (Step 2.5-2.6), and reads again (validation). A 500-line YAML touched 3+ times per round consumes significant context.
+
+4. **Resume brittleness**: If targeted edits corrupt YAML structure, resume from that session becomes impossible.
+
+**Root cause**: Design decision to embed all artifacts in session file (ADR-0010) for simplicity and single source of truth. Trade-off was accepted but scaling implications not fully analyzed.
+
+**Possible solutions**:
+
+1. **Compact session representation** (lightweight):
+   - Store only artifact IDs in session file
+   - Move full artifact content to separate files: `.s2s/sessions/{id}/artifacts/{type}/{ID}.yaml`
+   - Session file stays slim (~100 lines regardless of artifact count)
+   - **Breaks**: Single source of truth, increases file count
+
+2. **Incremental session updates** (medium):
+   - Instead of Edit tool, use append-only logging
+   - Each round appends to session file
+   - Rebuild full state on read
+   - **Risk**: Append operations may still fail
+
+3. **Session file compression** (lightweight):
+   - Reduce verbosity in audit trail
+   - Store only synthesis, not full participant positions
+   - Remove redundant fields
+   - **Trade-off**: Less debugging info
+
+4. **Accept and document** (no change):
+   - Document session size limits (e.g., "best for <10 rounds, <20 artifacts")
+   - Recommend `/s2s:session:close` + new session for long discussions
+   - Add warning when session file exceeds threshold
+
+**Recommendation**: Start with option 4 (document limits) and option 3 (reduce verbosity). If problems persist, consider option 1 for future version.
+
+**Impact**: Currently low priority - the session completed successfully despite the "large file" comment. This becomes higher priority if corruption or failures occur.
+
+**Tasks**:
+- [ ] Analyze actual session file sizes from real projects
+- [ ] Identify verbose fields that can be trimmed
+- [ ] Add session file size check with warning threshold
+- [ ] Document recommended session limits in s2s-guide
+- [ ] Consider separate artifacts approach for v2.0
+
+**Acceptance criteria**:
+- [ ] Session file size limits documented
+- [ ] Warning displayed when session file exceeds threshold (e.g., 500 lines)
+- [ ] Audit trail verbosity reduced without losing critical info
+- [ ] No YAML corruption from targeted edits (regression test)
+
+**Related**: ADR-0010 (single state field), TECH-002 (command unification), BUG-010 (summary checkpoint mitigation)
 
 ---
 
@@ -922,6 +1331,152 @@ templates/setup/
 - [ ] Generated files reference source session and requirement IDs
 
 **Related**: TECH-002 Phase 1 (output-generation skill), output-generation/SKILL.md
+
+---
+
+### FEAT-006: Enhanced arc42 output with traceability
+
+**Status**: planned | **Created**: 2026-02-03 | **Priority**: medium
+
+**Context**: Output generation for design workflow produces a subset of arc42 sections. After user testing, specific high-value additions were identified. The goal is NOT to generate all 12 arc42 sections (many require manual/tool input), but to maximize value from available roundtable data.
+
+**Principle**: Generate sections IF AND ONLY IF data is available. No empty placeholders.
+
+**High-value additions** (from user feedback):
+
+| Addition | Value | Data source | Notes |
+|----------|-------|-------------|-------|
+| **Traceability table REQ → ARCH** | High | `traces_to` field in ARCH-* | Cross-workflow link |
+| Building Blocks table | High | COMP-* artifacts | Already planned, add Mermaid stub |
+| Glossary | Medium | Auto-extract from artifacts | Terms with definitions |
+| Risks section | Medium | RISK-* if available | From brainstorm or explicit |
+
+**Sections to ADD to current template**:
+
+1. **Traceability Matrix** (NEW - high value)
+   ```markdown
+   ## Traceability
+
+   | Requirement | Architecture Decisions | Components |
+   |-------------|----------------------|------------|
+   | REQ-001     | ARCH-001, ARCH-003   | COMP-002   |
+   | REQ-002     | ARCH-002             | COMP-001   |
+   ```
+   Requires: `traces_to: [REQ-001]` field in ARCH-* and COMP-* artifacts.
+
+2. **Building Blocks** (enhance existing)
+   - Add Mermaid component diagram stub (auto-generated from COMP-* dependencies)
+   - GitHub/GitLab render Mermaid natively
+   ```mermaid
+   graph TD
+     COMP-001[API Gateway] --> COMP-002[Auth Service]
+     COMP-001 --> COMP-003[Core Service]
+   ```
+
+3. **Glossary** (NEW)
+   - Auto-extract terms from artifact titles and descriptions
+   - Format: `**Term**: definition`
+
+4. **Risks and Technical Debt** (conditional)
+   - Only if RISK-* artifacts exist (from brainstorm or design session)
+   - Omit section entirely if no risks defined
+
+**Sections intentionally OMITTED** (require external tools/manual input):
+
+| Section | Why omitted |
+|---------|-------------|
+| Runtime View | Requires sequence diagrams (creative, tool-dependent) |
+| Deployment View | Requires infrastructure diagrams (PlantUML, draw.io) |
+| Cross-cutting Concepts | Too generic, better as ADRs |
+
+These can be added manually or via `/s2s:plan` tasks.
+
+**Schema change required**:
+
+Add `traces_to` field to ARCH-* and COMP-* artifact schemas:
+```yaml
+ARCH-001:
+  title: "REST API design"
+  decision: "..."
+  traces_to: [REQ-001, REQ-005]  # NEW: links to requirements
+```
+
+**Tasks**:
+- [ ] Add `traces_to` field to ARCH-* schema in session-schema.md
+- [ ] Add `traces_to` field to COMP-* schema in session-schema.md
+- [ ] Update facilitator to prompt for traceability during design rounds
+- [ ] Add Traceability Matrix section to design-arc42.md template
+- [ ] Add Mermaid stub generation for Building Blocks (from COMP-* deps)
+- [ ] Add Glossary section with auto-extraction logic
+- [ ] Add conditional Risks section (only if RISK-* exist)
+- [ ] Update s2s-guide with new output format
+
+**Acceptance criteria**:
+- [ ] Traceability matrix generated from `traces_to` fields
+- [ ] Building Blocks includes Mermaid component diagram
+- [ ] Glossary auto-populated from artifact terms
+- [ ] Risks section appears only when RISK-* artifacts exist
+- [ ] No empty/TBD sections in output
+- [ ] Existing architecture.md merged, not overwritten
+
+**Related**: FEAT-005 (setup output), output-generation/SKILL.md, session-schema.md
+
+---
+
+### FEAT-007: Proactive documentation completeness
+
+**Status**: planned | **Created**: 2026-02-03 | **Priority**: medium | **⚠️ NEEDS REVIEW**
+
+> **Nota**: Questa proposta è in fase esplorativa. L'approccio descritto potrebbe non essere quello finale. Valutare alternative prima di implementare.
+
+**Problema**: Oggi ogni comando è isolato. L'utente deve sapere cosa manca (tracciabilità, diagrammi, glossario, NFR, etc.) quando il plugin ha tutte le informazioni per capirlo autonomamente.
+
+**Goal**: Il plugin dovrebbe generare automaticamente tutta la documentazione possibile per la natura e contesto del progetto, senza che l'utente debba accorgersi di cosa manca.
+
+**Opzioni considerate** (nessuna ancora scelta):
+
+| Approccio | Descrizione | Pro | Contro |
+|-----------|-------------|-----|--------|
+| A) Checklist statica | Mostra cosa manca dopo ogni comando | Semplice | Utente deve agire |
+| B) Documentation Profile | Config con profilo (minimal/standard/enterprise) | Configurabile | Utente deve sapere cosa configurare |
+| C) Gap Analysis Agent | Inferisce profilo, analizza gap, auto-genera derivati | Proattivo | Complessità |
+| D) Workflow orchestrato | Meta-comando che fa tutto | One-shot | Perde valore roundtable iterativi |
+| E) Altro? | Da esplorare | ? | ? |
+
+**Distinzione chiave**:
+
+| Tipo | Esempio | Auto-generabile? |
+|------|---------|------------------|
+| Derivati | Traceability, Glossary, Mermaid diagrams | ✅ Sì |
+| Decisioni | Nuovi ADR, scelte architetturali | ❌ Richiede roundtable |
+| Tool-dependent | Sequence diagrams dettagliati | ❌ Richiede tool esterni |
+
+**Bozza di soluzione** (da rivedere):
+
+1. **`/s2s:doc-status`**: Mostra stato documentazione vs profilo atteso
+2. **Auto-generation post-output**: Genera derivati senza chiedere
+3. **Profile inference**: Inferisce profilo da contesto (OSS, enterprise, etc.)
+4. **Facilitator awareness**: Facilitator rileva gap durante roundtable
+
+**Domande aperte**:
+- È meglio un comando dedicato (`doc-status`) o integrazione nei comandi esistenti?
+- L'auto-generation dovrebbe essere opt-in o opt-out?
+- Come gestire progetti con requisiti documentali molto diversi?
+- Esiste un approccio più semplice che risolve l'80% del problema?
+
+**Tasks** (preliminari, da confermare):
+- [ ] **FIRST**: Esplorare approcci alternativi
+- [ ] Decidere approccio finale (ADR?)
+- [ ] Definire "documentation profile" schema
+- [ ] Implementare gap analysis logic
+- [ ] Creare `/s2s:doc-status` o equivalente
+- [ ] Integrare auto-generation in output-generation
+- [ ] Aggiornare facilitator per gap awareness
+
+**Acceptance criteria** (da definire dopo review):
+- [ ] TBD - dipende dall'approccio scelto
+
+**Related**: FEAT-006 (arc42 traceability), FEAT-005 (setup output), output-generation
 
 ---
 
