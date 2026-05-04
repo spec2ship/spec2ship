@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-02-03 (FEAT-007 doc completeness - needs review)
+**Updated**: 2026-02-18 (FEAT-008..011 plan command gaps from usage session)
 **Format**: Work items for active development
 
 ---
@@ -1477,6 +1477,177 @@ ARCH-001:
 - [ ] TBD - dipende dall'approccio scelto
 
 **Related**: FEAT-006 (arc42 traceability), FEAT-005 (setup output), output-generation
+
+---
+
+### FEAT-008: Auto-generate INDEX.md for --all plan execution
+
+**Status**: planned | **Created**: 2026-02-18 | **Priority**: high
+
+**Context**: When running `/s2s:plan --all`, the command computes a dependency-ordered wave structure, generates all plan files, and prints a summary to the terminal. However, no persistent artifact captures the wave structure, dependency graph, or per-plan status. The terminal output disappears after scrolling or session end.
+
+During a real usage session on a project with 15 generated plans, the user had to manually create `.s2s/plans/INDEX.md` containing wave tables (plan ID, title, complexity, status), a compact dependency graph, and critical implementation notes. This file proved immediately valuable as a navigation reference for sequencing work.
+
+**Observed pattern**: The `--all` execution already computes all the data needed (work items, dependencies, suggested order). The gap is that this data is only rendered to the terminal and not persisted.
+
+**Proposed behavior**: After generating all plan files, `--all` auto-generates `.s2s/plans/INDEX.md` with:
+
+1. **Wave tables**: Plans grouped by dependency wave (wave 1 = no deps, wave 2 = depends on wave 1, etc.)
+   - Columns: plan ID, title, complexity, status (default: pending)
+2. **Dependency graph**: Compact text representation showing which plans depend on which
+3. **Critical notes**: Section for implementation-order notes (e.g., "shared types must be defined in wave 1 before consumers in wave 2")
+4. **Status tracking**: Status field updatable manually (pending → in_progress → completed)
+
+**Tasks**:
+- [ ] Add INDEX.md generation step to plan.md after Phase 4 (all plans generated)
+- [ ] Define INDEX.md template in `templates/plan-index.md`
+- [ ] Compute wave structure from dependency graph
+- [ ] Include status column with default `pending`
+- [ ] Update Output Summary section to reference INDEX.md
+
+**Acceptance criteria**:
+- [ ] `/s2s:plan --all` creates `.s2s/plans/INDEX.md` alongside plan files
+- [ ] INDEX.md contains wave tables with plan ID, title, complexity, status
+- [ ] INDEX.md contains dependency graph (text-based)
+- [ ] Status values are manually editable (pending → in_progress → completed)
+- [ ] Re-running `--all` regenerates INDEX.md (with warning if existing has modified statuses)
+- [ ] `/s2s:plan:list` reads INDEX.md if present for richer display
+
+**Related**: FEAT-009 (--all-first guidance), plan.md Phase 4 (Output Summary)
+
+---
+
+### FEAT-009: Recommend --all-first pattern in Full Documentation Mode
+
+**Status**: planned | **Created**: 2026-02-18 | **Priority**: medium
+
+**Context**: In Full Documentation Mode (requirements.md + architecture.md exist), the most valuable implementation items (core components, features, infrastructure) live in the documentation and are only surfaced by the analysis agent during `--all` execution. These items are not in the backlog.
+
+Without `--all`, the "No target provided" path (plan.md lines 169-197) shows only backlog items with `status: planned`. A user picking items one-by-one misses: (a) cross-plan dependency ordering, (b) the opportunity to define all component boundaries before writing any code, (c) the ability to review full scope before committing to a sequence.
+
+The "plan everything before implementing anything" pattern is valuable but not guided. The skill does not explain or recommend it.
+
+**Proposed behavior**: In Full Documentation Mode, when no `--all` flag, no `--component`, and no specific target are provided, the skill should proactively explain the `--all` pattern before listing individual backlog items:
+
+```
+This project has complete specs + architecture documentation.
+
+Recommendation: Running --all will:
+  - Identify all implementation work items from requirements and architecture
+  - Compute cross-plan dependencies and execution waves
+  - Generate an execution index (INDEX.md) for tracking
+
+This is recommended for projects starting implementation, as it ensures
+component boundaries are defined before any code is written.
+
+Alternatively, select an individual item below.
+```
+
+Then proceed to show planned backlog items as currently done.
+
+**Tasks**:
+- [ ] Add Full Documentation Mode detection to "No Target Provided" path in plan.md
+- [ ] Add recommendation block before planned items listing
+- [ ] Add "Run --all (Recommended)" as first option in AskUserQuestion
+- [ ] Keep existing individual item selection as alternative path
+
+**Acceptance criteria**:
+- [ ] In Full Documentation Mode without flags, user sees --all recommendation before item list
+- [ ] Recommendation explains the value (dependencies, boundaries, scope review)
+- [ ] User can still select individual items (recommendation is not blocking)
+- [ ] In Basic Mode (no docs), behavior unchanged (no recommendation shown)
+- [ ] If `--all` or `--component` or target provided, recommendation skipped
+
+**Related**: FEAT-008 (INDEX.md generation), plan.md "No Target Provided" section
+
+---
+
+### FEAT-010: Cross-validate backlog status with git history
+
+**Status**: planned | **Created**: 2026-02-18 | **Priority**: medium
+
+**Context**: When listing planned backlog items (either in "No target provided" path or during `--all` analysis), the skill showed items like TECH-001 and INFRA-004 as `status: planned`, but both had already been completed in recent commits (`git log` referenced them by ID). The skill has no mechanism to detect stale backlog items whose work was done outside the s2s workflow.
+
+This creates wasted planning effort: the user (or the analysis agent during `--all`) may generate plans for work that already exists in the codebase.
+
+**Proposed behavior**: When listing planned items or during `--all` analysis, optionally check recent git history for references to planned backlog IDs:
+
+1. Run `git log --oneline -20` (lightweight, last 20 commits only)
+2. For each planned backlog item ID (FEAT-NNN, TECH-NNN, etc.), check if the ID appears in commit messages
+3. If found, add a warning:
+
+```
+⚠️  Potentially stale items detected:
+   TECH-001 appears in commit abc1234: "feat(TECH-001): implement ADR integration"
+   INFRA-004 appears in commit def5678: "chore(INFRA-004): add CI pipeline"
+
+   Verify if these items are already completed before planning them.
+```
+
+4. Do not auto-change status (user must confirm)
+
+**Scope**: This is a lightweight heuristic, not a full traceability system. It catches the most common case (commit messages reference backlog IDs) without adding complexity.
+
+**Tasks**:
+- [ ] Add git history check step to plan.md before item listing
+- [ ] Scan `git log --oneline -20` for planned item IDs (regex match)
+- [ ] Display warning for matched items with commit hash and message
+- [ ] Skip check if not a git repo or no planned items
+- [ ] Consider adding to `/s2s:plan:list` as well
+
+**Acceptance criteria**:
+- [ ] Planned items referenced in recent git commits trigger a warning
+- [ ] Warning includes commit hash and message for verification
+- [ ] No automatic status changes (user decides)
+- [ ] Check is fast (single git log call, regex scan)
+- [ ] Graceful skip when not in a git repo
+- [ ] Works in both `--all` and individual item listing paths
+
+**Related**: FEAT-009 (--all-first guidance), backlog-management skill
+
+---
+
+### FEAT-011: Surface documentation-derived items in plan selection UX
+
+**Status**: planned | **Created**: 2026-02-18 | **Priority**: medium
+
+**Context**: In Full Documentation Mode without `--all`, the "No Target Provided" path (plan.md lines 169-197) shows only backlog items with `status: planned`. This is misleading in projects with complete documentation: the listed items are typically peripheral (CODEOWNERS file, docs structure, CI config) while the actual core implementation items (features, components, infrastructure from requirements.md and architecture.md) are invisible because they aren't in the backlog yet.
+
+A user seeing only peripheral items may think "there's nothing substantial to plan" when in reality the bulk of the implementation work is waiting to be identified via `--all` or doc analysis.
+
+**Proposed behavior**: In Full Documentation Mode without `--all`, after showing planned backlog items, add a contextual note:
+
+```
+Planned Items Ready for Implementation
+══════════════════════════════════════
+
+From BACKLOG.md:
+1. TECH-001: CODEOWNERS file setup
+   Status: planned | Priority: low
+   ...
+
+Note: Additional implementation items exist in your requirements and
+architecture documentation but are not yet in the backlog. Run --all
+to identify features, components, and infrastructure items from these
+docs.
+```
+
+This makes the distinction between backlog items and documentation-derived items visible, so users understand what they're choosing from.
+
+**Tasks**:
+- [ ] Add documentation availability check to "No Target Provided" path
+- [ ] Add contextual note after backlog item listing when docs exist
+- [ ] Note should mention which docs are available (requirements, architecture, or both)
+- [ ] Skip note in Basic Mode (no docs to analyze)
+
+**Acceptance criteria**:
+- [ ] In Full Documentation Mode, item listing includes note about doc-derived items
+- [ ] Note mentions specific available docs (requirements.md, architecture docs)
+- [ ] Note explains that --all surfaces additional items
+- [ ] In Basic Mode, no note shown (nothing additional to surface)
+- [ ] Note does not appear if --all or --component flags are present
+
+**Related**: FEAT-009 (--all-first guidance), FEAT-008 (INDEX.md), plan.md "No Target Provided" section
 
 ---
 
