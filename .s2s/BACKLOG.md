@@ -1744,7 +1744,7 @@ What would you like to configure?
 
 ### TECH-002: Roundtable command unification
 
-**Status**: in_progress | **Created**: 2026-01-20 | **Updated**: 2026-01-25 | **Origin**: IDEA-008
+**Status**: in_progress | **Created**: 2026-01-20 | **Updated**: 2026-05-05 | **Origin**: IDEA-008
 **ADRs**:
 - [0011-roundtable-command-unification](decisions/0011-roundtable-command-unification.md)
 - [0012-output-generation-skill](decisions/0012-output-generation-skill.md)
@@ -1799,7 +1799,8 @@ skills/
 | 5 | Skill cleanup | ✅ | Phase 0 |
 | 6 | Critical guidelines propagation | ✅ | - |
 | 2 | Validation consolidation | ✅ | Phase 6 |
-| 3 | Phase 2 uniformization | **NEXT** | Phase 2 |
+| 3 | Phase 2 uniformization (approach A — drift elimination + canonical reference) | ✅ | Phase 2 |
+| 7B | Phase 2 deep extraction (approach B — was originally part of Phase 3 scope) | planned | Phase 3 |
 | 7 | Strategy skill consolidation | planned | Phase 3 |
 | 4 | roundtable.md as master | planned | Phase 3, 7 |
 | 8 | Thin launcher conversion | planned | Phase 4 |
@@ -1868,12 +1869,29 @@ Consolidated per-round validation into shared reference file.
 
 **Note**: Did NOT use session-qa agent (too heavy for per-round). Created lightweight reference instead.
 
-**Phase 3: Phase 2 uniformization**
-- [ ] Map ALL differences between commands in Phase 2 execution
-- [ ] Classify: necessary (workflow-specific) vs accidental (drift)
-- [ ] Eliminate accidental divergences
-- [ ] Parameterize necessary differences via workflow_type
-- [ ] Create `roundtable-execution/references/phase-2-core.md` with unified logic
+**Phase 3: Phase 2 uniformization** ✅ (approach A, completed 2026-05-05)
+
+Plan: `.s2s/plans/20260505-tech002-phase3-uniformization.md`
+
+- [x] Map ALL differences between commands in Phase 2 execution
+- [x] Classify: necessary (workflow-specific) vs accidental (drift)
+- [x] Eliminate accidental divergences (6 textual fixes across 3 commands)
+- [x] Document necessary differences in canonical reference (workflow profiles table)
+- [x] Create `skills/roundtable-execution/references/phase-2-core.md` as descriptive single-source-of-truth (target spec for future Phase 7B deep extraction)
+
+**Drift fixes applied**:
+1. `design.md` Step 2.4 verification → canonical `expected_artifacts:[{map, expected_keys}]` schema (was `session_file_updates.artifacts_embedded:[{field, expected_ids}]`); added `round_summary` and `metrics_consistency` blocks
+2. `design.md` Step 2.4 result → added `conflicts_resolved: {count}`
+3. `brainstorm.md` Step 2.4 result → added `conflicts_resolved: {count}`
+4. `brainstorm.md` Step 2.3 verbose dump → added `rationale`/`concerns`/`suggestions` (returned by participants but uncaptured)
+5. `specs.md` Step 2.3 dump header → `{Role}` (was `{Participant Role}`)
+6. `specs.md` Step 2.9 → full canonical block: replaced hardcoded `< 3` with `min_rounds (from config)` and added user-visible warning. Default config `min_rounds=3`, behavior preserved; if user has overridden, specs now respects it.
+
+**Deferred to Phase 7B (deep extraction)**: turning the 3 inline Phase 2 sections into thin launchers that invoke a single executable algorithm. Approach A keeps inline behavior unchanged, eliminating only drift, so the exp42 baseline regression check remains comparable.
+
+**Out-of-scope drifts found during mapping** (tracked separately):
+- `session-schema.md:567` lists design artifact types as `ARCH-*, COMP-*, CONF-*, OQ-*` (no `INT-*`); design.md uses `INT-*`. Schema doc incomplete.
+- `session-schema.md:568` does not list `CONF-*` for brainstorm; brainstorm.md creates conflicts. Same shape.
 
 **Phase 7: Strategy skill consolidation** (NEW)
 
@@ -1922,12 +1940,12 @@ Make commands actually USE roundtable-strategies instead of duplicating.
 - [ ] No behavioral regression (all tests pass)
 - [ ] Total command lines reduced from ~5000 to ~1050
 
-**Current state** (2026-01-28):
-- Branch: `feature/TECH-002-roundtable-unification` (66 commits ahead of develop)
-- Token tracker v5.3.0, statusline v3.1.0
-- Phases 0, 1, 5, 6, 6b, 2 complete: incremental/additive changes
-- Phases 3, 7, 4, 8 remaining: structural refactoring (major rewrites)
-- **Next action**: Phase 3 - Phase 2 uniformization
+**Current state** (2026-05-05):
+- Branch: `feature/TECH-002-phase3-uniformization` (forked from develop after v0.4.0 PR #12 merge)
+- Develop carries v0.4.0 with Phases 0, 1, 5, 6, 6b, 2 (PR #12 merged 2026-05-05)
+- Phase 3 (approach A: drift elimination) complete on this branch
+- Phases 7B, 7, 4, 8 remaining: structural refactoring (major rewrites)
+- **Next action**: regression replay in `ElfGiftRush_s2s/exp43` (`/s2s:specs --verbose --diagnostic`) to confirm structural fingerprint vs `exp42-specs-pre-phase3.md` baseline. Then PR Phase 3 → develop, plan Phase 7B.
 
 ---
 

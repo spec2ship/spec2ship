@@ -1113,6 +1113,7 @@ response:
 
 result:
   artifacts_proposed: {count}
+  conflicts_resolved: {count}
   status: "closed"
 
 tokens:
@@ -1121,27 +1122,37 @@ tokens:
 
 # VERIFICATION CHECKLIST - for automated checking
 verification:
-  # Session file updates that MUST be present after Step 2.5/2.6
-  # Note: Artifacts are EMBEDDED in session file (no separate files)
-  session_file_updates:
-    artifacts_embedded:
-      # Check each artifact type that was proposed this round
-      - field: "artifacts.architecture_decisions"
-        expected_ids: ["{ARCH-*}", ...]
-      - field: "artifacts.components"
-        expected_ids: ["{COMP-*}", ...]
-      - field: "artifacts.interfaces"
-        expected_ids: ["{INT-*}", ...]
-      - field: "artifacts.open_questions"
-        expected_ids: ["{OQ-*}", ...]
-      - field: "artifacts.conflicts"
-        expected_ids: ["{CONF-*}", ...]
-    rounds_array:
-      expected_round: {N}
-      expected_fields: ["topic", "timestamp", "artifacts_created", "next_action"]
-    agenda_status:
-      topic_id: "{agenda_update.topic_id}"
-      expected_status: "{agenda_update.new_status}"
+  # Embedded artifacts that MUST exist in session file after Step 2.5
+  expected_artifacts:
+    - map: "artifacts.architecture_decisions"
+      expected_keys: ["{ARCH-*}", ...]
+    - map: "artifacts.components"
+      expected_keys: ["{COMP-*}", ...]
+    - map: "artifacts.interfaces"
+      expected_keys: ["{INT-*}", ...]
+    - map: "artifacts.open_questions"
+      expected_keys: ["{OQ-*}", ...]
+    - map: "artifacts.conflicts"
+      expected_keys: ["{CONF-*}", ...]
+  # Round summary that MUST be present after Step 2.6
+  round_summary:
+    expected_round: {N}
+    required_fields:
+      - "timestamp"
+      - "topic_id"
+      - "facilitator_question"
+      - "synthesis_summary"
+      - "participant_positions"
+      - "artifacts_created"
+      - "next_action"
+  # Agenda status update
+  agenda_status:
+    topic_id: "{agenda_update.topic_id}"
+    expected_status: "{agenda_update.new_status}"
+  # Metrics consistency
+  metrics_consistency:
+    rounds_completed: {N}
+    artifacts_total: {sum of all artifact maps}
   # Context propagation check for next round
   context_propagation:
     participant_context_keys:
