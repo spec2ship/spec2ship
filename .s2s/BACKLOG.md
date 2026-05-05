@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-02-18 (FEAT-008..011 plan command gaps from usage session)
+**Updated**: 2026-05-05 (refresh Completed table + v0.4.0 release prep)
 **Format**: Work items for active development
 
 ---
@@ -2229,7 +2229,11 @@ TECH-007's `.s2s/` approach is simpler:
 
 | ID | Description | Completed |
 |----|-------------|-----------|
+| TECH-009 | Round token tracking with progressive precision (T1/T2/T3 capture) | 2026-01-26 |
+| TECH-007 | Unified project state file (.s2s/state.json) - supersedes TECH-006 | 2026-01-25 |
 | TECH-004 | Token tracker v2.3.0 - session isolation + statusline + 60s fix | 2026-01-24 |
+| BUG-006 | Token tracker compact detection missing | 2026-01-24 |
+| BUG-003 | SKILL.md uses context_files instead of inline participant_context | 2026-01-21 |
 | FLOW-001 | Ideas and artifact traceability | 2026-01-19 |
 | TEST-002 | Progressive disclosure for diagnostic | 2026-01-18 |
 | WORK-002 | Roundtable scope awareness | 2026-01-17 |
