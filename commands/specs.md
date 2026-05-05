@@ -959,7 +959,7 @@ references:
 **CRITICAL - ALL fields below are REQUIRED** (including in resume mode):
 
 ```yaml
-# Round {N} - {Participant Role} Response
+# Round {N} - {Role} Response
 round: {N}
 phase: 2
 actor: "{participant-id}"
@@ -1587,10 +1587,20 @@ Show synthesis, new artifacts, resolved conflicts, agenda status.
 >
 > **The ONLY stop conditions are**: `SHOULD_STOP == true` (context), `round_number >= max_rounds`, `next == "escalate"`, or `interactive_flag == true`.
 
-#### Step 2.9: Evaluate Next Action
+#### Step 2.9: Evaluate Next Action (CRITICAL)
 
-- If `round_number < 3` AND `next == "conclude"`: Override to "continue"
-- Based on `next`: continue loop, conclude, or handle escalation
+**MANDATORY min_rounds enforcement:**
+
+```
+IF round_number < min_rounds (from config) AND next == "conclude":
+  OVERRIDE next to "continue"
+  Display: "⚠️ min_rounds not reached ({round_number}/{min_rounds}), continuing..."
+```
+
+Then evaluate based on `next`:
+- **continue**: Loop back to Step 2.1
+- **conclude**: Proceed to Phase 3
+- **escalate**: Ask user with AskUserQuestion, then continue or conclude
 
 ---
 

@@ -108,7 +108,7 @@ tokens:
 ## Participant Response Dump
 
 ```yaml
-# Round {N} - {Participant Role} Response
+# Round {N} - {Role} Response
 round: {N}
 phase: 2
 actor: "{participant-id}"

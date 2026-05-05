@@ -854,7 +854,10 @@ input: {... the YAML input sent to participant ...}
 response:
   participant: "{participant-id}"
   position: "{full response}"
+  rationale: [...]
   confidence: {0.0-1.0}
+  concerns: [...]
+  suggestions: [...]
   ideas: [...]
   risks: [...]
   mitigations: [...]
@@ -1101,6 +1104,7 @@ response:
 
 result:
   artifacts_proposed: {count}
+  conflicts_resolved: {count}
   status: "closed"
 
 tokens:
