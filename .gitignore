@@ -59,6 +59,8 @@ temp/
 !.s2s/decisions/**
 !.s2s/plans/
 !.s2s/plans/**
+!.s2s/test-baselines/
+!.s2s/test-baselines/**
 # Note: sessions/ intentionally NOT tracked - they are temporary working artifacts
 
 # All docs/ content is public - no exclusions
