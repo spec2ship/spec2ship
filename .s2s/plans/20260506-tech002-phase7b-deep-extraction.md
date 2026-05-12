@@ -431,13 +431,13 @@ Command says "running with --verbose" inline before invoking phase-2-core.md. Mo
 ## 12. Backward compatibility (G7)
 
 ### In-progress sessions
-A session started on develop (pre-7B) must resume on the post-7B branch. Concrete test procedure (post-7B.4b, before 7B.7):
+A session started on develop (pre-7B) must resume on the post-7B branch. Concrete test procedure (post-7B.4b, before 7B.7), updated per Appendix A finding to use `/reload-plugins`:
 
 1. In `ElfGiftRush_s2s` create worktree `exp44-resume-test`.
 2. Install spec2ship plugin from `develop` (pre-7B): `/plugin marketplace add ...#develop` then `/plugin install s2s@spec2ship`.
-3. Start a session: `/s2s:specs --verbose --diagnostic`, complete 2 full rounds, then `/s2s:session:close` or exit.
+3. Start a session: `/s2s:specs --verbose --diagnostic`, complete 2 full rounds, then exit.
 4. Note the session-id; verify `state.json` exists with `status: in_progress` and `agent_state.facilitator.agent_id` populated.
-5. Uninstall: `/plugin marketplace remove spec2ship`; reinstall from feature branch: `/plugin marketplace add ...#feature/TECH-002-phase7b-deep-extraction` then `/plugin install s2s@spec2ship`.
+5. Switch the plugin source to the feature branch (`/plugin marketplace remove spec2ship` + `add` + `install`), OR use `/reload-plugins` if testing via a local `--plugin-dir`. The reload path is faster but requires having the feature branch checked out locally.
 6. Resume: `/s2s:specs` (auto-detect should pick up the in-progress session).
 7. Continue for 1 more round.
 
@@ -456,11 +456,82 @@ spec2ship is installed as a plugin. Any user with v0.3.x installed who updates t
 
 ## Appendix A — 7B.0 platform re-baseline findings
 
-*(To be filled during 7B.0 execution.)*
+*Compiled 2026-05-12 via claude-code-guide research agent.*
+
+**Verdict**: no new Claude Code primitive (Jan→May 2026) invalidates or meaningfully simplifies the Read+follow pattern. Proceed with Option A as planned.
+
+| Point | Finding | Impact on Phase 7B |
+|-------|---------|-------------------|
+| Skill composition primitives | No `extends` field, no "skill as subroutine". Skills still static markdown + frontmatter. | Keep Read+follow |
+| Subagent / Agent SDK | `**Use the X agent**` unchanged. New `context: fork` exists but forces content to be a *task*, not reference material. Inferior for our case. | Keep Read+follow |
+| Variable/state passing | New dynamic context injection (`` !`command` `` and ` ```! ` fenced blocks). Good for live data (git status, API), not for static config like `workflow_type`. | Keep prose + conditional sections (§11 Option III) |
+| Deferred tools / ScheduleWakeup / ToolSearch | Autonomous-agent features, not for sync command-to-skill composition. | N/A |
+| Hooks | New hook types (`SubagentStart/Stop`, `TaskCreated/Completed`, `TeammateIdle`). No hooks for per-round token tracking. | N/A |
+| Plugin marketplace | **`/reload-plugins` no longer requires restart** — picks up skill/agent/hook changes hot. Plugin testing via `--plugin-dir` supports `.zip`. | **USE THIS** in dogfood test cycle to cut iteration time |
+
+**Action item from this finding**: update §12 backward compat test procedure to use `/reload-plugins` instead of marketplace remove+add+install (faster, lower risk of plugin install bugs polluting the test). See §12 update below.
 
 ## Appendix B — 7B.0 Phase 1/3 drift audit
 
-*(To be filled during 7B.0 execution.)*
+*Compiled 2026-05-12 by reading commands/{specs,design,brainstorm}.md Phase 1 (specs:253-451, design:197-349, brainstorm:187-324) and Phase 3 (specs:1607-1727, design:1476-1607, brainstorm:1480-1575) sections.*
+
+### Phase 1 section lengths
+- specs.md: 199 lines (1.1–1.4)
+- design.md: 153 lines
+- brainstorm.md: 138 lines
+
+### Phase 1 drift findings
+
+| ID | Drift | Severity | Classification |
+|----|-------|----------|----------------|
+| FIX-A | brainstorm.md missing `If --skip-roundtable is NOT present:` header (specs+design have it) | 1 line | Accidental — fix |
+| FIX-B | specs.md context-snapshot includes `input_sources:` block; design+brainstorm don't | n/a | NECESSARY (specs-specific smart-source-detection) |
+| FIX-C | agenda.yaml example verbosity: specs has 18-line YAML, design has 2 lines ("extract topics"), brainstorm has no agenda | ~16 lines | Partly accidental (design under-specified) + partly necessary (brainstorm has Disney) — fix design.md to match specs verbosity |
+| FIX-D | design.md context-snapshot lacks `scope:` block (specs has it; brainstorm has minimal context which is intentional) | ~5 lines | Accidental in design.md — fix |
+| FIX-E | brainstorm.md context-snapshot has only 3 fields (project_name, description, brainstorm_topic). specs has 5+. | n/a | NECESSARY (brainstorm = freeform topic) |
+| FIX-F | brainstorm.md has no agenda.yaml block | n/a | NECESSARY (Disney phases instead) |
+| FIX-G | Session topic literal pattern (`Requirements definition for {project}` / `Architecture design for {project}` / `{topic}`) | n/a | NECESSARY (workflow profile §1) |
+| FIX-H | Agenda topic counts (6/5/none) | n/a | NECESSARY |
+| FIX-I | Artifact types per workflow | n/a | NECESSARY |
+| FIX-J | Metrics block (`topics` vs `phases`) | n/a | NECESSARY |
+
+**Phase 1 accidental drift**: FIX-A (1 line) + FIX-C (~16 lines design.md) + FIX-D (~5 lines design.md) = **3 fixes, ~22 lines**.
+
+### Phase 3 section lengths
+- specs.md: 121 lines
+- design.md: 132 lines
+- brainstorm.md: 96 lines
+
+### Phase 3 drift findings
+
+| ID | Drift | Severity | Classification |
+|----|-------|----------|----------------|
+| FIX-L | Step 3.0 Diagnostic — IDENTICAL across 3 commands (only `workflow_type` differs) | 0 | None |
+| FIX-M | Step 3.2 wording — design.md says "Extract from session file (Single Source of Truth):" without "ALL artifacts are embedded" qualifier; specs+brainstorm have full qualifier | ~3 lines | Accidental — fix design.md |
+| FIX-N | brainstorm.md Step 3.4 is "Process Results" (no AskUserQuestion); specs+design Step 3.4 is "User Review" (with AskUserQuestion offering Approve/Refine/Add options) | ~22 lines structural | **Debatable — see decision** |
+| FIX-O | "Skip Roundtable Mode" section: specs+design have it, brainstorm doesn't | ~7 lines | NECESSARY (brainstorm is creative exploration; --skip-roundtable doesn't apply) |
+| FIX-P | brainstorm.md Step 3.4 adds "Pair risks with mitigations" + categorize by feasibility | n/a | NECESSARY (workflow-specific output prep) |
+| FIX-Q | Step 3.5 numbering: specs/brainstorm "3.5-3.7", design "3.5-3.8" (extra step for ADR generation) | n/a | NECESSARY (design generates ADRs) |
+
+**FIX-N decision**: classify as **accidental drift**. Even brainstorm benefits from a "review before output" prompt (user might want to refine before final ideas.md write). Bringing brainstorm.md to specs/design parity adds value without breaking workflow semantics. Implementing this is +1 fix.
+
+**Phase 3 accidental drift**: FIX-M (~3 lines) + FIX-N (~22 lines for brainstorm.md to gain AskUserQuestion) = **2 fixes, ~25 lines**.
+
+### Combined Phase 1+3 audit summary
+
+- **Total accidental drift fixes**: 5 (FIX-A, FIX-C, FIX-D, FIX-M, FIX-N)
+- **Total lines touched**: ~47 (well below the 30-per-command threshold *per command*: specs ≤ 0, design ≤ 24, brainstorm ≤ 23)
+- **Threshold check**: ≤ 30 lines per command ✅, ≤ 6 fixes total ✅
+
+### Scope decision
+
+**Include Phase 1+3 drift fixes in Phase 7B (during 7B.4b).** Reasoning:
+- Within threshold defined in §7B.0 action 6.
+- Context is fresh from this audit; fixing now is cheaper than re-mapping in Phase 8.
+- All 5 fixes are textual/structural, no risk to behavior beyond the brainstorm Step 3.4 AskUserQuestion addition (which is a UX improvement, not a regression).
+- Phase 8 thin-launcher conversion becomes cleaner (no leftover drift to negotiate).
+
+**Apply during 7B.4b**: after the Phase 2 wiring is done, in the same commit batch (Phase 1+3 fixes are small enough to bundle).
 
 ## Appendix C — 7B.3.5 extraction contract worked example
 
@@ -468,4 +539,46 @@ spec2ship is installed as a plugin. Any user with v0.3.x installed who updates t
 
 ## Appendix D — SKILL.md handling and ADR strategy
 
-*(To be filled during 7B.0 execution. Will contain: SKILL.md restructure plan or deferral note; ADR-0011 update or new ADR draft.)*
+*Compiled 2026-05-12.*
+
+### SKILL.md handling decision
+
+**Current state**:
+- `skills/roundtable-execution/SKILL.md` is **1002 lines**.
+- It contains a parallel Phase 1 (lines 82-221), Phase 2 (lines 223-911, with Steps 2.0-**2.11**), Phase 3 (lines 913-981).
+- Phase 2 in SKILL.md has Step 2.10 (Handle Escalation) and 2.11 (Safety Limits) that commands fold into 2.9.
+- Per ADR-0011 finding: "Commands have MORE features than the skill they claim to follow."
+- SKILL.md is effectively a 4th copy of the algorithm, drift-affected.
+
+**Decision: include SKILL.md restructure in 7B (default option from §7B.0 action 7)**.
+
+Concrete plan for SKILL.md post-7B (apply in 7B.5 alongside artifact schemas extraction):
+1. Keep: top-level frontmatter, "When to Use This Skill", "Workflow Context" tables (lines 1-81 + Reference Files list at the bottom).
+2. Replace Phase 1/2/3 sections with cross-references:
+   - "**Phase 1 (Session Setup)**: each command implements its own Phase 1 inline. Common patterns documented in `commands/{specs,design,brainstorm}.md`."
+   - "**Phase 2 (Round Execution Loop)**: see `references/phase-2-core.md` for the canonical executable algorithm."
+   - "**Phase 3 (Completion)**: each command implements its own Phase 3 inline. Common patterns documented in `commands/{specs,design,brainstorm}.md`."
+3. Drop Step 2.10/2.11 — folded into 2.9 per the commands (Phase 3 already aligned this).
+4. Target post-7B SKILL.md length: ~150-200 lines (overview + tables + cross-references).
+
+**Timebox check**: estimated 1h for restructure (cut + replace + cross-link). If the cut exceeds 1.5h, fallback to deferring to Phase 4 (per §7B.0).
+
+### ADR strategy decision
+
+**Current state**:
+- ADR-0011 is in `proposed` status (line 3 of file).
+- It documents the high-level TECH-002 plan including 5 implementation phases (the original 0-5 numbering, pre-revision).
+- The current phase structure (0-8 with 7B insertion) is in BACKLOG.md, not in the ADR.
+
+**Decision: append a "Phase 7B addendum" section to ADR-0011**, no new ADR.
+
+Concrete plan (apply at end of 7B.7 alongside BACKLOG update):
+1. Promote ADR-0011 from `proposed` to `accepted` (TECH-002 will be substantially complete at end of 7B).
+2. Append a section "## Phase 7B addendum (2026-05-{date})" documenting:
+   - The executable-skill-reference pattern (commands Read `phase-2-core.md` and follow it with profile injection).
+   - The profile YAML schema as the per-workflow data contract.
+   - The reasoning for keeping commands inline for Phase 1/3 (deferred to Phase 8).
+   - The §10 contract invariants as the safety net.
+3. Cross-link to this plan file and to `phase-2-core.md` v2.
+
+**No new ADR**: TECH-002 is a single architectural decision; the extraction pattern is an implementation detail of that decision, not a separate cross-cutting concern.
