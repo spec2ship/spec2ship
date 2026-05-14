@@ -556,7 +556,161 @@ spec2ship is installed as a plugin. Any user with v0.3.x installed who updates t
 
 ## Appendix C — 7B.3.5 extraction contract worked example
 
-*(To be filled during 7B.3.5 execution. Will contain a full Step 2.1 in extracted form, demonstrating profile injection, placeholder syntax, and runtime flag access. Also: feasibility prototype outcome — pass/fail + observations.)*
+*Compiled 2026-05-14.*
+
+### C.1 — Contract decisions (resolved)
+
+**Decision 1 — Profile injection mechanism: Option III** (Read profile, then Read core, apply values).
+
+Rationale: matches existing Read+follow patterns (`token-tracking.md`, `round-validation.md`); clearest "what to do" instructions for the LLM; no shell/template machinery needed.
+
+**Decision 2 — Placeholder syntax: Mixed** (Option C from §7B.3.5 decision space).
+
+- Inside YAML/JSON code blocks: `{{profile.field}}` for explicit substitution. Examples: `workflow_type: "{{profile.workflow_type}}"`.
+- In prose narrative: "the workflow's `topic.pattern`", "based on `profile.participants.default`". Matches how facilitators receive context.
+- Conditional sections referencing profile axis: `IF profile.progress.axis == "agenda":` / `IF profile.progress.axis == "disney_phase":` (literal comparison).
+
+Rationale: LLM-followability priority. Pure `{{X}}` is too template-like; pure prose is too vague. Mixed matches the codebase's existing idiom.
+
+**Decision 3 — Runtime flag visibility: Option III from §11** (conditional sections + named flag variables in caller scope).
+
+Mechanism: before invoking `phase-2-core.md`, the command makes the following variables available in the conversation context (by explicit prose declaration, e.g., "Running with: verbose_flag=true, diagnostic_flag=true, ..."):
+
+| Variable | Source | Used in |
+|----------|--------|---------|
+| `VERBOSE_FLAG` | `config-snapshot.yaml.verbose` | dump file writes (Step 2.2, 2.3, 2.4, 2.6c) |
+| `DIAGNOSTIC_FLAG` | `config-snapshot.yaml.diagnostic` | Step 2.6c session-observer invocation |
+| `INTERACTIVE_FLAG` | `config-snapshot.yaml.interactive` | Step 2.8 interactive prompts |
+| `STRATEGY` | `config-snapshot.yaml.strategy` (or resolved per profile.strategy_constraints) | all steps with strategy-aware behavior |
+| `PROFILE` | loaded workflow profile YAML object | every step that references profile data |
+| `SESSION_ID` | from session.yaml.id | persistence paths |
+| `ROUND_NUMBER` | loop counter, starts at 0, incremented by Step 2.1 | dump file naming |
+
+phase-2-core.md uses `IF VERBOSE_FLAG == true:` style conditionals (matches `verbose-dump-format.md` existing idiom).
+
+**Decision 4 — Return semantics: Linear control flow** (no callback / no signal).
+
+`phase-2-core.md` loops Steps 2.0 → 2.1 → ... → 2.9 internally until Step 2.9 reaches a terminal condition (`conclude`, `escalate` resolved, `max_rounds`, or context capacity). When phase-2-core.md "ends", control returns to the caller (the command), which proceeds to its inline Phase 3 section.
+
+No status flag, no return value. The session.yaml's `status` field reflects state ("active" during Phase 2, set to "closed" by Phase 3).
+
+**Decision 5 — Resume semantics: in-place preservation.**
+
+The resume logic stays inside phase-2-core.md (Steps 2.2, 2.3, 2.4 IF conditions on `agent_state.X.agent_id`). `agent_state` lives in session.yaml. The extracted module reads/writes session.yaml as today. No new resume infrastructure.
+
+Caller side: after loading profile, the command Reads `phase-2-core.md` and follows it. If `ROUND_NUMBER > 0` (loaded from session.yaml.metrics.rounds_completed for resume), the IF conditions inside phase-2-core.md trigger naturally.
+
+### C.2 — Worked example: Step 2.1 in extracted form
+
+This is what one step looks like after extraction. Used as the template for 7B.4a.
+
+```markdown
+### Step 2.1 — Display Round Start
+
+#### 2.1a Display block
+
+Choose display style based on profile:
+
+**IF** `profile.display_block_style == "minimal"`:
+
+Display a single line summarizing agenda status and artifact counts:
+```
+Round {{ROUND_NUMBER + 1}}: {agenda topics closed}/{total topics} | {artifact counts by primary type}
+```
+
+**IF** `profile.display_block_style == "rich"`:
+
+Display the full phase block (brainstorm only). Read the live `session.current_phase` value:
+```
+═══════════════════════════════════════════════════════════════
+{{profile.workflow_type | uppercase}}: {{session.topic}}
+Strategy: {{STRATEGY}} | Phase: {{session.current_phase}} | Round: {{ROUND_NUMBER + 1}}
+═══════════════════════════════════════════════════════════════
+
+{IF session.current_phase == "dreamer"}
+DREAMER PHASE: Think BIG! No constraints, wild ideas welcome.
+{/IF}
+{IF session.current_phase == "realist"}
+REALIST PHASE: Evaluate feasibility. How would we implement?
+{/IF}
+{IF session.current_phase == "critic"}
+CRITIC PHASE: Identify risks. What could go wrong?
+{/IF}
+
+ARTIFACTS: {counts from session.metrics.artifacts.by_type}
+```
+
+#### 2.1b Update state.json
+
+**IF `.s2s/state.json` exists**: Read it first to get current `active_plan` value.
+
+**IMMEDIATELY** use Write tool to write `.s2s/state.json`:
+
+```json
+{
+  "active_session": {
+    "id": "{{SESSION_ID}}",
+    "workflow_type": "{{profile.workflow_type}}",
+    "strategy": "{{STRATEGY}}",
+    "phase": "{{profile.state_phase}}",
+    "round": {{ROUND_NUMBER + 1}},
+    "participants_count": {{profile.participants.default | length}}
+  },
+  "active_plan": {existing active_plan value OR null if file didn't exist},
+  "last_activity": {
+    "timestamp": "{ISO timestamp}",
+    "action": "round_started",
+    "session_id": "{{SESSION_ID}}"
+  }
+}
+```
+
+NOTE: when `profile.state_phase == "{current_phase}"` (brainstorm), substitute the literal with `session.current_phase` (live value, NOT the literal string).
+```
+
+### C.3 — How a command consumes phase-2-core.md (caller side)
+
+After Phase 7B.4b, the command's Phase 2 section becomes (~10 lines):
+
+```markdown
+## Phase 2: Round Execution Loop
+
+If --skip-roundtable is NOT present:
+
+1. **Load workflow profile**:
+   Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/profiles/{{workflow_type}}.yaml`
+   Store the parsed object as `PROFILE` for use in Phase 2.
+
+2. **Set runtime flags in scope** (read from config-snapshot.yaml):
+   - `VERBOSE_FLAG = config-snapshot.verbose`
+   - `DIAGNOSTIC_FLAG = config-snapshot.diagnostic`
+   - `INTERACTIVE_FLAG = config-snapshot.interactive`
+   - `STRATEGY = config-snapshot.strategy` (after PROFILE.strategy_constraints check)
+   - `SESSION_ID = session.yaml.id`
+   - `ROUND_NUMBER = session.yaml.metrics.rounds_completed` (0 for fresh, N for resume)
+
+3. **Execute the canonical Phase 2 algorithm**:
+   Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/phase-2-core.md`.
+   Follow its instructions, applying `PROFILE` and runtime flag values as specified.
+   The algorithm loops internally until Step 2.9 reaches a terminal state (`conclude`, `escalate` resolved, `max_rounds`, or context capacity).
+
+4. After phase-2-core.md returns control, proceed to Phase 3.
+```
+
+### C.4 — Feasibility prototype outcome
+
+*(To be filled after dogfood test in `ElfGiftRush_s2s/exp43` — see prototype branch and revert protocol below.)*
+
+**Prototype scope**: extract Step 2.1 only (smallest unit that exercises profile injection + placeholder substitution + Read+follow at ~60-line scale).
+
+**Validation criteria** (after 1-round specs run):
+- [ ] Step 2.1 display block produced correctly for `display_block_style: "minimal"`.
+- [ ] state.json written with profile-derived values (`workflow_type: "specs"`, `phase: "requirements"`).
+- [ ] Round counter increments correctly.
+- [ ] No LLM-skip or hallucination of the Read+follow instructions.
+- [ ] T1 checkpoint fires at end of Step 2.1 (via Step 2.2 transition — verify by token-tracking output).
+
+**Cleanup**: per §7B.3.5, the prototype commit is reverted (not amended) to preserve audit trail. Only design lessons in this Appendix C and the resulting decisions stick.
 
 ## Appendix D — SKILL.md handling and ADR strategy
 
