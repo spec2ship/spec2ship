@@ -25,7 +25,7 @@ For quick reference, the workflow differences captured by the profiles:
 |-----------|---------|----------|--------------|--------------|
 | `workflow_type` literal | `"specs"` | `"design"` | `"brainstorm"` | `workflow_type` |
 | `topic_pattern` | `"Requirements definition for {project_name}"` | `"Architecture design for {project_name}"` | `"{topic}"` (from `--topic`) | `topic.pattern` |
-| `state.json.phase` | `"requirements"` | `"design"` | `"{current_phase}"` (variable) | `state_phase` |
+| `state.json.active_session.phase` | `"requirements"` | `"design"` | `"{current_phase}"` (variable) | `state_phase` |
 | Participants (4) | PM, UX, BA, QA | Arch, Sec, TechLead, DevOps | PM, Arch, TechLead, DevOps | `participants.default` |
 | Artifact types | REQ, BR, NFR, EX, OQ, CONF | ARCH, COMP, INT, OQ, CONF | IDEA, RISK, MIT, OQ, CONF | `artifact_types[].prefix` |
 | Progress axis | `agenda` | `agenda` | `disney_phase` | `progress.axis` |

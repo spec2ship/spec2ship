@@ -20,16 +20,23 @@ topic:
   source: <string>                 # where the placeholder value comes from
                                    # values: "context-snapshot.project_name" | "cli-arg.topic"
 
-# State.json/session.yaml phase field
-state_phase: <string>              # literal value to write into state field
+# state.json.active_session.phase field (written by Step 2.1 every round)
+state_phase: <string>              # literal value to write
                                    # e.g., "requirements" | "design"
-                                   # OR "{current_phase}" (variable, brainstorm)
+                                   # OR "{current_phase}" (variable, substituted with dreamer/realist/critic)
 
 # Strategy defaults and constraints
 default_strategy: <string>         # e.g., "consensus-driven" | "debate" | "disney"
 strategy_constraints:
-  allowed: [<string>, ...]         # list of allowed strategies for this workflow
-  forced: <bool>                   # if true, strategy CANNOT be overridden (--strategy ignored)
+  allowed: [<string>, ...]         # strategies OFFICIALLY SUPPORTED for this workflow
+                                   # (per roundtable-strategies/SKILL.md compatibility table).
+                                   # If user passes --strategy not in this list, command warns
+                                   # but does not block (when forced: false).
+                                   # NOTE: command frontmatter argument-hint may show a shorter
+                                   # list for UX brevity; this profile field is authoritative.
+  forced: <bool>                   # if true, --strategy CLI value is IGNORED regardless of
+                                   # what user passes; default_strategy is always used.
+                                   # Only brainstorm has forced: true (disney).
 
 # Default participants (4 fixed for specs/design; configurable for brainstorm)
 participants:
