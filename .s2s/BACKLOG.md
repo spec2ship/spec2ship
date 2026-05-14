@@ -695,6 +695,32 @@ fi
 
 ---
 
+### BUG-013: Session-observer Step 2.6c silently skipped at runtime
+
+**Status**: planned | **Created**: 2026-05-14 | **Priority**: medium | **Related**: TECH-002 Phase 7B (baseline finding F2)
+
+**Context**: Step 2.6c (Diagnostic Observation, per-round) is consistently skipped by the LLM during roundtable execution despite `diagnostic_flag == true`. Confirmed via exp42/exp43 dogfood: 0 session-observer invocations leave any persistence trail in design and brainstorm baselines (2026-05-13).
+
+**Investigation summary (TECH-002 Phase 7B sub-phase 7B.2, 2026-05-14)**:
+Root cause is mixed (spec ambiguity + runtime quirk). Five contributing factors:
+1. Display-only output (no file artifact = no LLM commitment proof)
+2. Step position in housekeeping cluster (between 2.6b and 2.7, both display-only)
+3. Token budget pressure (6 → 7 agent invocations per round)
+4. `IF diagnostic_flag == true` indirection (flag in config-snapshot)
+5. SKILL.md has NO Step 2.6c (commands do; skill missing it)
+
+Full investigation in `.s2s/plans/20260506-tech002-phase7b-deep-extraction.md` §7B.2.
+
+**Fix planned in Phase 7B.4a/4b**:
+- FIX-S1: persist observer output to `rounds/{NNN}-04-session-observer.yaml`
+- FIX-S2: MANDATORY language ("MUST", "DO NOT skip")
+- FIX-S3: SKILL.md alignment via 7B.5 (cross-reference to phase-2-core.md Step 2.6c)
+- Update `verbose-dump-format.md` with new dump naming
+
+**Acceptance**: exp44 replay shows ≥3/3 (specs/design/brainstorm) session-observer dump files per round when `--diagnostic` flag is set.
+
+---
+
 ### BUG-012: Token tracker non si riattiva dopo compact + resume
 
 **Status**: planned | **Created**: 2026-02-02 | **Priority**: high

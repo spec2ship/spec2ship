@@ -118,31 +118,52 @@ Smoke tests are interleaved between 7B.4a/4b and after 7B.4b to catch breakage e
 
 **Goal**: have structural fingerprints for design and brainstorm BEFORE we modify them.
 
-**Pre-condition**: spec2ship plugin must be installed from the post-Phase 3 commit. Since develop @ `0274b4a` and the current feature branch (pre-changes) point to the same code state, either works. Verify with `git log -1 --oneline` before running.
+**Pre-condition**: spec2ship plugin must be at post-Phase 3 state (develop @ `0274b4a` or feature/TECH-002-phase7b-deep-extraction pre-changes — same code).
+
+**Approach** (simplified per user feedback 2026-05-12): sequential runs in the existing `exp43` worktree with `git reset --hard` to the post-Phase 3 baseline between runs. Avoids creating new worktrees and keeps audit trail.
 
 **Actions**:
-1. In `ElfGiftRush_s2s` create worktrees `exp43-design` and `exp43-brainstorm` (naming aligned to exp43 = post-Phase 3, even though specs's exp43 was first).
-2. Run `/s2s:design --verbose --diagnostic` and `/s2s:brainstorm --verbose --diagnostic` against the same project context used for exp42/exp43 specs.
-3. Generate structural summaries → commit in `spec2ship/.s2s/test-baselines/exp43-{design,brainstorm}-pre-phase7b.md` (public-safe, schema invariants only). Note: specs baseline is `exp43-specs-post-phase3.md` — different naming because it served a different role. Future Phase 7B baselines all follow `exp43-{workflow}-pre-phase7b.md` pattern.
-4. Commit raw artifacts in `ElfGiftRush_s2s` (private).
+1. In `ElfGiftRush_s2s/exp43` worktree, verify clean state and HEAD at post-Phase 3 baseline (note the SHA, call it `$BASE_SHA`).
+2. Run `/s2s:design --verbose --diagnostic` against the existing project context.
+3. After completion: `git add -A && git commit -m "exp43 design baseline (pre-Phase 7B)"`. Note the commit SHA as `exp43-design` baseline.
+4. `git reset --hard $BASE_SHA` to clean baseline.
+5. Run `/s2s:brainstorm --verbose --diagnostic`.
+6. After completion: `git add -A && git commit -m "exp43 brainstorm baseline (pre-Phase 7B)"`. Note the commit SHA as `exp43-brainstorm` baseline.
+7. From `spec2ship` repo: generate structural summaries → commit in `.s2s/test-baselines/exp43-{design,brainstorm}-pre-phase7b.md` (public-safe, schema invariants only). Reference the dogfood-repo commit SHAs in each summary for auditability (per `feedback_test_data_split.md`).
 
-**Deliverable**: 2 new structural summaries in `.s2s/test-baselines/`.
+**Deliverable**: 2 new structural summaries in `.s2s/test-baselines/`. 2 commit SHAs in `ElfGiftRush_s2s/exp43` linked from the summaries.
 
-### 7B.2 — Investigate F2 (session-observer activation, ~30min)
+### 7B.2 — Investigate F2 (session-observer activation, ~30min) ✅
 
 **Goal**: understand why Step 2.6c is consistently skipped at runtime BEFORE extracting.
 
-**Why before extraction**: the abstraction we extract should fix or explicitly document this — otherwise we extract a broken spec.
+**Findings (2026-05-14)**:
 
-**Actions**:
-1. Read current Step 2.6c text in all 3 commands.
-2. Compare against `session-observer` agent activation pattern.
-3. Hypothesis check: is it conditional on `--diagnostic` flag? Is the `Use the session-observer agent` invocation pattern correct?
-4. Identify root cause: runtime quirk vs spec ambiguity.
+Root cause is **mixed: spec ambiguity + runtime quirk**. Five contributing factors identified:
 
-**Deliverable**:
-- If runtime quirk: file BUG entry, leave 2.6c as-is in extraction (preserve current behavior).
-- If spec ambiguity: fix the activation pattern in the extracted module.
+1. **Display-only output → no persistence reward**: Step 2.6c output is purely ephemeral. Unlike every other Step 2.X (which writes session.yaml or dump files), 2.6c has no file artifact. The LLM has no proof-of-execution to point to. Confirmed via empirical check: 0 session-observer dump files in exp43 design+brainstorm baselines despite `diagnostic: true` in config-snapshot.
+2. **Position in step sequence**: 2.6c sits in a "housekeeping cluster" between 2.6b (validation, also display-only) and 2.7 (recap, also display-only). The LLM tends to compress display-only steps under context pressure.
+3. **Token budget pressure**: each round already has 6 agent invocations. A 7th (session-observer) per round adds ~16% overhead; deprioritized as session length grows.
+4. **`IF diagnostic_flag == true` indirection**: the flag is loaded from `config-snapshot.yaml`. The LLM must check this every round; after several rounds the check is forgotten.
+5. **Spec ambiguity in SKILL.md**: SKILL.md has NO Step 2.6c (commands have it; skill doesn't — confirmed by `grep` in SKILL.md). If the LLM cross-references SKILL.md as authoritative, it sees no 2.6c there.
+
+**Empirical evidence** (from exp43 design/brainstorm replays 2026-05-13):
+- diagnostic_flag = true ✓ in both config-snapshots
+- 0 session-observer dump files written (no persistence pattern exists)
+- 0 entries in session.yaml referencing observer output
+- Per-round invocation count: unmeasurable from artifacts (display-only) — Francesco's prior count of "1/4 in exp43-specs" was based on observing live runs
+
+**Decision**: this is **both** spec ambiguity AND runtime quirk. Fix it in the extracted module (do NOT just file a BUG and walk away).
+
+**Fix strategy for 7B.4a/4b**:
+1. **Add persistence (FIX-S1)**: extracted Step 2.6c MUST write a dump file `rounds/{NNN}-04-session-observer.yaml` with the observer's full output. Persistence = LLM commitment proof; also enables 7B.7 regression to count 2.6c invocations directly.
+2. **Mandatory language (FIX-S2)**: replace `IF diagnostic_flag == true` with `IF diagnostic_flag == true MUST:` and add explicit "DO NOT skip this step" comment. Pattern matches Step 2.6/2.6b which use "YOU MUST".
+3. **SKILL.md alignment (FIX-S3)**: in 7B.5 SKILL.md restructure, ensure cross-reference to `phase-2-core.md` Step 2.6c is explicit. Same for SKILL.md Step 3.0 (end-session diagnostic).
+4. **Update `verbose-dump-format.md`**: add the new dump naming `{NNN}-04-session-observer.yaml` to the canonical schema.
+
+**BUG entry**: see `BACKLOG.md` BUG-013 "Session-observer Step 2.6c silently skipped" — filed 2026-05-14, blocked by Phase 7B fix above.
+
+**Deliverable**: ✅ findings documented above + BUG-013 filed + fix strategy committed to 7B.4a/4b actions.
 
 ### 7B.3 — Profile YAML schema (~1h)
 
