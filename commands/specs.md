@@ -492,23 +492,31 @@ Initialize:
 
 #### Step 2.1: Display Round Start
 
-> **PROTOTYPE — TECH-002 Phase 7B.3.5 feasibility test (2026-05-14).**
-> **DO NOT MERGE TO DEVELOP.** This commit will be reverted via `git revert` after the test.
-> Reference: `.s2s/plans/20260506-tech002-phase7b-deep-extraction.md` §C.4.
+Display agenda status and artifact counts.
 
-**Make the following available in conversation context** (caller-side pre-conditions for the extracted Step 2.1):
+**CORE: Update state.json** (for resume suggestion and statusline display)
 
-1. **Load workflow profile**: Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/profiles/specs.yaml`. Store the parsed object as `PROFILE`.
-2. **Set in scope**:
-   - `STRATEGY` = `{strategy_to_use}` (the resolved strategy name)
-   - `SESSION_ID` = `{session-id}`
-   - `ROUND_NUMBER` = `{round_number}` (loop counter, 0 for first round)
+**IF `.s2s/state.json` exists**: Read it first to get current `active_plan` value.
 
-**Then execute the extracted step**:
-
-Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/_proto-step-2-1.md` and follow its instructions, applying `PROFILE`, `STRATEGY`, `SESSION_ID`, and `ROUND_NUMBER` as specified.
-
-After the extracted step completes, proceed to Step 2.2.
+**IMMEDIATELY** use Write tool to write `.s2s/state.json`:
+```json
+{
+  "active_session": {
+    "id": "{session-id}",
+    "workflow_type": "specs",
+    "strategy": "{strategy_to_use}",
+    "phase": "requirements",
+    "round": {round_number + 1},
+    "participants_count": 4
+  },
+  "active_plan": {existing active_plan value OR null if file didn't exist},
+  "last_activity": {
+    "timestamp": "{ISO timestamp}",
+    "action": "round_started",
+    "session_id": "{session-id}"
+  }
+}
+```
 
 #### Step 2.2: Facilitator Question
 
