@@ -8,28 +8,41 @@
 
 ## 1. Workflow profiles
 
-The same algorithm runs in three flavors, parameterized by `workflow_type`. The table below captures every difference that is **necessary** (semantically required by the workflow) — accidental drift has been removed in TECH-002 Phase 3.
+The same algorithm runs in three flavors, parameterized by `workflow_type`. Every workflow-specific value is captured in a **profile YAML** under `skills/roundtable-execution/profiles/`. The algorithm in §2 references profile values via `{{profile.X}}` paths (or, until 7B.4 lands, via narrative reference to "the loaded profile").
 
-| Parameter | `specs` | `design` | `brainstorm` |
-|-----------|---------|----------|--------------|
-| `workflow_type` literal | `"specs"` | `"design"` | `"brainstorm"` |
-| `topic_pattern` | `"Requirements definition for {project name}"` | `"Architecture design for {project name}"` | `"{topic}"` (free-form, from `--topic` arg) |
-| `state.json.phase` | `"requirements"` | `"design"` | `"{current_phase}"` (variable: `dreamer`/`realist`/`critic`) |
-| Participants (4) | `product-manager`, `ux-researcher`, `business-analyst`, `qa-lead` | `software-architect`, `security-champion`, `technical-lead`, `devops-engineer` | `product-manager`, `software-architect`, `technical-lead`, `devops-engineer` |
-| Artifact types | `REQ-*`, `BR-*`, `NFR-*`, `EX-*`, `OQ-*`, `CONF-*` | `ARCH-*`, `COMP-*`, `INT-*`, `OQ-*`, `CONF-*` | `IDEA-*`, `RISK-*`, `MIT-*`, `OQ-*`, `CONF-*` |
-| Progress axis | `agenda` (topics) | `agenda` (topics) | `disney_phase` (phase machine) |
-| Default agenda count | 6 topics | 5 topics | n/a |
-| `updates_since_last_round.*_changes` | `agenda_changes` | `agenda_changes` | `phase_changes` |
-| Synthesis input progress field | `full_agenda[]` + `focus_topic` | `full_agenda[]` + `focus_topic` | `phases_status[]` + `current_phase` + `artifacts_summary` |
-| Synthesis output progress field | `agenda_update` | `agenda_update` | `phase_recommendation` |
-| Round summary tag | `topic_id` | `topic_id` (+ optional `debate_phase` for debate strategy) | `disney_phase` |
-| `next` values | `continue` / `conclude` / `escalate` | `continue` / `conclude` / `escalate` | `continue` / **`phase`** / `conclude` / `escalate` |
-| Step 2.6d Phase Transition | n/a | n/a | **present** (phase advance machine) |
-| Step 2.1 display block | minimal (1 line) | minimal (1 line) | rich block (Disney phase rules) |
+**Profiles**:
+- `profiles/specs.yaml`
+- `profiles/design.yaml`
+- `profiles/brainstorm.yaml`
+
+**Schema documentation**: `references/profile-schema.md` (canonical schema + field-to-§1 mapping + validation rules + how-to-add-a-workflow guide).
+
+### Human-readable summary
+
+For quick reference, the workflow differences captured by the profiles:
+
+| Parameter | `specs` | `design` | `brainstorm` | Profile path |
+|-----------|---------|----------|--------------|--------------|
+| `workflow_type` literal | `"specs"` | `"design"` | `"brainstorm"` | `workflow_type` |
+| `topic_pattern` | `"Requirements definition for {project_name}"` | `"Architecture design for {project_name}"` | `"{topic}"` (from `--topic`) | `topic.pattern` |
+| `state.json.phase` | `"requirements"` | `"design"` | `"{current_phase}"` (variable) | `state_phase` |
+| Participants (4) | PM, UX, BA, QA | Arch, Sec, TechLead, DevOps | PM, Arch, TechLead, DevOps | `participants.default` |
+| Artifact types | REQ, BR, NFR, EX, OQ, CONF | ARCH, COMP, INT, OQ, CONF | IDEA, RISK, MIT, OQ, CONF | `artifact_types[].prefix` |
+| Progress axis | `agenda` | `agenda` | `disney_phase` | `progress.axis` |
+| Default agenda count | 6 | 5 | n/a | `progress.agenda_count` |
+| `updates_since_last_round.*_changes` | `agenda_changes` | `agenda_changes` | `phase_changes` | `progress.changes_field` |
+| Synthesis input progress fields | `full_agenda` + `focus_topic` | same | `phases_status` + `current_phase` + `artifacts_summary` | `progress.synthesis_input_fields` |
+| Synthesis output progress field | `agenda_update` | `agenda_update` | `phase_recommendation` | `progress.synthesis_output_field` |
+| Round summary tag | `topic_id` | `topic_id` (+ optional `debate_phase` for debate) | `disney_phase` | `round_summary.tag_field` |
+| `next` values | `continue` / `conclude` / `escalate` | same | + **`phase`** | `next_values` |
+| Step 2.6d Phase Transition | n/a | n/a | **present** | `has_phase_transition` |
+| Step 2.1 display block | minimal | minimal | rich (Disney phase rules) | `display_block_style` |
+
+The table is informational; the authoritative source is each profile YAML. When updating a workflow value, edit the profile YAML and update this table in the same commit.
 
 > **Out-of-scope drifts** known but not yet fixed:
-> - `session-schema.md:567` lists design artifact types as `ARCH-*, COMP-*, CONF-*, OQ-*` (no `INT-*`); design.md uses `INT-*`. Either the schema is incomplete or `INT-*` is undocumented.
-> - `session-schema.md:568` does not list `CONF-*` for brainstorm; brainstorm.md creates conflicts. Same shape of issue.
+> - `session-schema.md:567` lists design artifact types as `ARCH-*, COMP-*, CONF-*, OQ-*` (no `INT-*`); design profile uses `INT-*`. Schema doc incomplete.
+> - `session-schema.md:568` does not list `CONF-*` for brainstorm; brainstorm profile defines `CONF-*`. Same shape of issue.
 >
 > These are tracked as follow-ups; they affect schema docs, not the loop.
 
