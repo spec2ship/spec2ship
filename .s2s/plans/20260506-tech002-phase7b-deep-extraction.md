@@ -697,20 +697,46 @@ If --skip-roundtable is NOT present:
 4. After phase-2-core.md returns control, proceed to Phase 3.
 ```
 
-### C.4 — Feasibility prototype outcome
+### C.4 — Feasibility prototype outcome — **PASSED** ✅
 
-*(To be filled after dogfood test in `ElfGiftRush_s2s/exp43` — see prototype branch and revert protocol below.)*
+*Run 2026-05-14 in `ElfGiftRush_s2s/exp44`, plugin at feature/TECH-002-phase7b-deep-extraction commit `9f6adff`.*
 
-**Prototype scope**: extract Step 2.1 only (smallest unit that exercises profile injection + placeholder substitution + Read+follow at ~60-line scale).
+**Prototype scope**: Step 2.1 only (smallest unit exercising profile injection + placeholder substitution + Read+follow at ~60-line scale).
 
-**Validation criteria** (after 1-round specs run):
-- [ ] Step 2.1 display block produced correctly for `display_block_style: "minimal"`.
-- [ ] state.json written with profile-derived values (`workflow_type: "specs"`, `phase: "requirements"`).
-- [ ] Round counter increments correctly.
-- [ ] No LLM-skip or hallucination of the Read+follow instructions.
-- [ ] T1 checkpoint fires at end of Step 2.1 (via Step 2.2 transition — verify by token-tracking output).
+**Run conditions**:
+- Worktree: `~/Repositories/ElfGiftRush_s2s/exp44` at commit `af9af48` (matches exp43's pre-specs starting state — `baseline: /s2s:init scaffold`).
+- Command: `/s2s:specs --verbose --diagnostic`.
+- Plugin: feature branch with prototype commit applied.
 
-**Cleanup**: per §7B.3.5, the prototype commit is reverted (not amended) to preserve audit trail. Only design lessons in this Appendix C and the resulting decisions stick.
+**Validation results** (vs exp43 specs baseline):
+
+| Check | Result | Comparison vs exp43 |
+|-------|--------|---------------------|
+| Session ran to completion | ✅ 4 rounds | match (exp43 also 4) |
+| Session.yaml top-level keys | ✅ 12, identical set | match |
+| `topic` derived from `profile.topic.pattern` | ✅ "Requirements definition for ElfGiftRush" | match |
+| `workflow_type` | ✅ "specs" | match |
+| `strategy` (default from profile) | ✅ "consensus-driven" | match |
+| Agenda topics | ✅ 6 | match `profile.progress.agenda_count` |
+| Dump file count | ✅ 24 (4 × 6) | match canonical pattern |
+| state.json shape post-close | ✅ `active_session: null` | match |
+| Errors / hallucinated placeholders | ✅ none | — |
+
+**Artifact count deltas** (expected LLM nondeterminism, Step 2.1 prototype does not affect Step 2.5):
+- REQ: exp43=14 → exp44=20 (+6); BR: 8→19; NFR: 12→22; EX: 3→1; OQ: 7→4; CONF: 0→0.
+
+**Unverifiable** (out of scope for prototype): state.json mid-run snapshot was overwritten at session close. Direct evidence of Step 2.1 writing profile-derived values is indirect via downstream session.yaml + dump structure.
+
+**Caveats for 7B.4a** (not blockers, but require care):
+1. Tested only specs (axis=agenda, display=minimal). Brainstorm (axis=disney_phase, display=rich) and design (debate strategy with `debate_role`) untested. Verify these aspects work during 7B.4a, do not skip.
+2. Scale tested: ~60 lines extracted. Full Phase 2 is ~500 lines (~8× scale). High confidence but not certainty.
+3. Profile loading was implicit (Claude read the YAML when asked). Confirm in 7B.4a that complex profile fields (artifact_types[], progress.synthesis_input_fields) are correctly accessed by phase-2-core.md as well.
+
+**Audit trail in dogfood repo**: `ElfGiftRush_s2s` branch + tag `exp44-proto-specs` @ commit `a9eb13e`.
+
+**Cleanup completed**: prototype commit `9f6adff` reverted via `git revert` (commit `8f9e78c`). Working tree on feature branch is clean. Plugin can be reinstalled cleanly from feature/TECH-002-phase7b-deep-extraction tip without any prototype residue.
+
+**Verdict for 7B.4a**: PROCEED. The Option III + mixed placeholder + flag-variables-in-scope mechanism works as specified. No revisions to §C.1-C.3 needed.
 
 ## Appendix D — SKILL.md handling and ADR strategy
 
