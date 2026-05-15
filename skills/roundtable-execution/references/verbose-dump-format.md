@@ -5,11 +5,12 @@ When `--verbose` flag is set, write dump files to `rounds/` subfolder within the
 ## Naming Convention
 
 ```
-Facilitator: {NNN}-{PP}-facilitator-{action}.yaml
-Participant: {NNN}-02-{participant-id}.yaml
+Facilitator:      {NNN}-{PP}-facilitator-{action}.yaml
+Participant:      {NNN}-02-{participant-id}.yaml
+Session-Observer: {NNN}-04-session-observer.yaml      (NEW in 7B.4a, FIX-S1)
 
 NNN = 3-digit round number (001, 002, ...)
-PP = 2-digit phase (01=question, 02=responses, 03=synthesis)
+PP = 2-digit phase (01=question, 02=responses, 03=synthesis, 04=observer)
 action = question | synthesis (for facilitator files)
 participant-id = product-manager, software-architect, etc.
 ```
@@ -19,8 +20,9 @@ participant-id = product-manager, software-architect, etc.
 - `001-02-software-architect.yaml` - Participant response (phase 2)
 - `001-02-product-manager.yaml` - Participant response (phase 2)
 - `001-03-facilitator-synthesis.yaml` - Facilitator synthesis (phase 3)
+- `001-04-session-observer.yaml` - Per-round diagnostic observer (phase 4, only when `--diagnostic`)
 
-**YAML `actor` field**: Always just `facilitator` or `{participant-id}` (not `facilitator-question`).
+**YAML `actor` field**: Always just `facilitator`, `{participant-id}`, or `session-observer` (not `facilitator-question`).
 
 ## Usage in Commands
 
@@ -268,13 +270,61 @@ verification:
 
 ---
 
+## Session-Observer Dump (Step 2.6c — added in TECH-002 Phase 7B.4a per FIX-S1 / BUG-013)
+
+When `--diagnostic` flag is set, Step 2.6c writes the session-observer output per round:
+
+**Filename**: `{NNN}-04-session-observer.yaml` (NNN = zero-padded round number)
+
+```yaml
+# Round {N} - Session Observer (per-round)
+round: {N}
+phase: 4
+actor: "session-observer"
+action: "observe"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
+
+# STRUCTURED input (the YAML sent to session-observer agent)
+input:
+  mode: "per-round"
+  session_path: ".s2s/sessions/{session-id}"
+  round: {N}
+  workflow_type: "{specs|design|brainstorm}"
+  strategy: "{strategy}"
+
+# STRUCTURED response (the observer's full YAML response)
+response:
+  mode: "per-round"
+  round: {N}
+  status: "ok" | "warning" | "anomaly"
+  findings:
+    - type: "{missing_context|strategy_deviation|...}"
+      detail: "{description}"
+      severity: "low" | "medium" | "high"
+    # ... zero or more findings
+  recommendation: "Continue" | "Review findings" | "Stop for investigation"
+  notes: |
+    Optional free-form observations.
+
+result:
+  status: "{response.status}"
+  findings_count: {len(response.findings)}
+  recommendation: "{response.recommendation}"
+```
+
+**Why this dump exists**: BUG-013 (TECH-002 Phase 7B.2 investigation) identified that Step 2.6c was consistently skipped at runtime because its output was display-only (no file artifact = no LLM commitment proof). Persistence anchors the step in the round's file pattern, matching the canonical `01-question`, `02-{participant}`, `03-synthesis` pattern with a new `04-session-observer` slot.
+
+---
+
 ## Key Principles
 
 1. **Structured YAML**: Use `input:` and `response:` as YAML objects, NOT text blobs
 2. **Full content**: Save complete input/response, not summaries
 3. **Verification**: Include checklist for diagnostic tools (session-observer)
 4. **Consistent naming**: See naming convention above (facilitator includes action, participant does not)
+5. **Diagnostic persistence**: When `--diagnostic` is set, Step 2.6c MUST write the session-observer dump (FIX-S1 / BUG-013)
 
 ---
 
-*Updated to use structured format per TECH-002 consolidation*
+*Updated to use structured format per TECH-002 consolidation. Session-observer dump added in TECH-002 Phase 7B.4a (2026-05-15).*

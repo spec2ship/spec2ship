@@ -1,14 +1,16 @@
-# Phase 2 Core Algorithm — Canonical Reference
+# Phase 2 Core Algorithm — Executable Reference
 
-> **Status**: descriptive reference (not executable). The three commands `/s2s:specs`, `/s2s:design`, `/s2s:brainstorm` each implement Phase 2 Round Execution Loop inline. This document captures the canonical algorithm they share, with the parameterized differences made explicit. It is the single source of truth for the Phase 2 contract and the target spec for the future Phase 7B "deep extraction" refactor (where commands become thin launchers that delegate to a single executable algorithm).
+> **Status**: executable single-source for the Phase 2 Round Execution Loop (TECH-002 Phase 7B.4a, 2026-05-15).
 >
-> **Maintenance rule**: when changing the Phase 2 loop in any command, update this doc in the same commit. Drift here is the indicator that uniformity has been lost again.
+> This document is the canonical Phase 2 algorithm. Each `/s2s:specs`, `/s2s:design`, `/s2s:brainstorm` command Reads this file at the start of Phase 2 and follows its instructions, with workflow-specific values supplied by a profile YAML from `profiles/`.
+>
+> **Maintenance rule**: when changing Phase 2 behavior, edit THIS file. Commands consume it; do not duplicate.
 
 ---
 
 ## 1. Workflow profiles
 
-The same algorithm runs in three flavors, parameterized by `workflow_type`. Every workflow-specific value is captured in a **profile YAML** under `skills/roundtable-execution/profiles/`. The algorithm in §2 references profile values via `{{profile.X}}` paths (or, until 7B.4 lands, via narrative reference to "the loaded profile").
+The same algorithm runs in three flavors, parameterized by `workflow_type`. Every workflow-specific value is captured in a **profile YAML** under `skills/roundtable-execution/profiles/`. References in §2 below use `{{profile.X}}` paths.
 
 **Profiles**:
 - `profiles/specs.yaml`
@@ -38,240 +40,832 @@ For quick reference, the workflow differences captured by the profiles:
 | Step 2.6d Phase Transition | n/a | n/a | **present** | `has_phase_transition` |
 | Step 2.1 display block | minimal | minimal | rich (Disney phase rules) | `display_block_style` |
 
-The table is informational; the authoritative source is each profile YAML. When updating a workflow value, edit the profile YAML and update this table in the same commit.
+The table is informational; the authoritative source is each profile YAML.
 
 > **Out-of-scope drifts** known but not yet fixed:
-> - `session-schema.md:567` lists design artifact types as `ARCH-*, COMP-*, CONF-*, OQ-*` (no `INT-*`); design profile uses `INT-*`. Schema doc incomplete.
-> - `session-schema.md:568` does not list `CONF-*` for brainstorm; brainstorm profile defines `CONF-*`. Same shape of issue.
->
-> These are tracked as follow-ups; they affect schema docs, not the loop.
+> - `session-schema.md` lists design artifact types without `INT-*`; design profile uses `INT-*`. Schema doc incomplete.
+> - `session-schema.md` does not list `CONF-*` for brainstorm; brainstorm profile defines `CONF-*`. Same shape.
 
 ---
 
-## 2. Round Loop algorithm (canonical)
+## 2. Round Loop algorithm
 
-Each round runs the steps below in order. References to "profile" mean values from §1 for the active `workflow_type`.
+### 2.0 — How a command invokes this document
+
+Before Reading this file, the calling command MUST have made the following available in conversation context:
+
+| Variable | Source | Notes |
+|----------|--------|-------|
+| `PROFILE` | parsed `profiles/{workflow_type}.yaml` | the loaded workflow profile object |
+| `STRATEGY` | resolved strategy name | e.g., `"consensus-driven"`, `"debate"`, `"disney"` |
+| `SESSION_ID` | from `session.yaml.id` | string |
+| `ROUND_NUMBER` | from `session.yaml.metrics.rounds_completed` | integer; 0 for fresh, N for resume |
+| `VERBOSE_FLAG` | from `config-snapshot.yaml.verbose` | boolean |
+| `DIAGNOSTIC_FLAG` | from `config-snapshot.yaml.diagnostic` | boolean |
+| `INTERACTIVE_FLAG` | from `config-snapshot.yaml.interactive` | boolean |
+| `TOKEN_SCRIPT` | from token-tracking.md "Script Location" | path to capture script |
+
+The algorithm loops Steps 2.0 → 2.9 internally until Step 2.9 dispatches a terminal action. Control then returns to the command, which executes Phase 3.
+
+---
 
 ### Step 2.0 — Context Capacity Check
 
-Identical across all three commands.
+Identical across all profiles.
 
-1. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md`
-2. Always execute "Script Location" (verify script exists, store path as `TOKEN_SCRIPT`)
-3. Execute "Context Capacity Check" (every round, computes `SHOULD_STOP` / `SHOULD_WARN`)
+1. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md` (cached if already loaded this session).
+2. Execute the "Script Location" section to verify the token-tracking script and store its path as `TOKEN_SCRIPT`.
+3. Execute the "Context Capacity Check" section. This computes `SHOULD_STOP` and `SHOULD_WARN` flags based on current context usage.
 
-Token checkpoints fire later: T1 after 2.2, T2 after 2.3, T3 after 2.4.
+Token checkpoints `T1`, `T2`, `T3` fire at the end of Steps 2.2, 2.3, 2.4 respectively (commands shown in those steps).
+
+---
 
 ### Step 2.1 — Display Round Start
 
-- **specs / design**: minimal display ("agenda status and artifact counts").
-- **brainstorm**: rich block showing current Disney phase + per-phase rules. *(Necessary; the phase machine drives the entire UX.)*
+#### 2.1a Display block
 
-Then update `state.json` with the same shape across workflows; only `workflow_type`, `phase`, and `strategy` differ. Always preserve any pre-existing `active_plan` value.
+**IF** `PROFILE.display_block_style == "minimal"`:
+
+Display a single line summarizing the round start:
+
+```
+Round {ROUND_NUMBER + 1}: {topics closed}/{total topics} agenda | Artifacts: {counts by primary type}
+```
+
+Source counts: `session.yaml.agenda` (status counts) and `session.yaml.metrics.artifacts.by_type` (filtered by `PROFILE.artifact_types[].is_primary == true`).
+
+**IF** `PROFILE.display_block_style == "rich"`:
+
+Read the live `session.current_phase` value. Display:
+
+```
+═══════════════════════════════════════════════════════════════
+{{PROFILE.workflow_type | uppercase}}: {{session.topic}}
+Strategy: {{STRATEGY}} | Phase: {{session.current_phase}} | Round: {{ROUND_NUMBER + 1}}
+═══════════════════════════════════════════════════════════════
+
+{IF session.current_phase == "dreamer"}
+DREAMER PHASE: Think BIG! No constraints, wild ideas welcome.
+{/IF}
+{IF session.current_phase == "realist"}
+REALIST PHASE: Evaluate feasibility. How would we implement?
+{/IF}
+{IF session.current_phase == "critic"}
+CRITIC PHASE: Identify risks. What could go wrong?
+{/IF}
+
+ARTIFACTS: {counts from session.metrics.artifacts.by_type}
+```
+
+#### 2.1b Update state.json
+
+**IF `.s2s/state.json` exists**: Read it first to get the current `active_plan` value (to preserve it).
+
+**IMMEDIATELY** use Write tool to write `.s2s/state.json`:
+
+```json
+{
+  "active_session": {
+    "id": "{{SESSION_ID}}",
+    "workflow_type": "{{PROFILE.workflow_type}}",
+    "strategy": "{{STRATEGY}}",
+    "phase": "{{PROFILE.state_phase}}",
+    "round": {{ROUND_NUMBER + 1}},
+    "participants_count": {{length of PROFILE.participants.default}}
+  },
+  "active_plan": {existing active_plan value OR null if file didn't exist},
+  "last_activity": {
+    "timestamp": "{ISO timestamp}",
+    "action": "round_started",
+    "session_id": "{{SESSION_ID}}"
+  }
+}
+```
+
+**SPECIAL CASE**: when `PROFILE.state_phase == "{current_phase}"` (brainstorm), substitute the placeholder with the live `session.current_phase` value (one of `"dreamer"` / `"realist"` / `"critic"`), NOT the literal string.
+
+---
 
 ### Step 2.2 — Facilitator Question
 
-`IF agent_state.facilitator.agent_id` is set AND not first round of new session: **resume** facilitator agent. **ELSE**: fresh invocation.
+#### 2.2a Resume vs fresh
 
-Input YAML (canonical fields, parameterized values):
-- `action: "question"`
-- `round`, `topic` (from `topic_pattern`), `strategy`, `phase`, `workflow_type`
-- `escalation_config` (from `config-snapshot.yaml`)
-- `project_context` (from `context-snapshot.yaml`); design adds `requirements_summary`; brainstorm adds `brainstorm_topic`
-- `session_state.artifacts` (typed by profile)
-- Progress axis: `agenda[]` (specs/design) **or** `phases_status[]` + `disney_phase_rules` (brainstorm)
-- `participants` (from profile)
+Read `agent_state.facilitator` from session file.
 
-On resume only, also: `updates_since_last_round` with `agenda_changes` (specs/design) or `phase_changes` (brainstorm).
+**IF** `agent_state.facilitator.agent_id` is NOT null AND `ROUND_NUMBER > 0` (continuation):
 
-On fresh only, also: `project_scope`, `workspace_scope`, `cross_cutting_decisions` (workspace-awareness fields).
+Resume the `roundtable-facilitator` agent via Task tool with `resume: "{agent_state.facilitator.agent_id}"`.
 
-Facilitator returns: `decision`, `question`, `exploration`, `participants`, `participant_context.{shared, overrides}`. For brainstorm, `decision.focus_type` is `"disney_phase"` (not `agenda`/`conflict`/`open_question`).
+**ELSE** (fresh — first round or no saved agent_id):
 
-**IF `verbose_flag == true`**: write `rounds/{NNN}-01-facilitator-question.yaml` (see `verbose-dump-format.md` for canonical schema). Save FULL `participant_context.shared` content; never summarize.
+Invoke the `roundtable-facilitator` agent fresh.
 
-Save `agent_state.facilitator.{agent_id, last_round, last_action: "question"}` to session.
+#### 2.2b Input YAML
 
-→ **Token checkpoint T1**: `bash "<TOKEN_SCRIPT>" capture "{session-id}" T1`
+Build the input YAML below, substituting `{{}}` placeholders with profile/session values:
 
-### Step 2.3 — Participant Responses
+```yaml
+action: "question"
+round: {{ROUND_NUMBER + 1}}
+topic: "{{session.topic}}"             # resolved at Phase 1 from PROFILE.topic.pattern
+strategy: "{{STRATEGY}}"
+phase: "{{PROFILE.state_phase}}"        # for brainstorm, substitute session.current_phase
+workflow_type: "{{PROFILE.workflow_type}}"
 
-**Critical context-passing rule**: participants have `tools: []`. They cannot read files. Copy `participant_context.shared` VERBATIM (never summarize/truncate). If incomplete, participants will hallucinate.
+# Escalation config (from config-snapshot.yaml)
+escalation_config:
+  min_rounds: {from config-snapshot.limits.min_rounds}
+  max_rounds: {from config-snapshot.limits.max_rounds}
+  max_rounds_per_conflict: {from config-snapshot.escalation.max_rounds_per_conflict}
+  confidence_below: {from config-snapshot.escalation.confidence_below}
 
-For each of the 4 participants from the profile, in a **single message** (parallel execution):
-- `IF agent_state.participants.{id}.agent_id` is set AND continuation: **resume**. **ELSE**: fresh invocation.
-- For brainstorm only, include `disney_phase_instructions` block (per-phase guidance for participants).
-- Pass `context.{project_summary, relevant_artifacts, open_conflicts, open_questions, recent_rounds}` verbatim from facilitator response.
+# Project context (from context-snapshot.yaml)
+project_context:
+  name: "{project name}"
+  description: "{project description}"
+  domain: "{domain}"
+  tech_stack: ["{tech}"]
+  constraints: ["{constraint}"]
+  # IF PROFILE.workflow_type == "design": add `requirements_summary` (from requirements.md, summarized)
+  # IF PROFILE.workflow_type == "brainstorm": add `brainstorm_topic` (from CLI arg)
 
-Each participant returns the canonical schema: `position`, `rationale`, `trade_offs`, `concerns`, `suggestions`, `confidence`, `references`. Brainstorm adds phase-specific `ideas`, `risks`, `mitigations`.
+# Current session state
+session_state:
+  artifacts:
+    # For each PROFILE.artifact_types[].session_key, include current contents:
+    {{PROFILE.artifact_types[0].session_key}}: [{id, title, state, ...}]
+    {{PROFILE.artifact_types[1].session_key}}: [...]
+    # ... all profile-defined types
+  rounds:
+    - round: {N}
+      focus: "{topic_id or disney_phase}"
+      synthesis: "{synthesis text}"
+    # ... previous rounds (full content for resume context)
 
-**IF `verbose_flag == true`**: write `rounds/{NNN}-02-{participant-id}.yaml`. Header comment is `# Round {N} - {Role} Response` (or `…Response ({disney_phase} phase)` for brainstorm). Capture ALL response fields including `rationale`, `concerns`, `suggestions` — these are returned in every workflow and must be preserved.
+participants: {{PROFILE.participants.default}}
+```
 
-Save `agent_state.participants.{id}.{agent_id, last_round}` for each participant.
+**Progress axis fields** (conditional on profile):
 
-→ **Token checkpoint T2**
+**IF** `PROFILE.progress.axis == "agenda"`:
+
+```yaml
+agenda:
+  - id: "{topic_id}"
+    title: "{title}"
+    status: "{open|partial|closed}"
+    priority: "{priority}"
+    done_when:
+      criteria: [...]
+      min_requirements: {N}
+  # ... all topics from session.agenda
+```
+
+**IF** `PROFILE.progress.axis == "disney_phase"`:
+
+```yaml
+phases_status:
+  - name: "dreamer"
+    status: "{active|completed|pending}"
+    rounds: [...]
+  - name: "realist"
+    status: "..."
+  - name: "critic"
+    status: "..."
+
+disney_phase_rules:
+  current_phase: "{{session.current_phase}}"
+  rules:
+    dreamer: "No criticism, big ideas welcome, build on others' ideas"
+    realist: "How would we implement? What's needed?"
+    critic: "Identify risks, weaknesses, what could fail"
+```
+
+**On resume only** (`agent_state.facilitator.agent_id != null`), additionally include:
+
+```yaml
+resume: true
+updates_since_last_round:
+  new_artifacts: ["{IDs created last round}"]
+  resolved_conflicts: ["{IDs}"]
+  resolved_questions: ["{IDs}"]
+  {{PROFILE.progress.changes_field}}:    # agenda_changes OR phase_changes
+    - topic_id_or_phase: "{value}"
+      old_status: "{previous}"
+      new_status: "{current}"
+```
+
+**On fresh only** (first round of new session), additionally include workspace-awareness fields:
+
+```yaml
+project_scope:
+  type: {from config-snapshot.project.type}
+  workspace_path: {from config-snapshot.project.workspace_path}
+workspace_scope: {from config-snapshot.workspace_scope}
+cross_cutting_decisions: {from config-snapshot.cross_cutting_decisions}
+```
+
+#### 2.2c Facilitator response
+
+The facilitator returns:
+
+```yaml
+action: "question"
+decision:
+  focus_type: "{agenda|conflict|open_question}"        # specs/design
+  # OR for brainstorm: "disney_phase"
+  topic_id: "{topic}"
+  rationale: "{reason}"
+question: "{the question}"
+exploration: "{exploration prompt}"
+participants: "all"
+
+participant_context:
+  shared:
+    project_summary: |
+      {condensed project info}
+    relevant_artifacts: [{id, title, state, ...full content...}]
+    open_conflicts: [...]
+    open_questions: [...]
+    recent_rounds: [{round, synthesis, ...}]
+  overrides: null  # or per-participant directives (debate, six-hats)
+```
+
+#### 2.2d Save agent state
+
+Update `session.yaml`:
+
+```yaml
+agent_state:
+  facilitator:
+    agent_id: "{agentId from facilitator response}"
+    last_round: {{ROUND_NUMBER + 1}}
+    last_action: "question"
+```
+
+#### 2.2e Verbose dump (IF VERBOSE_FLAG)
+
+**IF** `VERBOSE_FLAG == true`: write `rounds/{NNN}-01-facilitator-question.yaml`. **NNN** is the zero-padded round number `(ROUND_NUMBER + 1)`. See `verbose-dump-format.md` for the canonical schema. Save FULL `participant_context.shared` content (no summarization, no placeholders).
+
+#### 2.2f Token checkpoint T1
+
+**MANDATORY**: `bash "{{TOKEN_SCRIPT}}" capture "{{SESSION_ID}}" T1`
+
+---
+
+### Step 2.3 — Participant Responses (PARALLEL)
+
+**CRITICAL context-passing rule**: participants have `tools: []`. They cannot read files. Copy `participant_context.shared` from Step 2.2 response VERBATIM. Never summarize, never truncate, never substitute placeholders. If incomplete, participants will hallucinate.
+
+#### 2.3a For each participant (parallel)
+
+For EACH participant id in `PROFILE.participants.default`, in a **single message** (parallel execution, one Task tool call per participant):
+
+**Resume vs fresh check**:
+
+**IF** `agent_state.participants.{id}.agent_id` is NOT null AND `ROUND_NUMBER > 0`: resume that participant agent via Task tool with `resume: "{agent_state.participants.{id}.agent_id}"`.
+
+**ELSE**: fresh invocation of the participant agent.
+
+#### 2.3b Input YAML (per participant)
+
+```yaml
+action: "respond"
+round: {{ROUND_NUMBER + 1}}
+strategy: "{{STRATEGY}}"
+phase: "{{PROFILE.state_phase}}"        # for brainstorm: session.current_phase
+workflow_type: "{{PROFILE.workflow_type}}"
+
+question: "{question from Step 2.2c}"
+exploration: "{exploration from Step 2.2c}"
+
+context:                                # VERBATIM copy from participant_context.shared
+  project_summary: |
+    {full project summary}
+  relevant_artifacts: [...]              # full content
+  open_conflicts: [...]
+  open_questions: [...]
+  recent_rounds: [...]
+
+overrides: {{participant_context.overrides[{id}]}}  # null OR strategy-specific directives
+```
+
+**IF** `PROFILE.workflow_type == "brainstorm"`, additionally include:
+
+```yaml
+disney_phase_instructions:
+  current_phase: "{{session.current_phase}}"
+  instructions:
+    dreamer: "Generate ideas freely. No criticism. Build on others."
+    realist: "Evaluate feasibility. Suggest implementation paths."
+    critic: "Identify risks and weaknesses. Propose mitigations."
+```
+
+#### 2.3c Participant response
+
+Each participant returns the canonical schema:
+
+```yaml
+participant: "{participant-id}"
+position: |
+  {2-3 sentence position statement}
+rationale:
+  - "{reason 1}"
+  - "{reason 2}"
+trade_offs:
+  optimizing_for: "{priority}"
+  accepting_as_cost: "{trade-off}"
+  risks:
+    - "{risk}"
+concerns:
+  - "{concern}"
+suggestions:
+  - "{suggestion}"
+confidence: 0.85
+references:
+  - "{reference}"
+```
+
+**Brainstorm extras** (when `PROFILE.workflow_type == "brainstorm"`):
+
+The participant response includes phase-specific arrays:
+- Dreamer phase: `ideas: [{title, description}, ...]`
+- Realist phase: feasibility-tagged ideas (still under `ideas` with assessments)
+- Critic phase: `risks: [{title, severity, ...}]`, `mitigations: [{title, risk_id, ...}]`
+
+#### 2.3d Save agent state
+
+Update `session.yaml`:
+
+```yaml
+agent_state:
+  participants:
+    {id}:
+      agent_id: "{agentId from participant response}"
+      last_round: {{ROUND_NUMBER + 1}}
+```
+
+#### 2.3e Verbose dump (IF VERBOSE_FLAG)
+
+**IF** `VERBOSE_FLAG == true`: for EACH participant, write `rounds/{NNN}-02-{participant-id}.yaml`. Header comment is `# Round {N} - {Role} Response` (specs/design) or `# Round {N} - {Role} Response ({disney_phase} phase)` (brainstorm). Capture ALL response fields including `rationale`, `concerns`, `suggestions`. See `verbose-dump-format.md` for full schema.
+
+#### 2.3f Token checkpoint T2
+
+**MANDATORY**: `bash "{{TOKEN_SCRIPT}}" capture "{{SESSION_ID}}" T2`
+
+---
 
 ### Step 2.4 — Facilitator Synthesis
 
-`IF agent_state.facilitator.agent_id` exists (same facilitator from 2.2): **resume** with `action: "synthesis"`. **ELSE**: fresh.
+#### 2.4a Resume facilitator (same as 2.2)
 
-Input YAML:
-- `action: "synthesis"`
-- `round`, `topic`, `strategy`, `phase`
-- `escalation_config`
-- `question_asked` (from 2.2)
-- `responses` (keyed by participant ids from profile, full content for decision-making)
-- Progress fields:
-  - specs/design: `full_agenda[]` + `focus_topic` (with `done_when` criteria)
-  - brainstorm: `phases_status[]` + `current_phase` + `artifacts_summary`
-- `open_conflicts`, `artifacts_count`
+**IF** `agent_state.facilitator.agent_id` is NOT null: resume the same facilitator with `action: "synthesis"`.
 
-Facilitator returns:
-- `synthesis` (2-4 sentences)
-- `proposed_artifacts[]` (typed per profile)
-- `resolved_conflicts[]`
-- Progress update: `agenda_update` (specs/design) or `phase_recommendation` (brainstorm)
-- `constraints_check` (`rounds_completed`, `min_rounds`, `can_conclude`, `reason`)
-- `next` (`continue` / `conclude` / `escalate` for specs/design; **plus `phase`** for brainstorm)
-- `next_focus`, `escalation_reason`
+**ELSE** (rare — only if 2.2 was a fresh invocation that did not save agent_id): fresh invocation. Pass full context.
 
-**IF `verbose_flag == true`**: write `rounds/{NNN}-03-facilitator-synthesis.yaml`. Canonical structure (per `verbose-dump-format.md:200-266`):
+#### 2.4b Input YAML
+
+```yaml
+action: "synthesis"
+round: {{ROUND_NUMBER + 1}}
+topic: "{{session.topic}}"
+strategy: "{{STRATEGY}}"
+phase: "{{PROFILE.state_phase}}"
+workflow_type: "{{PROFILE.workflow_type}}"
+
+escalation_config: {... from 2.2b ...}
+
+question_asked: "{question from 2.2c}"
+
+responses:                              # ALL participant responses, keyed by participant id
+  "{participant-id-1}":
+    position: "..."
+    rationale: [...]
+    trade_offs: {...}
+    concerns: [...]
+    suggestions: [...]
+    confidence: 0.85
+    references: [...]
+    # Brainstorm extras: ideas, risks, mitigations as applicable
+  "{participant-id-2}": {...}
+  # ... all 4 participants
+
+open_conflicts: [...]                   # from session_state.artifacts.conflicts where state != resolved
+artifacts_count: {total from session.metrics.artifacts.total}
+```
+
+**Progress fields** (conditional):
+
+**IF** `PROFILE.progress.axis == "agenda"`:
+
+```yaml
+full_agenda: [...]                     # full session.agenda with statuses
+focus_topic:
+  id: "{topic_id from 2.2c decision}"
+  title: "..."
+  done_when:
+    criteria: [...]
+    min_requirements: {N}
+```
+
+**IF** `PROFILE.progress.axis == "disney_phase"`:
+
+```yaml
+phases_status: [...]                   # session.phases array
+current_phase: "{{session.current_phase}}"
+artifacts_summary:
+  ideas_count: {N}
+  risks_count: {N}
+  mitigations_count: {N}
+```
+
+#### 2.4c Facilitator response
+
+```yaml
+synthesis: |
+  {2-4 sentence summary of round outcomes}
+
+proposed_artifacts:                     # typed per PROFILE.artifact_types[]
+  - type: "{REQ|BR|NFR|ARCH|IDEA|...}"
+    title: "{title}"
+    state: "{draft|in_progress|accepted}"
+    topic_id: "{topic_id}"             # specs/design
+    # OR for brainstorm: disney_phase, severity (for risks), etc.
+    description: "..."
+    # ... type-specific fields per references/artifact-schemas/{type}.md
+
+resolved_conflicts: []                  # array of conflict IDs whose state moves to "resolved"
+
+# Progress update (conditional on profile.progress.synthesis_output_field)
+# IF agenda axis:
+agenda_update:
+  topic_id: "{topic}"
+  new_status: "{partial|closed}"
+  coverage_added: [...]
+  remaining_for_closure: [...]
+# IF disney_phase axis:
+phase_recommendation:
+  action: "{continue|advance}"
+  reason: "..."
+
+constraints_check:
+  rounds_completed: {{ROUND_NUMBER + 1}}
+  min_rounds: {from config-snapshot.limits.min_rounds}
+  can_conclude: {true|false}
+  reason: "..."
+
+next: "{value from PROFILE.next_values}"      # continue|conclude|escalate; +"phase" for brainstorm
+
+next_focus:                              # specs/design
+  type: "{agenda|conflict|open_question}"
+  topic_id: "{topic}"
+  reason: "..."
+
+escalation_reason: null                  # set when next == "escalate"
+```
+
+#### 2.4d Save agent state
+
+Update `session.yaml`:
+
+```yaml
+agent_state:
+  facilitator:
+    agent_id: "{agentId from facilitator response}"
+    last_round: {{ROUND_NUMBER + 1}}
+    last_action: "synthesis"
+```
+
+#### 2.4e Verbose dump (IF VERBOSE_FLAG)
+
+**IF** `VERBOSE_FLAG == true`: write `rounds/{NNN}-03-facilitator-synthesis.yaml` per `verbose-dump-format.md`. The dump MUST include:
 
 ```yaml
 result:
   artifacts_proposed: {count}
-  conflicts_resolved: {count}      # MANDATORY in all workflows
+  conflicts_resolved: {count}            # MANDATORY in all workflows
   status: "closed"
 
-verification:
-  expected_artifacts:              # MANDATORY: list of {map, expected_keys}
-    - map: "artifacts.{type}"
+verification:                            # MANDATORY in all workflows
+  expected_artifacts:                    # MANDATORY: list of {map, expected_keys}
+    - map: "artifacts.{{PROFILE.artifact_types[0].session_key}}"
       expected_keys: [...]
-  round_summary:                    # MANDATORY
-    expected_round: {N}
-    required_fields: [...]
-  agenda_status:                    # specs/design
-    topic_id: "..."
-    expected_status: "..."
-  # OR phases_status: for brainstorm
-  metrics_consistency:              # MANDATORY
-    rounds_completed: {N}
-    artifacts_total: {sum}
-  context_propagation:              # MANDATORY
-    participant_context_keys: [...]
+    # ... one entry per artifact_type in PROFILE
+  round_summary:                         # MANDATORY
+    expected_round: {{ROUND_NUMBER + 1}}
+    required_fields: [timestamp, topic_id_or_disney_phase, facilitator_question,
+                      synthesis_summary, participant_positions, artifacts_created,
+                      next_action]
+  # IF profile.progress.axis == "agenda":
+  agenda_status:
+    topic_id: "{from agenda_update.topic_id}"
+    expected_status: "{from agenda_update.new_status}"
+  # IF profile.progress.axis == "disney_phase":
+  phases_status:
+    current_phase: "{{session.current_phase}}"
+    expected_action: "{from phase_recommendation.action}"
+  metrics_consistency:                   # MANDATORY
+    rounds_completed: {{ROUND_NUMBER + 1}}
+    artifacts_total: {sum of all artifact maps}
+  context_propagation:                   # MANDATORY
+    participant_context_keys: [project_summary, relevant_artifacts, open_conflicts,
+                               open_questions, recent_rounds]
 ```
 
-Update `agent_state.facilitator.{agent_id, last_action: "synthesis"}`.
+#### 2.4f Token checkpoint T3
 
-→ **Token checkpoint T3**
+**MANDATORY**: `bash "{{TOKEN_SCRIPT}}" capture "{{SESSION_ID}}" T3`
+
+---
 
 ### Step 2.5 — Process Artifacts
 
-For each `proposed_artifact` from facilitator:
-1. **Count existing**: count keys in `artifacts.{type}` in session file.
-2. **Assign ID**: next available with the prefix from the profile.
-3. **Edit session file**: add the artifact to `artifacts.{type}` with full content per the type-specific schema (see each command for the schemas).
+For each `proposed_artifact` from Step 2.4c:
+
+1. **Determine session key**: find the matching `PROFILE.artifact_types[]` entry where `prefix == proposed_artifact.type`. Use its `session_key` (e.g., `REQ → requirements`, `ARCH → architecture_decisions`, `IDEA → ideas`).
+2. **Count existing**: count keys in `session.yaml.artifacts.{session_key}`.
+3. **Assign ID**: next available — e.g., if `requirements` has 14 entries (REQ-001 to REQ-014), new artifact is `REQ-015`.
+4. **Edit session file**: add the artifact to `artifacts.{session_key}` with the full content per the type-specific schema. See `references/artifact-schemas/{type}.md` (extracted in 7B.5; until then, schemas are inline in each command's Step 2.5).
 
 Artifacts are EMBEDDED in the session file, not separate files (per ADR-0008/0010).
 
-**For resolved conflicts**: edit the existing `CONF-*` entry in place (`state: resolved`, `resolution: ...`) and append a `rounds[].artifacts_transitioned` entry for audit.
+**For resolved conflicts**: edit the existing `CONF-*` entry in place (`state: resolved`, `resolution: "{text from synthesis}"`) and append a `rounds[].artifacts_transitioned` entry for audit.
+
+---
 
 ### Step 2.6 — Update Session File
 
-Single Edit operation appending to `rounds:` and updating top-level fields:
+**Single Edit operation** appending to `rounds:` and updating top-level fields.
 
-1. **`rounds[]` entry**: `round`, `timestamp`, `topic_id` (specs/design) or `disney_phase` (brainstorm), `facilitator_question`, `synthesis_summary`, `participant_positions{}`, `key_decisions[]`, `artifacts_created[]`, `resolved_conflicts[]`, `resolved_questions[]`, `consensus_reached`, `next_action`. Optional `debate_phase` for debate strategy in design.
-2. **`timing.updated_at`** ISO timestamp.
-3. **Progress update**: `agenda[topic].status` (specs/design) or `phases[name].status` (brainstorm).
-4. **`metrics`**: `rounds_completed`, `artifacts.total`, `artifacts.by_type`, `artifacts.by_state`, axis-specific count (`topics.closed/total` or `phases.{dreamer,realist,critic}` round counts), `consensus_rate`, `tokens.total` + `tokens.by_round[]`.
+#### 2.6a Append to rounds[]
+
+Build the round entry:
+
+```yaml
+- round: {{ROUND_NUMBER + 1}}
+  timestamp: "{ISO timestamp}"
+  {{PROFILE.round_summary.tag_field}}: "{value}"   # topic_id OR disney_phase
+  facilitator_question: "{question from 2.2c}"
+  synthesis_summary: "{synthesis from 2.4c}"
+  participant_positions:                            # keyed by participant id
+    "{participant-id-1}": "{position}"
+    # ... all 4 participants
+  key_decisions: [...]
+  artifacts_created: ["{IDs assigned in 2.5}"]
+  resolved_conflicts: ["{IDs from 2.4c.resolved_conflicts}"]
+  resolved_questions: ["{IDs marked resolved}"]
+  consensus_reached: {true|false}
+  next_action: "{from 2.4c.next}"
+  # Optional for design with debate strategy:
+  debate_phase: "{if applicable}"
+```
+
+#### 2.6b Update timing and progress
+
+- `timing.updated_at` = current ISO timestamp
+- Progress: update `agenda[topic].status` (specs/design) OR `phases[name].status` (brainstorm) per the synthesis's `agenda_update` or `phase_recommendation`.
+
+#### 2.6c Update metrics
+
+```yaml
+metrics:
+  rounds_completed: {{ROUND_NUMBER + 1}}
+  artifacts:
+    total: {sum of all artifact_types[].session_key sizes}
+    by_type: {<session_key>: <count>, ...}
+    by_state: {draft: N, in_progress: N, accepted: N, resolved: N}
+  # axis-specific:
+  topics:                                # IF profile.progress.axis == "agenda"
+    total: {{PROFILE.progress.agenda_count}}
+    closed: {count of agenda entries with status == "closed"}
+  phases:                                # IF profile.progress.axis == "disney_phase"
+    dreamer: {round count in dreamer phase}
+    realist: {round count in realist phase}
+    critic: {round count in critic phase}
+  consensus_rate: {fraction of rounds with consensus_reached: true}
+  tokens:
+    total: {cumulative from token-tracking}
+    by_round: [...]
+```
+
+---
 
 ### Step 2.6b — Validate Round Output
 
-Identical across workflows: read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/round-validation.md` and execute its checks. **Non-blocking**: display warnings, continue.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/round-validation.md` and execute its checks against the just-updated session file.
 
-### Step 2.6c — Diagnostic Observation (`IF --diagnostic`)
+**Non-blocking**: display warnings but continue execution.
 
-Identical across workflows except `workflow_type` parameter:
+---
+
+### Step 2.6c — Diagnostic Observation
+
+**MANDATORY when `DIAGNOSTIC_FLAG == true`.** Do NOT skip this step. (See BUG-013 for context — this step was historically skipped at runtime because output was display-only; FIX-S1 adds persistence to anchor LLM commitment.)
+
+**IF** `DIAGNOSTIC_FLAG == true`:
+
+**Use the session-observer agent** with this input:
 
 ```yaml
 mode: "per-round"
-session_path: ".s2s/sessions/{session-id}"
-round: {round_number + 1}
-workflow_type: "{specs|design|brainstorm}"
-strategy: "{strategy_to_use}"
+session_path: ".s2s/sessions/{{SESSION_ID}}"
+round: {{ROUND_NUMBER + 1}}
+workflow_type: "{{PROFILE.workflow_type}}"
+strategy: "{{STRATEGY}}"
 ```
 
-Use the `session-observer` agent. Display its result. If `recommendation == "Stop for investigation"`, ask user via `AskUserQuestion`: `Investigate now / Continue anyway / Abort session`.
+The observer returns:
 
-> **Known issue (TECH-002 baseline F2)**: in current behavior, `session-observer` is invoked only at `end-session` (1 invocation per session) instead of expected 4 (3 per-round + 1 final). The activation pattern at this step is consistently skipped. Candidate for Phase 7B fix.
+```yaml
+round: {N}
+status: "ok" | "warning" | "anomaly"
+findings: [...]
+recommendation: "Continue" | "Review findings" | "Stop for investigation"
+notes: |
+  Optional free-form observations.
+```
+
+**Display** observer result inline:
+
+```
+[DIAGNOSTIC] Round {N}: {status}
+{IF findings not empty}
+Findings:
+- {for each finding: type, detail, severity}
+{/IF}
+Recommendation: {recommendation}
+```
+
+**FIX-S1 — Persist observer output (MANDATORY)**: write `rounds/{NNN}-04-session-observer.yaml` with the full input + response. **NNN** is the zero-padded `(ROUND_NUMBER + 1)`. Structure:
+
+```yaml
+# Round {N} - Session Observer (per-round)
+round: {{ROUND_NUMBER + 1}}
+phase: 4
+actor: "session-observer"
+action: "observe"
+started_at: "{ISO timestamp}"
+completed_at: "{ISO timestamp}"
+
+input: {... the YAML input sent ...}
+
+response: {... the observer's full response ...}
+
+result:
+  status: "{from response.status}"
+  findings_count: {len(response.findings)}
+  recommendation: "{from response.recommendation}"
+```
+
+**IF** `response.recommendation == "Stop for investigation"`:
+
+Ask user via `AskUserQuestion`:
+- "Diagnostic observer recommends stopping. What would you like to do?"
+  - "Investigate now"
+  - "Continue anyway"
+  - "Abort session"
+
+Else: continue to Step 2.7.
+
+---
 
 ### Step 2.7 — Display Round Recap
 
-Show synthesis, new artifacts, resolved conflicts, axis status (agenda or phase). Token recap section per `token-tracking.md`.
+Show:
+- Synthesis text (from 2.4c)
+- New artifacts created (IDs + titles from 2.5)
+- Resolved conflicts (IDs)
+- Axis status:
+  - **IF** `PROFILE.progress.axis == "agenda"`: agenda status (closed/total + which topic was focus)
+  - **IF** `PROFILE.progress.axis == "disney_phase"`: current phase + transition recommendation
+- Token recap section (per `token-tracking.md`)
+
+---
 
 ### Step 2.8 — Handle Interactive Mode
 
-Identical text across workflows:
-- `IF interactive_flag == true`: ask user to continue / skip / exit (brainstorm: skip phase).
-- `IF interactive_flag == false`: proceed automatically (do NOT stop, do NOT ask). Stop conditions: `SHOULD_STOP` (context), `round_number >= max_rounds`, `next == "escalate"`, or `interactive_flag == true`.
+**IF** `INTERACTIVE_FLAG == true`:
+
+Ask user via `AskUserQuestion`:
+- Specs/design: "Continue to next round, conclude session, or exit?"
+- Brainstorm: same, plus "Skip to next Disney phase".
+
+**IF** `INTERACTIVE_FLAG == false`:
+
+Proceed automatically. Do NOT stop. Do NOT ask.
+
+**Stop conditions** (override `INTERACTIVE_FLAG`):
+- `SHOULD_STOP == true` (context capacity reached)
+- `ROUND_NUMBER + 1 >= max_rounds` (from config-snapshot.limits.max_rounds)
+- Step 2.4c returned `next == "escalate"` (handled by Step 2.9)
+
+---
 
 ### Step 2.6d — Phase Transition (BRAINSTORM ONLY)
 
-Brainstorm-only. When facilitator returns `next: "phase"`: advance `current_phase` (`dreamer → realist → critic`), mark previous phase `completed`, mark new phase `active`. When in `critic` phase and facilitator returns `next: "conclude"`: exit loop.
+**Applicable only when** `PROFILE.has_phase_transition == true`.
+
+When Step 2.4c returned `next: "phase"`:
+
+1. Determine target phase from current via the machine `dreamer → realist → critic`.
+2. Update `session.yaml`:
+   - Mark current phase as `completed`
+   - Mark target phase as `active`
+   - Set `current_phase: "{target}"`
+3. Display: `[Phase Transition] {old_phase} → {new_phase}`
+
+When `session.current_phase == "critic"` AND Step 2.4c returned `next: "conclude"`: exit the loop (proceed to Step 2.9 dispatch).
+
+For full state machine details, see `references/disney-phase-machine.md` (extracted in 7B.5; until then, this is the canonical spec).
+
+---
 
 ### Step 2.9 — Evaluate Next Action (CRITICAL)
 
-**MANDATORY `min_rounds` enforcement** (uniform across workflows after TECH-002 Phase 3):
+#### 2.9a Min_rounds enforcement (MANDATORY)
 
 ```
-IF round_number < min_rounds (from config) AND next == "conclude":
-  OVERRIDE next to "continue"
-  Display: "⚠️ min_rounds not reached ({round_number}/{min_rounds}), continuing..."
+IF ROUND_NUMBER + 1 < min_rounds (from config-snapshot.limits.min_rounds) AND next == "conclude":
+  OVERRIDE next = "continue"
+  Display: "⚠️ min_rounds not reached ({ROUND_NUMBER + 1}/{min_rounds}), continuing..."
 ```
 
-Then dispatch on `next`:
-- `continue`: loop back to Step 2.1
-- `phase` (brainstorm only): advance Disney phase via 2.6d
-- `conclude`: proceed to Phase 3 (only valid in `critic` phase for brainstorm)
-- `escalate`: ask user with `AskUserQuestion`, then continue or conclude
+This applies uniformly across workflows. Added in TECH-002 Phase 3; preserve verbatim.
 
-→ **Session Complete token checkpoint** fires at Phase 3 Step 3.1.
+#### 2.9b Dispatch
+
+Dispatch on `next` (validated against `PROFILE.next_values`):
+
+| `next` value | Action |
+|--------------|--------|
+| `continue` | loop back to Step 2.0 (next round) |
+| `phase` (brainstorm only) | execute Step 2.6d (phase transition), then loop back to Step 2.0 |
+| `conclude` | exit Phase 2; control returns to command for Phase 3 |
+| `escalate` | ask user via `AskUserQuestion` (options: continue, conclude, abort); based on choice, loop or exit |
+
+For brainstorm: `conclude` is only valid when `session.current_phase == "critic"`. If facilitator returns `conclude` from an earlier phase, treat as drift (override to `phase` and warn).
 
 ---
 
-## 3. Cross-reference: command line numbers
+## 3. Caller-side invocation pattern
 
-For maintainers checking parity. Updated at TECH-002 Phase 3 (2026-05-05).
+A command consumes this document with the following Phase 2 section (~10 lines):
 
-| Step | `commands/specs.md` | `commands/design.md` | `commands/brainstorm.md` |
-|------|---------------------|----------------------|--------------------------|
-| 2.0 Context Capacity | 476-491 | 374-389 | 350-365 |
-| 2.1 Display + state.json | 493-519 | 391-417 | 367-410 |
-| 2.2 Facilitator Question | 521-782 | 419-670 | 412-655 |
-| 2.3 Participant Responses | 784-1011 | 672-899 | 657-891 |
-| 2.4 Facilitator Synthesis | 1013-1300 | 901-1167 | 893-1166 |
-| 2.5 Process Artifacts | 1302-1439 | 1169-1297 | 1168-1286 |
-| 2.6 Update Session File | 1441-1530 | 1299-1388 | 1288-1383 |
-| 2.6b Validate | 1532-1536 | 1390-1394 | 1385-1389 |
-| 2.6c Diagnostic | 1538-1575 | 1396-1433 | 1391-1428 |
-| 2.6d Phase Transition | n/a | n/a | 1430-1442 |
-| 2.7 Round Recap | 1577-1579 | 1435-1437 | 1444-1447 |
-| 2.8 Interactive | 1581-1588 | 1439-1446 | 1449-1456 |
-| 2.9 Evaluate Next | 1590-1593 | 1448-1462 | 1458-1473 |
+```markdown
+## Phase 2: Round Execution Loop
 
-> Line numbers will drift after edits. Treat this as a snapshot; re-anchor by section heading when navigating.
+If --skip-roundtable is NOT present:
+
+1. **Load workflow profile**:
+   Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/profiles/{workflow_type}.yaml`.
+   Store the parsed object as `PROFILE`.
+
+2. **Set runtime context** (read from config-snapshot.yaml):
+   - `STRATEGY` = config-snapshot.strategy (after PROFILE.strategy_constraints check)
+   - `SESSION_ID` = session.yaml.id
+   - `ROUND_NUMBER` = session.yaml.metrics.rounds_completed (0 for fresh, N for resume)
+   - `VERBOSE_FLAG` = config-snapshot.verbose
+   - `DIAGNOSTIC_FLAG` = config-snapshot.diagnostic
+   - `INTERACTIVE_FLAG` = config-snapshot.interactive
+   - `TOKEN_SCRIPT` = result of Step 2.0 from `token-tracking.md`
+
+3. **Execute the canonical Phase 2 algorithm**:
+   Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/phase-2-core.md`.
+   Follow its instructions (§2), looping Steps 2.0 → 2.9 until terminal dispatch.
+
+4. After phase-2-core.md returns control, proceed to Phase 3.
+```
+
+Phase 1 (init, profile-aware Phase 1 setup) and Phase 3 (output generation) remain inline in each command. They are out of scope for 7B; cleanup deferred to Phase 8.
 
 ---
 
-## 4. Phase 7B handoff notes
+## 4. Contract invariants (cross-reference)
 
-To make this document executable (Phase 7B), the following would need to be addressed:
+The §10 contract invariants in `.s2s/plans/20260506-tech002-phase7b-deep-extraction.md` MUST be preserved by this document and its callers. Key items:
 
-1. **Profile loading**: define a YAML schema for the `workflow_type` profile (§1 table), store under `skills/roundtable-execution/profiles/{specs,design,brainstorm}.yaml`. Each command becomes a thin launcher that selects the profile and invokes the unified algorithm.
-2. **Artifact schemas**: extract the per-type artifact schemas (currently inlined in each command's Step 2.5) into `references/artifact-schemas/{type}.md` with one canonical schema per artifact type.
-3. **Disney phase machine**: factor out brainstorm's Step 2.6d into a state machine doc that `next: "phase"` consumes. Currently inline in `commands/brainstorm.md`.
-4. **Session-observer activation**: the 2.6c invocation pattern is consistently skipped by the runtime (baseline finding F2). Investigate cause before extraction; the abstraction won't fix a runtime activation bug.
-5. **Strategy hooks**: support per-strategy variations (e.g., `debate_phase` field in design's round summary, six-hats overrides) without re-introducing per-command divergence.
-6. **Re-evaluate Claude Code platform features**: by the time Phase 7B starts, newer Claude Code patterns (richer agent-invocation primitives, deferred tools, scheduled wakeups) may simplify several flows. Re-baseline before designing the unified executor.
+- Dump file naming `rounds/{NNN}-{PP}-{actor}.yaml` (NNN=3-digit round, PP=01|02|03|04, actor per role).
+- Step ordering 2.0 → 2.1 → 2.2 → 2.3 → 2.4 → 2.5 → 2.6 → 2.6b → 2.6c → (2.6d for brainstorm) → 2.7 → 2.8 → 2.9.
+- Token checkpoints T1 (after 2.2), T2 (after 2.3), T3 (after 2.4).
+- Min_rounds enforcement at Step 2.9.
+- Resume conditions on `agent_state.{facilitator,participants}.agent_id`.
+- `verification` block MANDATORY in synthesis dumps with 5 sub-keys (`expected_artifacts`, `round_summary`, axis-specific status, `metrics_consistency`, `context_propagation`).
+- `result.conflicts_resolved` MANDATORY in synthesis dumps.
 
-Until Phase 7B lands, this doc is the contract. Keep the three commands aligned to it.
+Breaking any of these is grounds for revert per the plan.
+
+---
+
+## 5. Migration status (post-7B.4a)
+
+- ✅ Doc is executable (this file).
+- ✅ Profiles defined (`profiles/{specs,design,brainstorm}.yaml`).
+- ✅ Schema documented (`profile-schema.md`).
+- ⏳ **Commands still have inline Phase 2** — wiring deferred to 7B.4b.
+- ⏳ Artifact schemas still inline in each command's Step 2.5 — extraction deferred to 7B.5.
+- ⏳ Disney phase machine still inline in `brainstorm.md` — extraction deferred to 7B.5.
+- ⏳ `verbose-dump-format.md` does not yet document the new `{NNN}-04-session-observer.yaml` dump — update deferred to 7B.5 alongside artifact schemas.
+- ⏳ `roundtable-execution/SKILL.md` not yet pointing here for Phase 2 — restructure deferred to 7B.5.
+
+Until 7B.4b lands, commands inline their Phase 2 and this document is descriptive-for-readers only. After 7B.4b, this document is the authoritative execution source.
