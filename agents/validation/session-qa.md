@@ -571,7 +571,7 @@ results:
     missing: ["started_at", "input", "tokens"]
 ```
 
-**What This Detects**: Commands may write incomplete dumps when resuming agents. Fix location: Step 2.3 in specs.md and design.md.
+**What This Detects**: Commands may write incomplete dumps when resuming agents. Fix location: Step 2.3 in `skills/roundtable-execution/references/phase-2-core.md` (post-TECH-002 Phase 7B; was inline in specs.md/design.md/brainstorm.md before 7B.4b).
 
 ---
 
@@ -644,7 +644,7 @@ results:
     missing_keys: ["project_summary", "relevant_artifacts"]
 ```
 
-**What This Detects**: Commands may not save participant_context.shared to facilitator dumps. Fix location: Step 2.2 in specs.md and design.md.
+**What This Detects**: Commands may not save participant_context.shared to facilitator dumps. Fix location: Step 2.2 in `skills/roundtable-execution/references/phase-2-core.md` (post-7B.4b).
 
 ---
 
@@ -694,7 +694,7 @@ session_rounds:
     synthesis_next_phase: "rebuttal"
 ```
 
-**What This Detects**: debate_phase may not be included in round summary. Fix location: Step 2.6 in design.md.
+**What This Detects**: debate_phase may not be included in round summary. Fix location: Step 2.6 in `skills/roundtable-execution/references/phase-2-core.md` (strategy hook wiring deferred to Phase 7).
 
 ---
 
@@ -832,7 +832,7 @@ warnings:
 evidence_file: ".s2s/qa/evidence/{session_id}.yaml"
 
 recommendations:
-  - "Check metrics calculation in Step 2.6 of specs.md"
+  - "Check metrics calculation in Step 2.6 of skills/roundtable-execution/references/phase-2-core.md"
 ```
 
 **Status determination:**
