@@ -497,7 +497,7 @@ proposed_artifacts:                     # typed per PROFILE.artifact_types[]
 
 resolved_conflicts: []                  # array of conflict IDs whose state moves to "resolved"
 
-# Progress update (conditional on profile.progress.synthesis_output_field)
+# Progress update (conditional on PROFILE.progress.synthesis_output_field)
 # IF agenda axis:
 agenda_update:
   topic_id: "{topic}"
@@ -557,11 +557,11 @@ verification:                            # MANDATORY in all workflows
     required_fields: [timestamp, topic_id_or_disney_phase, facilitator_question,
                       synthesis_summary, participant_positions, artifacts_created,
                       next_action]
-  # IF profile.progress.axis == "agenda":
+  # IF PROFILE.progress.axis == "agenda":
   agenda_status:
     topic_id: "{from agenda_update.topic_id}"
     expected_status: "{from agenda_update.new_status}"
-  # IF profile.progress.axis == "disney_phase":
+  # IF PROFILE.progress.axis == "disney_phase":
   phases_status:
     current_phase: "{{session.current_phase}}"
     expected_action: "{from phase_recommendation.action}"
@@ -636,10 +636,10 @@ metrics:
     by_type: {<session_key>: <count>, ...}
     by_state: {draft: N, in_progress: N, accepted: N, resolved: N}
   # axis-specific:
-  topics:                                # IF profile.progress.axis == "agenda"
+  topics:                                # IF PROFILE.progress.axis == "agenda"
     total: {{PROFILE.progress.agenda_count}}
     closed: {count of agenda entries with status == "closed"}
-  phases:                                # IF profile.progress.axis == "disney_phase"
+  phases:                                # IF PROFILE.progress.axis == "disney_phase"
     dreamer: {round count in dreamer phase}
     realist: {round count in realist phase}
     critic: {round count in critic phase}
