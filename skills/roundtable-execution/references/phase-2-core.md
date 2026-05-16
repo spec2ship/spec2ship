@@ -586,7 +586,7 @@ For each `proposed_artifact` from Step 2.4c:
 1. **Determine session key**: find the matching `PROFILE.artifact_types[]` entry where `prefix == proposed_artifact.type`. Use its `session_key` (e.g., `REQ → requirements`, `ARCH → architecture_decisions`, `IDEA → ideas`).
 2. **Count existing**: count keys in `session.yaml.artifacts.{session_key}`.
 3. **Assign ID**: next available — e.g., if `requirements` has 14 entries (REQ-001 to REQ-014), new artifact is `REQ-015`.
-4. **Edit session file**: add the artifact to `artifacts.{session_key}` with the full content per the type-specific schema. See `references/artifact-schemas/{type}.md` (extracted in 7B.5; until then, schemas are inline in each command's Step 2.5).
+4. **Edit session file**: add the artifact to `artifacts.{session_key}` with the full content per the type-specific schema. **Read** `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/artifact-schemas/{prefix-lowercase}.md` for the canonical schema (e.g., `req.md` for `REQ-*`, `arch.md` for `ARCH-*`). See `artifact-schemas/README.md` for the type → file → workflow mapping.
 
 Artifacts are EMBEDDED in the session file, not separate files (per ADR-0008/0010).
 
@@ -766,18 +766,12 @@ Proceed automatically. Do NOT stop. Do NOT ask.
 
 **Applicable only when** `PROFILE.has_phase_transition == true`.
 
-When Step 2.4c returned `next: "phase"`:
+**Read** `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/disney-phase-machine.md` and follow §6 (Implementation note for Step 2.6d). The reference document is the canonical state machine spec.
 
-1. Determine target phase from current via the machine `dreamer → realist → critic`.
-2. Update `session.yaml`:
-   - Mark current phase as `completed`
-   - Mark target phase as `active`
-   - Set `current_phase: "{target}"`
-3. Display: `[Phase Transition] {old_phase} → {new_phase}`
-
-When `session.current_phase == "critic"` AND Step 2.4c returned `next: "conclude"`: exit the loop (proceed to Step 2.9 dispatch).
-
-For full state machine details, see `references/disney-phase-machine.md` (extracted in 7B.5; until then, this is the canonical spec).
+Summary:
+- When Step 2.4 returned `next: "phase"`: advance phase per state machine, update session.yaml, display banner.
+- When `session.current_phase == "critic"` AND Step 2.4 returned `next: "conclude"`: exit loop (proceed to Step 2.9 dispatch).
+- Drift handling: if facilitator returns `conclude` from a non-critic phase, override to `phase` and warn.
 
 ---
 
@@ -857,15 +851,16 @@ Breaking any of these is grounds for revert per the plan.
 
 ---
 
-## 5. Migration status (post-7B.4a)
+## 5. Migration status (post-7B.5)
 
 - ✅ Doc is executable (this file).
 - ✅ Profiles defined (`profiles/{specs,design,brainstorm}.yaml`).
 - ✅ Schema documented (`profile-schema.md`).
-- ⏳ **Commands still have inline Phase 2** — wiring deferred to 7B.4b.
-- ⏳ Artifact schemas still inline in each command's Step 2.5 — extraction deferred to 7B.5.
-- ⏳ Disney phase machine still inline in `brainstorm.md` — extraction deferred to 7B.5.
-- ⏳ `verbose-dump-format.md` does not yet document the new `{NNN}-04-session-observer.yaml` dump — update deferred to 7B.5 alongside artifact schemas.
-- ⏳ `roundtable-execution/SKILL.md` not yet pointing here for Phase 2 — restructure deferred to 7B.5.
+- ✅ Commands wired to consume this doc (7B.4b — Phase 2 sections replaced with ~28-line invocation each).
+- ✅ Artifact schemas extracted (`artifact-schemas/{req,br,nfr,ex,arch,comp,int,idea,risk,mit,oq,conf}.md` — 11 files + README).
+- ✅ Disney phase machine extracted (`disney-phase-machine.md`).
+- ✅ `verbose-dump-format.md` documents `{NNN}-04-session-observer.yaml` (FIX-S1, BUG-013).
+- ✅ `roundtable-execution/SKILL.md` restructured to thin overview pointing here (7B.5).
+- ⏳ Strategy hooks (Phase 7 territory) — placeholder in §2.6 (`debate_phase` for debate strategy) referenced; wiring deferred to Phase 7.
 
-Until 7B.4b lands, commands inline their Phase 2 and this document is descriptive-for-readers only. After 7B.4b, this document is the authoritative execution source.
+This document is the authoritative execution source for Phase 2 across all three workflows.
