@@ -289,7 +289,9 @@ participant_context:
     open_conflicts: [...]
     open_questions: [...]
     recent_rounds: [{round, synthesis, ...}]
-  overrides: null  # or per-participant directives (debate, six-hats)
+  overrides: null  # OR per-participant directives — see strategy-hooks.md
+                   # debate: {participant-id: {debate_role: "pro"|"con"}}
+                   # six-hats: {participant-id: {hat_role: "white"|"red"|...}} (future)
 ```
 
 #### 2.2d Save agent state
@@ -393,6 +395,14 @@ The participant response includes phase-specific arrays:
 - Dreamer phase: `ideas: [{title, description}, ...]`
 - Realist phase: feasibility-tagged ideas (still under `ideas` with assessments)
 - Critic phase: `risks: [{title, severity, ...}]`, `mitigations: [{title, risk_id, ...}]`
+
+**Strategy hook** (when `STRATEGY == "debate"`):
+
+The participant response includes an additional top-level field `debate_role: "pro" | "con"`. The value comes from Step 2.2c facilitator response's `participant_context.overrides.{participant-id}.debate_role`. The participant echoes the assigned role and shapes argumentation accordingly. See `strategy-hooks.md` §3.
+
+**Strategy hook** (when `STRATEGY == "six-hats"`, future — currently untested):
+
+The participant response includes `hat_role: "white" | "red" | "black" | "yellow" | "green" | "blue"`. See `strategy-hooks.md` §5.
 
 #### 2.3d Save agent state
 
@@ -617,9 +627,14 @@ Build the round entry:
   resolved_questions: ["{IDs marked resolved}"]
   consensus_reached: {true|false}
   next_action: "{from 2.4c.next}"
-  # Optional for design with debate strategy:
-  debate_phase: "{if applicable}"
 ```
+
+**Strategy hooks** for the round entry (additional optional fields):
+
+- **IF** `STRATEGY == "debate"`: append `debate_phase: "opening" | "rebuttal" | "closing" | "synthesis"` reflecting the active debate phase. Source: synthesis from Step 2.4c (facilitator-driven). See `strategy-hooks.md` §4.
+- **IF** `STRATEGY == "six-hats"` (future): append `hat_phase: "{hat-name}"`. See `strategy-hooks.md` §6.
+
+Other strategies (`standard`, `consensus-driven`) do not add extra fields to the round entry.
 
 #### 2.6b Update timing and progress
 
@@ -861,6 +876,6 @@ Breaking any of these is grounds for revert per the plan.
 - ✅ Disney phase machine extracted (`disney-phase-machine.md`).
 - ✅ `verbose-dump-format.md` documents `{NNN}-04-session-observer.yaml` (FIX-S1, BUG-013).
 - ✅ `roundtable-execution/SKILL.md` restructured to thin overview pointing here (7B.5).
-- ⏳ Strategy hooks (Phase 7 territory) — placeholder in §2.6 (`debate_phase` for debate strategy) referenced; wiring deferred to Phase 7.
+- ✅ Strategy hooks contract documented (`strategy-hooks.md` — TECH-002 Phase 7B.6). Hook points integrated in Step 2.2c (overrides), Step 2.3c (debate_role, hat_role), Step 2.6a (debate_phase, hat_phase). Wiring (strategy skill consolidation) deferred to Phase 7.
 
 This document is the authoritative execution source for Phase 2 across all three workflows.

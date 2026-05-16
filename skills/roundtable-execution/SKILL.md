@@ -148,6 +148,7 @@ Phase 3 stays inline because output generation is workflow-specific (different d
 | `references/artifact-schemas/README.md` | Index of 11 per-type artifact schemas |
 | `references/artifact-schemas/{type}.md` | Canonical schema per artifact type (req, br, nfr, ex, arch, comp, int, idea, risk, mit, oq, conf) |
 | `references/disney-phase-machine.md` | Disney phase state machine (brainstorm Step 2.6d) |
+| `references/strategy-hooks.md` | Strategy-specific Phase 2 variation hooks (debate_role, debate_phase, future hat_role) — contract documented, Phase 7 wires |
 
 ### Supporting references
 
