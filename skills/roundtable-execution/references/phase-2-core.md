@@ -872,7 +872,7 @@ Breaking any of these is grounds for revert per the plan.
 - ✅ Profiles defined (`profiles/{specs,design,brainstorm}.yaml`).
 - ✅ Schema documented (`profile-schema.md`).
 - ✅ Commands wired to consume this doc (7B.4b — Phase 2 sections replaced with ~28-line invocation each).
-- ✅ Artifact schemas extracted (`artifact-schemas/{req,br,nfr,ex,arch,comp,int,idea,risk,mit,oq,conf}.md` — 11 files + README).
+- ✅ Artifact schemas extracted (`artifact-schemas/{req,br,nfr,ex,arch,comp,int,idea,risk,mit,oq,conf}.md` — 12 files + README).
 - ✅ Disney phase machine extracted (`disney-phase-machine.md`).
 - ✅ `verbose-dump-format.md` documents `{NNN}-04-session-observer.yaml` (FIX-S1, BUG-013).
 - ✅ `roundtable-execution/SKILL.md` restructured to thin overview pointing here (7B.5).

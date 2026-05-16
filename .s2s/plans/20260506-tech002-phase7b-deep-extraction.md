@@ -268,8 +268,8 @@ No code change to commands yet.
 **Source-of-truth after 7B.4a/b**: artifact schemas and Disney phase machine now live INSIDE `phase-2-core.md` (absorbed from the commands during 7B.4a). 7B.5 splits them out to their own reference files for readability.
 
 **Actions**:
-1. Identify the artifact schema blocks inside `phase-2-core.md`. Inventory: REQ, BR, NFR, EX, OQ, CONF (specs); ARCH, COMP, INT, OQ, CONF (design); IDEA, RISK, MIT, OQ, CONF (brainstorm). Total: 11 unique types (CONF and OQ shared across workflows).
-2. Move each schema to `references/artifact-schemas/{type}.md` (11 files).
+1. Identify the artifact schema blocks inside `phase-2-core.md`. Inventory: REQ, BR, NFR, EX, OQ, CONF (specs); ARCH, COMP, INT, OQ, CONF (design); IDEA, RISK, MIT, OQ, CONF (brainstorm). Total: 12 unique prefixes (OQ and CONF shared across workflows, with workflow-specific tag variant inside each schema).
+2. Move each schema to `references/artifact-schemas/{type}.md` (12 files).
 3. Replace inline schemas in `phase-2-core.md` with: "For artifact type `{TYPE}`, Read `references/artifact-schemas/{type}.md`."
 4. Same treatment for Disney phase machine: extract Step 2.6d body to `references/disney-phase-machine.md`. Reference from `phase-2-core.md` Step 2.6d.
 5. Spec walk-through 1.5: re-verify §10 contract invariants still hold after extraction (no field lost).
@@ -348,7 +348,7 @@ No code change to commands yet.
 - [ ] 7B.3.5 extraction contract documented with worked example AND feasibility prototype passed.
 - [ ] 7B.4a `phase-2-core.md` executable form complete; smoke test 1 passed.
 - [ ] 7B.4b commands shrink ~1000+ lines each; Phase 2 sections are short invocations matching the contract; smoke test 2 passed.
-- [ ] 7B.5 artifact schemas extracted (11 type files); Disney machine extracted.
+- [ ] 7B.5 artifact schemas extracted (12 type files); Disney machine extracted.
 - [ ] 7B.6 strategy hook points defined in `phase-2-core.md`; `debate_phase` field still emitted by design+debate (no behavior change).
 - [ ] 7B.7 exp44 replay vs exp43 baselines: structural invariants match for all 3 workflows within thresholds (§7B.7).
 - [ ] **Contract invariants (§10) verified**: dump naming, state.json shape, T1/T2/T3 sequence, resume logic, min_rounds, auto-detect, frontmatter all preserved.
