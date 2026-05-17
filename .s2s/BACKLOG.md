@@ -1770,7 +1770,7 @@ What would you like to configure?
 
 ### TECH-002: Roundtable command unification
 
-**Status**: in_progress | **Created**: 2026-01-20 | **Updated**: 2026-05-05 | **Origin**: IDEA-008
+**Status**: in_progress | **Created**: 2026-01-20 | **Updated**: 2026-05-17 | **Origin**: IDEA-008
 **ADRs**:
 - [0011-roundtable-command-unification](decisions/0011-roundtable-command-unification.md)
 - [0012-output-generation-skill](decisions/0012-output-generation-skill.md)
@@ -1826,7 +1826,7 @@ skills/
 | 6 | Critical guidelines propagation | ✅ | - |
 | 2 | Validation consolidation | ✅ | Phase 6 |
 | 3 | Phase 2 uniformization (approach A — drift elimination + canonical reference) | ✅ | Phase 2 |
-| 7B | Phase 2 deep extraction (approach B — was originally part of Phase 3 scope) | planned | Phase 3 |
+| 7B | Phase 2 deep extraction (approach B — was originally part of Phase 3 scope) | ✅ | Phase 3 |
 | 7 | Strategy skill consolidation | planned | Phase 3 |
 | 4 | roundtable.md as master | planned | Phase 3, 7 |
 | 8 | Thin launcher conversion | planned | Phase 4 |
@@ -1966,12 +1966,22 @@ Make commands actually USE roundtable-strategies instead of duplicating.
 - [ ] No behavioral regression (all tests pass)
 - [ ] Total command lines reduced from ~5000 to ~1050
 
-**Current state** (2026-05-05):
-- Branch: `feature/TECH-002-phase3-uniformization` (forked from develop after v0.4.0 PR #12 merge)
-- Develop carries v0.4.0 with Phases 0, 1, 5, 6, 6b, 2 (PR #12 merged 2026-05-05)
-- Phase 3 (approach A: drift elimination) complete on this branch
-- Phases 7B, 7, 4, 8 remaining: structural refactoring (major rewrites)
-- **Next action**: regression replay in `ElfGiftRush_s2s/exp43` (`/s2s:specs --verbose --diagnostic`) to confirm structural fingerprint vs `exp42-specs-pre-phase3.md` baseline. Then PR Phase 3 → develop, plan Phase 7B.
+**Current state** (2026-05-17):
+- Branch: `feature/TECH-002-phase7b-deep-extraction` (forked from develop @ 0274b4a after Phase 3 PR #13 merge)
+- Develop carries v0.4.0 with Phases 0, 1, 5, 6, 6b, 2, 3 (PR #12 + PR #13 merged 2026-05-05)
+- **Phase 7B complete** on this branch (all sub-phases 7B.0–7B.7 done):
+  - `phase-2-core.md` rewritten as executable single-source (871 lines)
+  - Commands shrunk: specs 1727→600, design 1607→536, brainstorm 1575→482 (~3300 lines removed)
+  - 12 artifact-schemas/* files extracted; disney-phase-machine.md extracted; strategy-hooks.md contract documented
+  - SKILL.md restructured 1002 → 178 lines (v2.7.0 → v3.0.0)
+  - BUG-013 (session-observer Step 2.6c skip) fixed via FIX-S1: dump persistence
+  - Plan: `.s2s/plans/20260506-tech002-phase7b-deep-extraction.md`
+  - Final regression replay (7B.7) verified all 3 workflows — see `.s2s/test-baselines/exp44-{specs,design,brainstorm}-post-phase7b.md`
+- Phases 7, 4, 8 remaining (deferred per dependency order):
+  - Phase 7: strategy skill consolidation (wire roundtable-strategies/{strategy}.md to phase-2-core.md hooks per strategy-hooks.md contract)
+  - Phase 4: roundtable.md as master (~600 lines, all workflows funnel through it)
+  - Phase 8: thin launcher conversion (specs/design/brainstorm → ~150 lines each)
+- **Next action**: PR Phase 7B → develop. Then plan Phase 7, then 4, then 8. Until 4+8 done, do NOT release v0.4.0 → main.
 
 ---
 
