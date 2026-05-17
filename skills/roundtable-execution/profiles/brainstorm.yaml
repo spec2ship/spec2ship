@@ -1,0 +1,65 @@
+# Workflow profile: brainstorm
+# Schema: skills/roundtable-execution/references/profile-schema.md
+# Consumed by: phase-2-core.md (Phase 2 Round Loop), commands/brainstorm.md (Phase 1/3 inline)
+
+workflow_type: "brainstorm"
+
+topic:
+  pattern: "{topic}"
+  source: "cli-arg.topic"
+
+state_phase: "{current_phase}"  # variable: dreamer | realist | critic
+
+default_strategy: "disney"
+strategy_constraints:
+  allowed:
+    - "disney"
+  forced: true  # --strategy flag is IGNORED for brainstorm
+
+participants:
+  default:
+    - "product-manager"
+    - "software-architect"
+    - "technical-lead"
+    - "devops-engineer"
+  configurable: true  # --participants flag overrides default
+
+artifact_types:
+  - prefix: "IDEA"
+    session_key: "ideas"
+    is_primary: true
+  - prefix: "RISK"
+    session_key: "risks"
+    is_primary: true
+  - prefix: "MIT"
+    session_key: "mitigations"
+    is_primary: true
+  - prefix: "OQ"
+    session_key: "open_questions"
+    is_primary: false
+  - prefix: "CONF"
+    session_key: "conflicts"
+    is_primary: false
+
+progress:
+  axis: "disney_phase"
+  # agenda_count and agenda_reference omitted (no agenda for disney_phase axis)
+  changes_field: "phase_changes"
+  synthesis_input_fields:
+    - "phases_status"
+    - "current_phase"
+    - "artifacts_summary"
+  synthesis_output_field: "phase_recommendation"
+
+round_summary:
+  tag_field: "disney_phase"
+
+next_values:
+  - "continue"
+  - "phase"     # advance Disney phase (handled by Step 2.6d)
+  - "conclude"  # only valid in critic phase
+  - "escalate"
+
+has_phase_transition: true  # Step 2.6d applies
+
+display_block_style: "rich"  # full Disney phase rules block at Step 2.1

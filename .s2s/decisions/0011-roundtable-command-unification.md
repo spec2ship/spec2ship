@@ -1,7 +1,7 @@
 # ADR-0011: Roundtable command unification
 
-**Status**: proposed
-**Date**: 2026-01-20
+**Status**: accepted (2026-05-17 — after Phase 7B regression replay passed)
+**Date**: 2026-01-20 (proposed); 2026-05-17 (accepted)
 **Deciders**: s2s development team
 
 ## Context
@@ -164,3 +164,46 @@ This analysis was performed by comparing:
 - `commands/roundtable.md` (366 lines)
 
 Key finding: Commands have MORE features than the skill they claim to follow.
+
+---
+
+## Phase 7B addendum (2026-05-17)
+
+Phase 7B "deep extraction" landed on branch `feature/TECH-002-phase7b-deep-extraction`. The original ADR proposed a "Core Inline + Skill Reference" hybrid; Phase 7B realized it concretely via the **executable-skill-reference pattern**:
+
+### Pattern: executable skill reference
+
+A command Reads a skill reference document (`skills/X/references/Y.md`) and follows its step-by-step instructions, with workflow-specific values supplied by a profile YAML loaded into conversation context as `PROFILE`. The skill reference doc is **profile-aware** (uses `{{profile.X}}` placeholders + `IF profile.X == "..."` conditional sections) so a single document executes correctly across multiple workflows.
+
+For TECH-002 Phase 7B, this was applied to Phase 2 Round Execution Loop:
+- Single source: `skills/roundtable-execution/references/phase-2-core.md` (executable, ~870 lines).
+- Profile YAMLs: `skills/roundtable-execution/profiles/{specs,design,brainstorm}.yaml`.
+- Caller pattern: ~28-line invocation in each command (load profile → set runtime context → Read+follow phase-2-core.md).
+- Sub-references: `artifact-schemas/{type}.md` (12 files), `disney-phase-machine.md`, `strategy-hooks.md`.
+
+### Line count impact (vs original ADR analysis)
+
+| File | Original (Jan 2026) | After Phase 6 | After Phase 7B (this) | After Phase 8 (target) |
+|------|---------------------|----------------|------------------------|------------------------|
+| specs.md | 1740 | 1727 | **600** (-1127) | ~150 |
+| design.md | 1628 | 1607 | **536** (-1071) | ~150 |
+| brainstorm.md | 1625 | 1575 | **482** (-1093) | ~150 |
+| roundtable.md | 366 | 437 | 437 (unchanged; Phase 4) | ~600 (master) |
+| SKILL.md | 803 | 1002 | **178** (-824) | ~178 (unchanged in Phase 8) |
+| phase-2-core.md | n/a | n/a (descriptive only) | **871** (new executable) | unchanged |
+| Total commands+SKILL | 6162 | 6348 | 2233 (-65%) | ~1228 |
+
+### Decisions resolved by Phase 7B
+
+- **Extraction contract** (`phase-2-core.md` §3 + plan `Appendix C`): profile-load + read+follow pattern with named runtime variables in caller scope. Validated via 7B.3.5 feasibility prototype on Step 2.1.
+- **FIX-S1 (BUG-013)**: persist session-observer output to `rounds/{NNN}-04-session-observer.yaml`. Anchors LLM commitment to Step 2.6c. Verified across all 3 workflows in 7B.7.
+- **Strategy hooks contract** (`strategy-hooks.md`): inventory of strategy-specific variations (debate_role, debate_phase for debate; phase machine for disney; hat_role/hat_phase deferred for six-hats). Hooks are additive; wiring deferred to Phase 7.
+- **SKILL.md role**: thin overview pointing to phase-2-core.md as authoritative execution source. Phase 1 (init) and Phase 3 (close) remain inline in each command — out of scope for 7B; thin-launcher conversion deferred to Phase 8.
+
+### Regression coverage
+
+Phase 7B introduced regression tests via dogfood: `.s2s/test-baselines/exp43-*` (pre-7B baselines) and `.s2s/test-baselines/exp44-*-post-phase7b.md` (post-7B verification). All 3 workflows verified for schema invariants. Side-effect noted: post-FIX-S1 sessions tend to run 0-2 more rounds than baselines (observer "Continue" feedback extends sessions); classified as non-regression.
+
+### Remaining phases
+
+Phase 7 (strategy skill consolidation), Phase 4 (roundtable.md as master), Phase 8 (thin launchers) remain. Until those land, do not release v0.4.0 → main: the architectural promise of TECH-002 is only ~⅔ delivered by 7B.
