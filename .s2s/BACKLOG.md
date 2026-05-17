@@ -1827,8 +1827,8 @@ skills/
 | 2 | Validation consolidation | ✅ | Phase 6 |
 | 3 | Phase 2 uniformization (approach A — drift elimination + canonical reference) | ✅ | Phase 2 |
 | 7B | Phase 2 deep extraction (approach B — was originally part of Phase 3 scope) | ✅ | Phase 3 |
-| 7 | Strategy skill consolidation | planned | Phase 3 |
-| 4 | roundtable.md as master | planned | Phase 3, 7 |
+| 7 | Strategy skill consolidation | in_progress | Phase 7B |
+| 4 | roundtable.md as master | planned | Phase 7 |
 | 8 | Thin launcher conversion | planned | Phase 4 |
 
 **Phase 0: Test baseline** ✅
@@ -1966,22 +1966,23 @@ Make commands actually USE roundtable-strategies instead of duplicating.
 - [ ] No behavioral regression (all tests pass)
 - [ ] Total command lines reduced from ~5000 to ~1050
 
-**Current state** (2026-05-17):
-- Branch: `feature/TECH-002-phase7b-deep-extraction` (forked from develop @ 0274b4a after Phase 3 PR #13 merge)
-- Develop carries v0.4.0 with Phases 0, 1, 5, 6, 6b, 2, 3 (PR #12 + PR #13 merged 2026-05-05)
-- **Phase 7B complete** on this branch (all sub-phases 7B.0–7B.7 done):
-  - `phase-2-core.md` rewritten as executable single-source (871 lines)
+**Current state** (2026-05-17, post PR #14 merge):
+- Branch: `feature/TECH-002-phase7-strategy-consolidation` (forked from develop @ 35cdf10 after Phase 7B PR #14 merge)
+- Develop carries v0.4.0 with Phases 0, 1, 5, 6, 6b, 2, 3, **7B** (PR #12 + PR #13 + **PR #14 merged 2026-05-17**)
+- **Phase 7B complete and merged** (PR #14, all sub-phases 7B.0–7B.7 done):
+  - `phase-2-core.md` rewritten as executable single-source (881 lines)
   - Commands shrunk: specs 1727→600, design 1607→536, brainstorm 1575→482 (~3300 lines removed)
   - 12 artifact-schemas/* files extracted; disney-phase-machine.md extracted; strategy-hooks.md contract documented
   - SKILL.md restructured 1002 → 178 lines (v2.7.0 → v3.0.0)
   - BUG-013 (session-observer Step 2.6c skip) fixed via FIX-S1: dump persistence
+  - ADR-0011 promoted `proposed` → `accepted` with Phase 7B addendum
   - Plan: `.s2s/plans/20260506-tech002-phase7b-deep-extraction.md`
   - Final regression replay (7B.7) verified all 3 workflows — see `.s2s/test-baselines/exp44-{specs,design,brainstorm}-post-phase7b.md`
-- Phases 7, 4, 8 remaining (deferred per dependency order):
-  - Phase 7: strategy skill consolidation (wire roundtable-strategies/{strategy}.md to phase-2-core.md hooks per strategy-hooks.md contract)
+- Phases 7, 4, 8 remaining (in dependency order):
+  - **Phase 7 (current)**: strategy skill consolidation — wire `roundtable-strategies/{strategy}.md` to `phase-2-core.md` hooks per `strategy-hooks.md` contract. Move Disney phase logic out of inline (already extracted in 7B.5 to `disney-phase-machine.md`; this phase ensures `disney.md` strategy doc owns it). Verify `roundtable-strategies/SKILL.md` workflow defaults complete. Also touches: Step 2.6d positioning doc inconsistency in `phase-2-core.md` (3-way mismatch between §2 layout, §4 invariant, §2.9b dispatch).
   - Phase 4: roundtable.md as master (~600 lines, all workflows funnel through it)
   - Phase 8: thin launcher conversion (specs/design/brainstorm → ~150 lines each)
-- **Next action**: PR Phase 7B → develop. Then plan Phase 7, then 4, then 8. Until 4+8 done, do NOT release v0.4.0 → main.
+- **Next action**: plan Phase 7 (`/s2s:plan` or markdown plan in `.s2s/plans/`). Until 4+8 done, do NOT release v0.4.0 → main.
 
 ---
 
