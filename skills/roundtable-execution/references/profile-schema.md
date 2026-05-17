@@ -120,7 +120,7 @@ Additional fields not in §1 but required for execution:
 
 ## How profiles are loaded
 
-Pattern (Phase 7B.4b will implement):
+Pattern (implemented in Phase 7B.4b):
 
 ```
 1. Command parses CLI args, determines workflow_type ("specs" | "design" | "brainstorm").
