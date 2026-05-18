@@ -1,7 +1,7 @@
 # Disney Phase Machine
 
 > **Status**: canonical reference (extracted from `brainstorm.md` Step 2.6d in TECH-002 Phase 7B.5).
-> **Consumed by**: `phase-2-core.md` Step 2.6d (brainstorm workflow only — gated on `PROFILE.has_phase_transition == true`).
+> **Consumed by**: `phase-2-core.md` Step 2.10 (brainstorm workflow only — gated on `PROFILE.has_phase_transition == true`).
 > **Applies to**: `/s2s:brainstorm` workflow exclusively. Specs and design do not have phase transitions (`PROFILE.has_phase_transition == false`).
 
 The Disney creativity method separates ideation into three sequential phases, each with a distinct mindset. The brainstorm roundtable encodes these phases as a state machine that advances when the facilitator returns `next: "phase"` from synthesis (Step 2.4).
@@ -88,7 +88,7 @@ phases:
 
 **State updates per transition**:
 
-When `next: "phase"` fires (Step 2.6d):
+When `next: "phase"` fires (Step 2.10):
 
 1. Mark current phase: `phases[current].status = "completed"`.
 2. Determine next phase from the machine (dreamer→realist, realist→critic).
@@ -129,12 +129,12 @@ Verbose dump filename pattern for brainstorm rounds includes the phase context i
 
 ---
 
-## 6. Implementation note for Step 2.6d
+## 6. Implementation note for Step 2.10
 
-`phase-2-core.md` Step 2.6d delegates to this document. The concrete actions per transition are:
+`phase-2-core.md` Step 2.10 delegates to this document. The concrete actions per transition are:
 
 ```
-IF PROFILE.has_phase_transition == false: SKIP Step 2.6d.
+IF PROFILE.has_phase_transition == false: SKIP Step 2.10.
 
 IF synthesis next == "phase":
   Apply the transition rule from §1 table.

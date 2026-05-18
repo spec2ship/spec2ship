@@ -328,7 +328,7 @@ validation:
 
 If --skip-roundtable is NOT present:
 
-The Phase 2 Round Loop is the canonical, profile-aware algorithm defined in `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/phase-2-core.md`. Brainstorm uses the **Disney strategy** (forced — non-overridable) with three sequential phases: `dreamer → realist → critic`. The Disney phase machine is invoked at Step 2.6d when the facilitator returns `next: "phase"`. This command delegates execution to phase-2-core.md after loading the brainstorm profile.
+The Phase 2 Round Loop is the canonical, profile-aware algorithm defined in `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/phase-2-core.md`. Brainstorm uses the **Disney strategy** (forced — non-overridable) with three sequential phases: `dreamer → realist → critic`. The Disney phase machine is invoked at Step 2.10 when the facilitator returns `next: "phase"`. This command delegates execution to phase-2-core.md after loading the brainstorm profile.
 
 ### Profile loading and context setup
 
@@ -346,7 +346,7 @@ Make the following variables available in conversation context for the algorithm
 
 ### Execute the canonical algorithm
 
-**Read** `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/phase-2-core.md` and follow §2 (Round Loop algorithm). The algorithm internally loops Steps 2.0 → 2.9 (with brainstorm's Step 2.6d Phase Transition activating when the facilitator returns `next: "phase"`) until terminal dispatch — typically `conclude` from the `critic` phase.
+**Read** `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/phase-2-core.md` and follow §2 (Round Loop algorithm). The algorithm internally loops Steps 2.0 → 2.9 (with brainstorm's Step 2.10 Phase Transition activating after Step 2.9 dispatch when the facilitator returns `next: "phase"`) until terminal dispatch — typically `conclude` from the `critic` phase.
 
 After phase-2-core.md returns control, proceed to Phase 3 below.
 

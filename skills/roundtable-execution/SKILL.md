@@ -114,7 +114,7 @@ Steps (per `phase-2-core.md`):
 | 2.6 | Update Session File | — |
 | 2.6b | Validate Round Output (`round-validation.md`) | — |
 | 2.6c | Diagnostic Observation (`IF --diagnostic`) — MANDATORY | — |
-| 2.6d | Phase Transition (brainstorm only, `disney-phase-machine.md`) | — |
+| 2.10 | Phase Transition (brainstorm only, `disney-phase-machine.md`) | — |
 | 2.7 | Display Round Recap | — |
 | 2.8 | Handle Interactive Mode | — |
 | 2.9 | Evaluate Next Action (min_rounds enforcement, dispatch) | — |
@@ -147,8 +147,8 @@ Phase 3 stays inline because output generation is workflow-specific (different d
 | `profiles/brainstorm.yaml` | brainstorm workflow profile (with `forced: true` disney strategy and `has_phase_transition: true`) |
 | `references/artifact-schemas/README.md` | Index of 12 per-type artifact schemas |
 | `references/artifact-schemas/{type}.md` | Canonical schema per artifact type (req, br, nfr, ex, arch, comp, int, idea, risk, mit, oq, conf) |
-| `references/disney-phase-machine.md` | Disney phase state machine (brainstorm Step 2.6d) |
-| `references/strategy-hooks.md` | Strategy-specific Phase 2 variation hooks (debate_role, debate_phase, future hat_role) — contract documented, Phase 7 wires |
+| `references/disney-phase-machine.md` | Disney phase state machine (brainstorm Step 2.10) |
+| `references/strategy-hooks.md` | Strategy-specific Phase 2 variation hooks (debate_role, debate_phase, future hat_role) — contract documented, Phase 4 wires (Option A/B/C decision) |
 
 ### Supporting references
 
