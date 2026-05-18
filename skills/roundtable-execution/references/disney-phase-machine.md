@@ -2,6 +2,7 @@
 
 > **Status**: canonical reference (extracted from `brainstorm.md` Step 2.6d in TECH-002 Phase 7B.5).
 > **Consumed by**: `phase-2-core.md` Step 2.10 (brainstorm workflow only — gated on `PROFILE.has_phase_transition == true`).
+> **Strategy description**: `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/disney.md`. This file is the algorithmic spec; the strategy doc is the human-facing description (mindsets, prompts, when-to-use).
 > **Applies to**: `/s2s:brainstorm` workflow exclusively. Specs and design do not have phase transitions (`PROFILE.has_phase_transition == false`).
 
 The Disney creativity method separates ideation into three sequential phases, each with a distinct mindset. The brainstorm roundtable encodes these phases as a state machine that advances when the facilitator returns `next: "phase"` from synthesis (Step 2.4).

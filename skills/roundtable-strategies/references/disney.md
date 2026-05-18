@@ -1,5 +1,7 @@
 # Disney Creative Strategy
 
+> **Algorithmic implementation**: `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/disney-phase-machine.md`. This file is the human-facing strategy description (mindsets, prompts, when-to-use); the machine doc is the canonical algorithmic spec consumed by `phase-2-core.md` Step 2.10.
+
 Based on Walt Disney's creative process, this strategy separates ideation, planning, and critique into distinct phases.
 
 ## Configuration
