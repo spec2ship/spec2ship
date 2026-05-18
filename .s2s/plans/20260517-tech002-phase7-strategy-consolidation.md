@@ -60,7 +60,7 @@ The work breaks down into 3 categories:
 - **Tidying** (7.1b SKILL.md dedup, 7.5 Step 2.6d → 2.10 rename, 7.4 disney cross-link): three independent wins; no inter-dependency.
 - **Verification** (7.6 light smoke test): grep checks + skill-load probe, no full regression replay.
 
-**Total estimated time**: ~3.5 hours (1 + 0.75 + 0.5 + 0.5 + 0.25 + 0.25 + 0.25).
+**Total estimated time**: ~3.75 hours (1 + 0.75 + 0.5 + 0.5 + 0.25 + 0.5 + 0.25). (7.2 grew from 0.25 to 0.5 after 7.0 audit §6.1 extended findings.)
 
 ### Why no runtime wiring now
 
@@ -166,17 +166,22 @@ Runtime behavior is correct (brainstorm replay PASS); the bug is documentation c
 
 **Exit condition**: bidirectional cross-link; no doc drift.
 
-### 7.2: update strategy-hooks.md inventory (~15min)
+### 7.2: update strategy-hooks.md inventory + "Phase 7 → Phase 4" deferral comments (~30min)
 
-**Goal**: align strategy-hooks.md with the formalized strategy docs from 7.1 and the 2.10 rename from 7.5.
+**Goal**: align strategy-hooks.md with the formalized strategy docs from 7.1 and the 2.10 rename from 7.5. Update all "Phase 7" stale references to "Phase 4" across the affected files (per 7.0 audit §6.1).
 
 **Actions**:
-1. Update §1 strategy inventory: each row now references the concrete `## Strategy hooks` section in its `{strategy}.md`.
-2. Update §7 "Where strategy data CURRENTLY comes from": for debate hooks, keep "LLM-emergent" framing AND add explicit note "wiring deferred to Phase 4 architectural decision (Option A/B/C)".
-3. Update §8 "Phase 2 algorithm integration": replace any `2.6d` reference with `2.10` (catches anything 7.5 grep missed).
-4. Update status header: `"contract documentation hardened (TECH-002 Phase 7-lite, {YYYY-MM-DD})"` — set `YYYY-MM-DD` at commit time.
+1. Update `strategy-hooks.md` §1 strategy inventory: each row now references the concrete `## Strategy hooks` section in its `{strategy}.md`.
+2. Update `strategy-hooks.md` §7 "Where strategy data CURRENTLY comes from": for debate hooks, keep "LLM-emergent" framing AND add explicit note "wiring deferred to Phase 4 architectural decision (Option A/B/C)".
+3. Update `strategy-hooks.md` §8 "Phase 2 algorithm integration": replace any `2.6d` reference with `2.10` (catches anything 7.5 grep missed).
+4. Update `strategy-hooks.md` status header: `"contract documentation hardened (TECH-002 Phase 7-lite, {YYYY-MM-DD})"` — set `YYYY-MM-DD` at commit time.
+5. Update all 9 "Phase 7" references in `strategy-hooks.md` to "Phase 4" per 7.0 audit §6.1 table (lines 4, 7, 38, 52, 66, 80, 94, 100, 106 of the pre-edit file).
+6. **Bonus files**: update 2 additional "Phase 7" references outside `strategy-hooks.md`:
+   - `skills/roundtable-execution/SKILL.md:151`: `"Phase 7 wires"` → `"Phase 4 wires (Option A/B/C decision)"`
+   - `agents/validation/session-qa.md:697`: `"strategy hook wiring deferred to Phase 7"` → `"strategy hook wiring deferred to Phase 4 (Option A/B/C decision)"`
+7. The `design.yaml:60` comment (`"wiring deferred to Phase 7"`) is updated in 7.5 alongside the 2.6d rename in `brainstorm.yaml` (same-file proximity).
 
-**Exit condition**: strategy-hooks.md aligned with Phase 7-lite state; no stale 2.6d references.
+**Exit condition**: strategy-hooks.md aligned with Phase 7-lite state; all 12 "Phase 7" references across 4 files updated to "Phase 4"; no stale 2.6d references in strategy-hooks.md.
 
 ### 7.6: light smoke test (~15min)
 
@@ -211,7 +216,9 @@ Runtime behavior is correct (brainstorm replay PASS); the bug is documentation c
 - [ ] `debate.md` `## Strategy hooks` explicitly documents "facilitator-driven, wiring deferred to Phase 4".
 - [ ] `roundtable-strategies/SKILL.md` workflow defaults + artifact-types tables have explicit "authoritative source: profiles/" disclaimers.
 - [ ] `roundtable-strategies/SKILL.md` version bumped 1.1.0 → 1.2.0.
-- [ ] `strategy-hooks.md` updated to Phase 7-lite state (debate hooks framing "LLM-emergent, wiring deferred to Phase 4"; 2.6d references updated to 2.10).
+- [ ] `strategy-hooks.md` updated to Phase 7-lite state (debate hooks framing "LLM-emergent, wiring deferred to Phase 4"; 2.6d references updated to 2.10; all 9 internal "Phase 7" references updated to "Phase 4" per 7.0 audit §6.1).
+- [ ] Bonus "Phase 7 → Phase 4" updates landed in `roundtable-execution/SKILL.md:151` and `agents/validation/session-qa.md:697` (per 7.0 audit §6.1).
+- [ ] `grep -rn "Phase 7\b" skills/ commands/ agents/` returns matches only in historical contexts (ADR-0011 addendum content) — no active "Phase 7 will wire" framing anywhere.
 - [ ] Step 2.6d renamed to Step 2.10 across `phase-2-core.md` (§2/§4/§2.9b), `disney-phase-machine.md`, `strategy-hooks.md`. `grep -r "2\.6d" skills/ commands/` returns zero matches.
 - [ ] `disney.md` and `disney-phase-machine.md` cross-link bidirectionally.
 - [ ] 7.6 smoke test passes (grep checks + skill-load probe).
@@ -248,6 +255,8 @@ PR body must include:
 - **INT-* / CONF-* schema gaps in `session-schema.md`**: pre-existing drift, unrelated.
 - **`commands/roundtable.md:194` legacy command-level Read**: Phase 4 will reconcile when roundtable.md becomes master.
 - **Brainstorm strategy edge case**: `--strategy` non-disney is ignored at Phase 2 but propagates to `session.yaml.strategy_to_use`. Phase 4 territory.
+- **Triple-duplication of strategy/workflow defaults** (from 7.0 audit §6.2): `templates/project/config.yaml` is a third source of `by_workflow_type` strategy mapping + per-strategy consensus config + per-workflow participants — duplicating `profiles/{workflow}.yaml` and `roundtable-strategies/SKILL.md` tables. Phase 7-lite does NOT touch this; the unification decision overlaps Phase 4 (config consumption mechanism) and is added to Phase 4 plan §3 alongside the Option A/B/C wiring decision.
+- **Agent-side strategy doc pointers** (`agents/roundtable/facilitator.md` lines 518, 579, 607): point to whole `{debate,consensus-driven,disney}.md` files. After Phase 7-lite adds `## Strategy hooks` sections, these pointers could be sharpened to `#strategy-hooks` anchors. Phase 4 will re-evaluate when wiring choice is made.
 
 ## 9. Exit pointer
 
