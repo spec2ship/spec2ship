@@ -111,7 +111,7 @@ Phase 4 will make the architectural choice for how strategy hook policy is consu
 - **Option B** (command-side parsing): commands parse strategy doc (or a structured config) and populate `STRATEGY_CONFIG` deterministically; facilitator consumes that without re-reading.
 - **Option C** (full YAML profile per strategy): per-strategy YAML configs (`strategies/{strategy}.yaml`) become the structured source; strategy `.md` files remain human-facing.
 
-Phase 4 decision will be informed by: complexity/blast-radius tradeoff, ability to eliminate LLM emergence for hook population, alignment with roundtable.md-as-master architecture, and the consensus from macro review #4 of the original Phase 7 plan (recorded in `.s2s/plans/20260517-tech002-phase7-strategy-consolidation.md` §3).
+Phase 4 decision will be informed by: complexity/blast-radius tradeoff, ability to eliminate LLM emergence for hook population, alignment with roundtable.md-as-master architecture, and the consensus from macro review #4 of the original Phase 7 plan (recorded in ADR-0011 Phase 7-lite addendum).
 
 ---
 
@@ -123,7 +123,7 @@ Phase 4 decision will be informed by: complexity/blast-radius tradeoff, ability 
 2. **Step 2.6a** (Round summary entry): adds optional `debate_phase` field when `STRATEGY == "debate"`. See §4.
 3. **Step 2.2c** (Facilitator response): `participant_context.overrides` may include strategy-specific directives. See §3 source.
 
-Hook points are added as conditional sections in `phase-2-core.md` matching the `IF STRATEGY == "X"` pattern. Runtime wiring (Option A/B/C) deferred to Phase 4 — see §7 for the target-state options and `.s2s/plans/20260517-tech002-phase7-strategy-consolidation.md` §1 + §3 for the deferral rationale.
+Hook points are added as conditional sections in `phase-2-core.md` matching the `IF STRATEGY == "X"` pattern. Runtime wiring (Option A/B/C) deferred to Phase 4 — see §7 for the target-state options. Deferral rationale (LLM emergence not eliminated by Option A; R1 fallback likely; regression cannot differentiate working from silently-broken wiring; Phase 4 has the right architectural seam) is recorded in ADR-0011 Phase 7-lite addendum (`.s2s/decisions/0011-roundtable-command-unification.md`).
 
 ---
 
