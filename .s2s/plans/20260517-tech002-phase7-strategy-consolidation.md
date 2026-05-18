@@ -146,14 +146,45 @@ Runtime behavior is correct (brainstorm replay PASS); the bug is documentation c
 
 **Decision (pinned)**: rename Step 2.6d to **Step 2.10 (Phase Transition)** and place it AFTER Step 2.9 in §2 layout. Rationale: §2.9b dispatch is the authoritative runtime sequence; numbering as `2.10` avoids decimal-decimal ambiguity.
 
-**Actions**:
-1. In `phase-2-core.md` §2 layout: move Step 2.6d block to after Step 2.9; renumber as Step 2.10. Heading: `### 2.10 — Phase Transition (brainstorm only, profile.has_phase_transition)`.
-2. In `phase-2-core.md` §4 invariant declaration: update to `2.6c → 2.7 → 2.8 → 2.9 → (2.10 if brainstorm and next == "phase") → loop`.
-3. In `phase-2-core.md` §2.9b dispatch table: replace `2.6d` with `2.10`.
-4. In `disney-phase-machine.md` §6: update Step 2.6d → Step 2.10.
-5. `grep -rn "2\.6d" skills/ commands/ .s2s/` and update every remaining match (including `strategy-hooks.md` §8 if applicable; will be handled in 7.2 if missed here).
+**Actions** (per 7.0 audit §7.1 — 18 active sites across 6 files):
 
-**Exit condition**: `grep -r "2\.6d" skills/ commands/` returns zero matches. No runtime change.
+1. **`phase-2-core.md`** (5 sites + bonus Phase 7 site):
+   - Line 40: §1 table row `Step 2.6d Phase Transition` → `Step 2.10 Phase Transition`.
+   - Line 780: section heading + content; move block to after Step 2.9; rename to `### 2.10 — Phase Transition (brainstorm only, profile.has_phase_transition)`.
+   - Line 784: pointer `"follow §6 (Implementation note for Step 2.6d)"` → `"follow §6 (Implementation note for Step 2.10)"`.
+   - Line 812: §2.9b dispatch table cell.
+   - Line 858: §4 invariant `"... → (2.6d for brainstorm) → 2.7 ..."` → `"... → 2.7 → 2.8 → 2.9 → (2.10 if brainstorm and next == 'phase') → loop"`.
+   - Line 879 (bonus, Phase 7 → 4): `"deferred to Phase 7"` → `"deferred to Phase 4 (Option A/B/C decision)"`.
+
+2. **`disney-phase-machine.md`** (5 sites; line 3 historical, leave as-is):
+   - Line 4: `"Consumed by: phase-2-core.md Step 2.6d"` → `"... Step 2.10"`.
+   - Line 91: `"When next: 'phase' fires (Step 2.6d)"` → `"... (Step 2.10)"`.
+   - Line 132: section heading `## 6. Implementation note for Step 2.6d` → `## 6. Implementation note for Step 2.10`.
+   - Line 134: `"phase-2-core.md Step 2.6d delegates"` → `"... Step 2.10 delegates"`.
+   - Line 137: `"SKIP Step 2.6d"` → `"SKIP Step 2.10"`.
+
+3. **`roundtable-execution/SKILL.md`** (2 sites):
+   - Line 117: table row `| 2.6d | Phase Transition (brainstorm only ...)` → `| 2.10 | ...`.
+   - Line 150: inline `(brainstorm Step 2.6d)` → `(brainstorm Step 2.10)`.
+
+4. **`roundtable-execution/references/profile-schema.md`** (2 sites):
+   - Line 83: YAML comment `# Step 2.6d Phase Transition gating` → `# Step 2.10 Phase Transition gating`.
+   - Line 110: table row `Step 2.6d Phase Transition` → `Step 2.10 Phase Transition`.
+
+5. **`profiles/brainstorm.yaml`** (2 sites):
+   - Line 59: `# advance Disney phase (handled by Step 2.6d)` → `... (handled by Step 2.10)`.
+   - Line 63: `# Step 2.6d applies` → `# Step 2.10 applies`.
+
+6. **`profiles/design.yaml`** (1 site, bonus Phase 7 → 4):
+   - Line 60: `# Hook defined in phase-2-core.md §strategy-hooks; wiring deferred to Phase 7.` → `... wiring deferred to Phase 4 (Option A/B/C decision).`
+
+7. **`commands/brainstorm.md`** (2 prose mentions):
+   - Line 331: `"invoked at Step 2.6d when the facilitator returns next: 'phase'"` → `"... at Step 2.10 when ..."`.
+   - Line 349: `"brainstorm's Step 2.6d Phase Transition activating"` → `"... Step 2.10 Phase Transition activating"`.
+
+8. **Verification grep**: `grep -rn "2\.6d" skills/ commands/ agents/` after edits — expect exactly **1 match** only (`disney-phase-machine.md:3` historical "extracted from").
+
+**Exit condition**: `grep -rn "2\.6d" skills/ commands/ agents/` returns only the 1 expected historical match in `disney-phase-machine.md:3`. No runtime change.
 
 ### 7.4: cross-link disney.md and disney-phase-machine.md (~15min)
 
@@ -179,9 +210,9 @@ Runtime behavior is correct (brainstorm replay PASS); the bug is documentation c
 6. **Bonus files**: update 2 additional "Phase 7" references outside `strategy-hooks.md`:
    - `skills/roundtable-execution/SKILL.md:151`: `"Phase 7 wires"` → `"Phase 4 wires (Option A/B/C decision)"`
    - `agents/validation/session-qa.md:697`: `"strategy hook wiring deferred to Phase 7"` → `"strategy hook wiring deferred to Phase 4 (Option A/B/C decision)"`
-7. The `design.yaml:60` comment (`"wiring deferred to Phase 7"`) is updated in 7.5 alongside the 2.6d rename in `brainstorm.yaml` (same-file proximity).
+7. The `design.yaml:60` + `phase-2-core.md:879` Phase 7 → Phase 4 comments are updated in 7.5 alongside the 2.6d rename (same-file proximity).
 
-**Exit condition**: strategy-hooks.md aligned with Phase 7-lite state; all 12 "Phase 7" references across 4 files updated to "Phase 4"; no stale 2.6d references in strategy-hooks.md.
+**Exit condition**: strategy-hooks.md aligned with Phase 7-lite state; all 13 active "Phase 7" references across 5 files updated to "Phase 4" (9 in strategy-hooks.md + 1 in roundtable-execution/SKILL.md + 1 in session-qa.md + 1 in design.yaml + 1 in phase-2-core.md). ADR-0011 lines 200/209 left as historical record.
 
 ### 7.6: light smoke test (~15min)
 
@@ -257,6 +288,7 @@ PR body must include:
 - **Brainstorm strategy edge case**: `--strategy` non-disney is ignored at Phase 2 but propagates to `session.yaml.strategy_to_use`. Phase 4 territory.
 - **Triple-duplication of strategy/workflow defaults** (from 7.0 audit §6.2): `templates/project/config.yaml` is a third source of `by_workflow_type` strategy mapping + per-strategy consensus config + per-workflow participants — duplicating `profiles/{workflow}.yaml` and `roundtable-strategies/SKILL.md` tables. Phase 7-lite does NOT touch this; the unification decision overlaps Phase 4 (config consumption mechanism) and is added to Phase 4 plan §3 alongside the Option A/B/C wiring decision.
 - **Agent-side strategy doc pointers** (`agents/roundtable/facilitator.md` lines 518, 579, 607): point to whole `{debate,consensus-driven,disney}.md` files. After Phase 7-lite adds `## Strategy hooks` sections, these pointers could be sharpened to `#strategy-hooks` anchors. Phase 4 will re-evaluate when wiring choice is made.
+- **`default_strategy` profile field appears NOT consumed at runtime** (from 7.0 audit §7.3): commands resolve strategy from `config.yaml.roundtable.strategy.by_workflow_type.{workflow}`, NOT from `profile.yaml.default_strategy`. The profile-schema.md claim that `default_strategy` is "required for Phase 1 strategy resolution" describes intent, but commands don't currently consult it. Phase 4 wiring decision must clarify the resolution hierarchy (CLI arg → config.yaml → profile fallback → SKILL.md documentation). Phase 7-lite makes no change.
 
 ## 9. Exit pointer
 
