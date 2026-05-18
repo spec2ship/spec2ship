@@ -66,7 +66,7 @@ Phase 8 (thin launcher conversion specs/design/brainstorm to ~150 lines each) is
 ### Hard constraints
 
 - **Backward compatible Phase 2 output**. exp44-post-phase7b dump shapes for the 3 workflows must replay identically after Phase 4. Any deviation is a regression and the PR cannot merge.
-- **Generic-mode preserved**. `/s2s:roundtable` invocation without `--workflow-type` (or with `--workflow-type roundtable`) produces structurally identical output to pre-Phase-4. Verified in §4.5 step 1 generic-mode probe.
+- **Generic-mode not regressed below pre-Phase-4 state**. `/s2s:roundtable` invocation without `--workflow-type` (or with `--workflow-type roundtable`) is determined by §4.0 step 7 audit outcome: if pre-Phase-4 works (outcome a), Phase 4 produces structurally identical output; if pre-Phase-4 is already broken (outcome b/c), the broken state is preserved verbatim and explicitly documented (Phase 9 fixes). Verified in §4.5 step 1 generic-mode light probe.
 - **State machine preserved**. Step 2.0 to Step 2.10 numbering and dispatch invariants from Phase 7-lite are frozen. Phase 4 adds new inputs to Step 2.2c (3-branch dispatch from hook_overrides) but does not renumber.
 - **Existing CLI flags preserved**. `--strategy`, `--participants`, `--workflow-type`, `--output-type`, `--verbose`, `--interactive`, `--diagnostic`, `--pro`, `--con`, `--new`, `--session` continue to work with current semantics. Phase 4 may add new flags but does not remove or rename.
 - **No new third-party dependencies**. Pure markdown + plugin-side YAML.
@@ -157,7 +157,9 @@ This plan adopts **Approach 4** (defer generic-mode hardening to Phase 9). Three
 3. **Pattern from Phase 7-lite**. Phase 7-lite re-scoped (full → lite) when a sub-decision was premature; same pattern here.
 4. **Atomic PR size**. Removing generic-mode work keeps Phase 4 at ~6.25h with focused scope, easier to review.
 
-**Trade-off acknowledged**: TECH-002 acceptance criterion #2 ("roundtable.md can execute all workflows") is **partially done** after Phase 4 (3 of 4 workflow types). v0.4.0 → main release is still gated on Phase 8 (thin launchers) regardless; generic-mode hardening lands in v0.5.0 or later as Phase 9.
+**Trade-off acknowledged**: TECH-002 acceptance criterion #2 ("roundtable.md can execute all workflows") is **partially done** after Phase 4 (3 of 4 workflow types). v0.4.0 → main release is gated on Phase 8 (thin launchers) regardless; Phase 9 generic-mode hardening lands in v0.5.0 or later.
+
+**Important caveat re "preserve verbatim"**: the current `/s2s:roundtable` native stub (lines 359-437) does NOT load a profile before delegating to `phase-2-core.md`. Post-Phase-7B, `phase-2-core.md` is profile-aware (`{{profile.X}}` references throughout). Whether native mode actually works today is unverified (no exp44 baseline for roundtable native). §4.0 step 7 makes pre-Phase-4 smoke test MANDATORY before declaring "preserve verbatim" feasible. Three possible outcomes (a/b/c documented in §4.0 step 7) determine the final shape of the Approach 4 contract: if (a) works, we preserve; if (b/c) broken, we document the broken state explicitly and Phase 9 fixes it. Either way, Phase 4 does NOT regress generic mode below its current functional state.
 
 ## 4. Sub-phases
 
@@ -176,7 +178,11 @@ This plan adopts **Approach 4** (defer generic-mode hardening to Phase 9). Three
 4. **Strategy-hook anchor fixture map**: for each of 5 strategy docs, capture the exact opening-line phrase in `## Strategy hooks` (Phase 7-lite output) and map to expected override dict, distinguishing `{skip: true}` shape (standard, consensus-driven) from policy-dict shape (debate, six-hats, disney). Output: candidate fixture for §4.2.
 5. **Phase-name drift inventory**: confirm `consensus-driven` and `six-hats` mismatches; flag any others (compare command line 194-199 against each `{strategy}.md` `phases:` block).
 6. **Resolution hierarchy gap inventory**: confirm `default_strategy` is currently unread by any command; identify whether any other profile field has the same "documented intent, unread" status (e.g. `strategy_constraints.forced`).
-7. **Generic-mode preservation map**: document exact lines (probably 357-437 stub area) that must NOT be touched by §4.3 conditional dispatch; verify current stub remains functionally invocable post-Phase-4 (Approach 4 contract).
+7. **Pre-Phase-4 generic-mode smoke test + preservation map** (CRITICAL, gates Approach 4 contract): BEFORE declaring "preserve verbatim" feasible, run `/s2s:roundtable "test topic" --diagnostic` in dogfood on PRE-Phase-4 code (current develop @ 3043c1a) and capture structural summary. Three possible outcomes determine §4.3 contract shape:
+   - **(a) Works fine**: capture as `.s2s/test-baselines/exp45-roundtable-native-pre-phase4.md`; becomes the post-Phase-4 invariant target. Approach 4 "preserve verbatim" contract stands as written.
+   - **(b) Fails silently or produces structurally broken output**: document the failure mode in audit; update §10 invariant + §3.5 caveat from "preserve verbatim" to "leave broken state as-is, Phase 9 fixes". §4.5 step 1 generic-mode probe re-scoped to "no NEW regressions introduced by Phase 4 conditional dispatch wrapper".
+   - **(c) Fails with hard error**: same as (b) but visible; consider expanding Phase 4 scope to include minimum-viable generic-mode fix (e.g. document workaround "use --workflow-type specs/design/brainstorm explicitly" in command help text + error message). Decision deferred until outcome observed.
+   Then document exact lines (probably 357-437 stub area) that must NOT be touched by §4.3 conditional dispatch.
 8. **phase-2-core.md Step 2.2c facilitator invocation**: locate the exact lines in §2.2c that invoke the facilitator agent (around line 269); identify where 3-branch `hook_overrides` dispatch will be inserted.
 9. **Facilitator agent strategy-doc pointers**: confirm exact line numbers (currently 518/579/607 area) for `#strategy-hooks` anchor sharpening in §4.2 step 5.
 
@@ -212,9 +218,9 @@ This plan adopts **Approach 4** (defer generic-mode hardening to Phase 9). Three
    - Match opening line to anchor row; produce `strategy_hook_overrides` dict per fixture.
    - Persist `strategy_hook_overrides` in session.yaml under `agent_state.facilitator.hook_overrides` so phase-2-core.md Step 2.2c can pass it to the facilitator agent at each round.
 3. **phase-2-core.md Step 2.2c modification** (NEW deliverable surfaced in review #1): in the facilitator-invocation block (around line 269), add 3-branch dispatch reading `session.yaml.agent_state.facilitator.hook_overrides`:
-   - **Branch 1** (`hook_overrides.skip == true`): pass `hook_overrides: {skip: true}` to facilitator agent input; facilitator emits no per-round overrides (strategy-by-design behavior, current standard).
-   - **Branch 2** (policy fields present): pass full dict; facilitator honors the policy.
-   - **Branch 3** (`hook_overrides` field absent in session.yaml, pre-Phase-4 backward-compat): do NOT include `hook_overrides:` key in agent input at all; facilitator falls back to its current LLM-emergent inference.
+   - **Branch 1** (`hook_overrides.skip == true`): pass `hook_overrides: {skip: true}` to facilitator agent input; facilitator emits no per-round overrides (strategy-by-design behavior, current standard for `standard`/`consensus-driven` strategies).
+   - **Branch 2** (policy fields present): pass full dict; facilitator honors the policy (debate, six-hats, disney).
+   - **Branch 3** (`hook_overrides` field absent in session.yaml): do NOT include `hook_overrides:` key in agent input at all; facilitator falls back to its current LLM-emergent inference. **Two distinct triggers for Branch 3**: (i) pre-Phase-4 session resumed (backward-compat); (ii) `/s2s:roundtable` native session (generic-mode path skips the §4.3 parser block per Approach 4, so hook_overrides is never written for these sessions). Branch 3 is therefore the STANDARD path for generic-mode invocations, not only a backward-compat path.
 4. **Facilitator agent NEW logic**: `agents/roundtable/facilitator.md` adds a new "Hook override consumption" section to its system prompt with three corresponding branches matching Step 2.2c above:
    - `hook_overrides.skip == true` → emit no per-round overrides.
    - `hook_overrides` with policy fields → populate `participant_context.overrides.{participant-id}.{field}` per the dict.
@@ -235,20 +241,21 @@ This plan adopts **Approach 4** (defer generic-mode hardening to Phase 9). Three
        Read profiles/{workflow_type}.yaml → PROFILE
        Read phase-2-core.md and follow §2 Round Loop
    else:  # workflow_type == "roundtable" or absent (generic mode)
-       (preserve current "Follow the skill EXACTLY" stub flow verbatim)
+       (preserve current "Follow the skill EXACTLY" stub flow per §4.0 step 7 audit outcome)
    ```
-   Structured path ~25-30 new lines mirroring `design.md:379-401`. Generic path ~50 lines preserved from current 359-437. The branch wrapper adds ~10 lines.
-2. **Output dispatch (structured workflows only)**: Phase 3 output-type defaulting per workflow:
+   Structured path ~25-30 new lines mirroring `design.md:379-401`. Generic path ~50 lines preserved from current 359-437 (verbatim if §4.0 step 7 outcome is (a); with explicit "known broken" annotation if outcome is (b)/(c)). The branch wrapper adds ~10 lines.
+2. **Session ID naming**: current line 237 generates `{timestamp}-roundtable-{topic-slug}` (hard-coded "roundtable" prefix because command name is `/s2s:roundtable`). Phase 4 change: session_id uses `workflow_type` prefix instead of command name: `{ts}-{workflow_type}-{slug}`. So `/s2s:roundtable "topic"` (workflow_type defaults to roundtable) → `{ts}-roundtable-{slug}` (unchanged); `/s2s:roundtable "topic" --workflow-type specs` → `{ts}-specs-{slug}` (consistent with what `/s2s:specs` produces today and what Phase 8 thin launchers will need). Documented in commit message + ADR-0011 addendum.
+3. **Output dispatch (structured workflows only)**: Phase 3 output-type defaulting per workflow:
    - `specs` → `requirements`
    - `design` → `architecture`
    - `brainstorm` → `summary` (with brainstorm output template)
    - `roundtable` (generic) → `summary` (current default, no change)
    Read the corresponding `output-generation/references/{template}.md` per `--output-type` resolution.
-3. **Resume path**: ensure `--session {id}` works for sessions of any `workflow_type` (current code only handles `workflow_type: roundtable` on resume, see line 75). Add workflow-type-aware resume dispatch for the structured paths; generic-mode resume unchanged.
-4. **Diagnostic mode**: `--diagnostic` continues to force `verbose_flag = true` and routes to `Step 3.0 Final Diagnostic Report` in `phase-2-core.md` for structured workflows; generic-mode diagnostic unchanged.
-5. **Line budget**: current 437 lines + conditional dispatch wrapper (~10 lines) + structured-path Phase 1 profile load (~15 lines) + structured-path Phase 2 dispatch (~30 lines) + structured-path output dispatch (~20 lines) + resume extension (~15 lines) = **~527 lines target**. Margin: keep ≤ 550 lines.
+4. **Resume path**: ensure `--session {id}` works for sessions of any `workflow_type` (current code only handles `workflow_type: roundtable` on resume, see line 75). Add workflow-type-aware resume dispatch for the structured paths; generic-mode resume unchanged.
+5. **Diagnostic mode**: `--diagnostic` continues to force `verbose_flag = true` and routes to `Step 3.0 Final Diagnostic Report` in `phase-2-core.md` for structured workflows; generic-mode diagnostic unchanged.
+6. **Line budget**: current 437 lines + conditional dispatch wrapper (~10 lines) + structured-path Phase 1 profile load (~15 lines) + structured-path Phase 2 dispatch (~30 lines) + structured-path output dispatch (~20 lines) + resume extension (~15 lines) + session-id renaming logic (~5 lines) = **~532 lines target**. Margin: keep ≤ 550 lines.
 
-**Exit condition**: roundtable.md can run 3 structured workflows end-to-end through phase-2-core.md; generic-mode path produces identical output to current behavior (no regression on `/s2s:roundtable` native usage, verified in §4.5 step 1); `wc -l commands/roundtable.md` ≤ 550; specs/design/brainstorm commands UNCHANGED (still inline; Phase 8 territory).
+**Exit condition**: roundtable.md can run 3 structured workflows end-to-end through phase-2-core.md; generic-mode path behaves per §4.0 step 7 audit outcome (preserved if (a), known-broken-documented if (b)/(c)); session_id uses workflow_type prefix; `wc -l commands/roundtable.md` ≤ 550; specs/design/brainstorm commands UNCHANGED (still inline; Phase 8 territory).
 
 ### 4.4: fix command drift (currently lines 170-179 + 194-199) (~0.5h)
 
@@ -272,8 +279,9 @@ This plan adopts **Approach 4** (defer generic-mode hardening to Phase 9). Three
    - `/s2s:specs "..."` compare structural summary to `.s2s/test-baselines/exp44-specs-post-phase7b.md`.
    - `/s2s:design "..."` same, `exp44-design-post-phase7b.md`.
    - `/s2s:brainstorm "..."` same, `exp44-brainstorm-post-phase7b.md`.
-   - `/s2s:roundtable "..." --workflow-type specs` NEW comparison; expected output structurally equivalent to `/s2s:specs` (roundtable is the master path for structured workflows).
-   - **Generic-mode probe**: `/s2s:roundtable "test topic"` (no --workflow-type) confirms current behavior unchanged (no errors, session completes via current stub).
+   - `/s2s:roundtable "..." --workflow-type specs` NEW comparison; expected output structurally equivalent to `/s2s:specs` (roundtable is the master path for structured workflows; session_id will use `specs-` prefix per §4.3 step 2).
+   - **Generic-mode light probe**: `/s2s:roundtable "test topic"` (no --workflow-type), inspect at Phase 1 boundary only (do NOT wait for 3+ round completion). Assert: (i) no Phase 0/1 errors; (ii) session.yaml created with `workflow_type: roundtable`; (iii) first round invocation starts; (iv) compare to baseline captured in §4.0 step 7 (outcome (a) `.s2s/test-baselines/exp45-roundtable-native-pre-phase4.md`). If §4.0 step 7 outcome was (b)/(c), the assertion is only "no NEW regressions introduced by §4.3 conditional wrapper" (the documented broken state from pre-Phase-4 remains).
+   - **Generic-mode full probe (optional)**: if light probe passes AND §4.0 step 7 outcome was (a), optionally complete one full /s2s:roundtable session and confirm output matches baseline. Skip if budget is tight.
 2. **Anchor parse fixture**: for each of 5 strategies, run the parse block standalone (manual Read + match probe), assert output dict equals `.s2s/plans/20260518-tech002-phase4-4.2-fixture.md` frozen values. Distinguishes 2-of-5 strategies with `{skip: true}` shape (standard, consensus-driven) from 3-of-5 with policy-dict shape.
 3. **Backward-compat resume probe**: take a frozen pre-Phase-4 session file (from `.s2s/test-baselines/exp44-*`) and resume via `/s2s:roundtable --session {id}`. Assert behavior:
    - No error on missing `agent_state.facilitator.hook_overrides` field.
@@ -284,7 +292,7 @@ This plan adopts **Approach 4** (defer generic-mode hardening to Phase 9). Three
 6. **Light smoke probe (Phase 1 inspection only, no full session)**: `/s2s:roundtable "test topic" --workflow-type design --strategy debate` (debate strategy exercises Branch 2 non-skip path); interrupt or wait for session.yaml first write (post Phase 1, before Round 1 completes), then `grep "hook_overrides" .s2s/sessions/{id}.yaml` confirms field populated with `debate_role`/`debate_phase` keys. Avoids waiting for full 3+ round dogfood completion.
 7. **Heavy smoke probe (full session, optional)**: if light probe (step 6) passes and time permits, run full `/s2s:design "test topic" --strategy debate --diagnostic` to completion; confirm participant context dumps show `debate_role` populated via Branch 2 data path (not LLM-inferred). Skip if 4.5 budget is tight; light probe in step 6 is sufficient for done criteria.
 
-**Exit condition**: 3 structured-workflow baselines match (structural); roundtable.md master path produces structurally-equivalent specs output; generic-mode probe shows no regression; 5 fixture assertions pass; backward-compat resume probe succeeds via Branch 3; light smoke probe verifies `hook_overrides` populated via Branch 2.
+**Exit condition**: 3 structured-workflow baselines match (structural); roundtable.md master path produces structurally-equivalent specs output (with workflow_type-prefixed session_id); generic-mode light probe shows no NEW regression vs §4.0 step 7 baseline; 5 fixture assertions pass; backward-compat resume probe succeeds via Branch 3; light smoke probe verifies `hook_overrides` populated via Branch 2.
 
 ### 4.6: close-out (~0.5h)
 
@@ -301,13 +309,13 @@ This plan adopts **Approach 4** (defer generic-mode hardening to Phase 9). Three
 | ID | Risk | Likelihood | Impact | Mitigation |
 |----|------|------------|--------|------------|
 | R1 | Option B fixture brittleness: opening-line phrases drift when strategy docs are edited | medium | medium | §4.2 anchor fixture is single-file; `## Strategy hooks` opening lines are referenced from `strategy-hook-resolution.md` header note as "must stay in sync". CI grep check (post-v0.4.0 follow-up) flags drift. |
-| R2 | roundtable.md exceeds 550-line budget after Phase 2 expansion | low | low | §4.3 step 5 line budget computation: 437 + ~90 (additions) = ~527. If overflow, compact existing code blocks in roundtable.md (long YAML examples, verbose comments); do NOT extract Phase 1 helpers (would contradict master goal). |
-| R3 | Resume path workflow-type-aware dispatch breaks legacy `--session` for pure roundtable sessions | low | high | §4.3 step 3 explicitly preserves current line 75 semantics for `workflow_type: roundtable`; extends only to handle other workflow_types. Test in §4.5 step 3. |
+| R2 | roundtable.md exceeds 550-line budget after Phase 2 expansion | low | low | §4.3 step 6 line budget computation: 437 + ~95 (additions) = ~532. If overflow, two honest options: (a) extend budget to ≤600 lines (no architectural compromise; just a number); (b) extract Phase 0 auto-detect section (lines 29-146) to `roundtable-execution/references/auto-detect.md` (~120 lines, behaviorally neutral). Do NOT compact long YAML examples or verbose comments because the current 437 lines are mostly business logic without such low-hanging fruit. Do NOT extract Phase 1 helpers (would contradict master goal). |
+| R3 | Resume path workflow-type-aware dispatch breaks legacy `--session` for pure roundtable sessions | low | high | §4.3 step 4 explicitly preserves current line 75 semantics for `workflow_type: roundtable`; extends only to handle other workflow_types. Test in §4.5 step 3. |
 | R4 | Triple-dup hierarchy D3 confuses users (which file to edit?) | medium | medium | §4.1 SKILL.md resolution diagram + strategy-resolution.md worked examples + config.yaml header comment all repeat the hierarchy explicitly. |
 | R5 | Debate Pro/Con deterministic assignment (Option B) produces worse pairings than LLM-emergent | low | medium | exp44 sample is one observation; deterministic anchor policy is `facilitator_emergent` until empirical data justifies a coded rule. Option B initial overrides preserve current emergent behavior; only six-hats and future strategies get deterministic policy at this stage. |
 | R6 | Phase 4 changes break the 3 structured-workflow baselines (regression) | low | high | §4.5 replay is the gate. Mitigation if unacceptable delta: fix in-place for minor deltas; for significant deltas, escalate to additional review round or split PR into smaller commits; full Phase 4 rollback only as last resort. |
 | R7 | `default_strategy` change from "documented intent" to "actual fallback" exposes a latent bug if profile YAML value disagrees with current implicit behavior | low | low | §4.0 audit cross-checks profile.default_strategy vs config.yaml.by_workflow_type for each workflow; reconcile any disagreement in §4.1 commit. |
-| R8 | Generic-mode roundtable invocation breaks after §4.3 conditional dispatch | low | high | §4.3 step 1 explicitly preserves current stub flow for the else branch; §4.5 step 1 generic-mode probe verifies. §4.0 step 7 documents which lines must NOT be touched. |
+| R8 | Generic-mode roundtable invocation breaks after §4.3 conditional dispatch | low | high | §4.3 step 1 preserves current stub flow for the else branch (verbatim per §4.0 step 7 outcome). §4.5 step 1 generic-mode LIGHT probe verifies at Phase 1 boundary (no full session required). If §4.0 step 7 reveals pre-Phase-4 generic mode is already broken (outcome b/c), the contract becomes "no NEW regression"; the broken state stays documented and Phase 9 fixes. Either way Phase 4 does NOT regress generic mode below current state. |
 | R9 | `phase-2-core.md` Step 2.2c modification not done: Option B data path incomplete (overrides written to session.yaml but never read) | medium | high | §4.2 step 3 explicitly delivers Step 2.2c modification as in-scope work with 3-branch semantics. §4.0 step 8 confirms exact insertion site. §4.5 step 6 light smoke probe verifies `hook_overrides` populated AND structurally consumable via Branch 2. |
 | R10 | Backward-compat resume probe fails: pre-Phase-4 session resumes throw on missing `agent_state.facilitator.hook_overrides` field | low | high | §4.2 steps 3+4 specify 3-branch logic with absent-field fallback (Branch 3) to LLM-emergent, semantically distinct from `{skip: true}` (Branch 1). §4.5 step 3 dedicated probe with frozen pre-Phase-4 session file verifies. |
 | R11 | Approach 4 (generic-mode deferral) leaves user confusion about `/s2s:roundtable` capabilities | medium | low | BACKLOG note + ADR-0011 Phase 4 addendum + plan §3.5 all explicitly document deferral. Generic-mode behavior unchanged from current; only "master" capability gain is for structured workflows. |
@@ -324,7 +332,8 @@ This plan adopts **Approach 4** (defer generic-mode hardening to Phase 9). Three
 - [ ] specs/design/brainstorm commands UNCHANGED in this PR (Phase 8 territory).
 - [ ] Keyword-auto-detect table disclaimer-protected; inline phase enumeration removed.
 - [ ] consensus-driven and six-hats phase-name drift resolved (by source-of-truth deferral, no inline enumeration).
-- [ ] Regression replay: 3 structured baselines match structurally; debate data-path delta documented (no behavioral shift since `facilitator_emergent` policy preserved); roundtable.md master path produces structurally-equivalent specs output; generic-mode probe shows zero regression.
+- [ ] Regression replay: 3 structured baselines match structurally; debate data-path delta documented (no behavioral shift since `facilitator_emergent` policy preserved); roundtable.md master path produces structurally-equivalent specs output (with workflow_type-prefixed session_id per §4.3 step 2); generic-mode light probe shows no NEW regression vs §4.0 step 7 baseline (whether outcome a/b/c).
+- [ ] §4.0 step 7 pre-Phase-4 generic-mode smoke test executed; outcome (a/b/c) recorded in audit file; if outcome (b)/(c), §10 invariant + §3.5 caveat reframed from "preserve verbatim" to "no NEW regression".
 - [ ] 5 anchor parse fixture assertions pass.
 - [ ] Backward-compat resume probe: pre-Phase-4 session file resumes without error on missing `hook_overrides` field; facilitator falls back to LLM-emergent inference via Branch 3 (NOT via Branch 1's skip path); behavior verified visible.
 - [ ] Light smoke probe (`/s2s:roundtable "test" --workflow-type design --strategy debate`) populates `agent_state.facilitator.hook_overrides` with `debate_role` and `debate_phase` fields (Branch 2 working).
@@ -341,7 +350,7 @@ Commit structure (in execution order):
 
 1. `docs(plans): Phase 4 audit, triple-dup map, dispatch sites, anchor fixture map` (4.0)
 2. `refactor(config): codify D3 strategy resolution hierarchy across profiles, SKILL.md, template` (4.1)
-3. `feat(roundtable): Option B strategy-hook parser, fixture, Step 2.2c 3-branch dispatch, facilitator consumer, pointer sharpening` (4.2)
+3. `feat(roundtable): Option B strategy-hook parser, fixture, Step 2.2c 3-branch dispatch, facilitator consumer, pointer sharpening` (4.2). **Optional split if reviewer prefers atomic commits**: 3a `feat(roundtable): strategy-hook-resolution.md fixture + parser block in roundtable.md`, 3b `feat(phase-2-core): Step 2.2c 3-branch hook_overrides dispatch`, 3c `feat(facilitator): hook_overrides consumer logic + sharpen 3 strategy-doc pointers to #strategy-hooks anchors`.
 4. `feat(commands): expand roundtable.md to master for structured workflows (conditional dispatch, generic mode preserved)` (4.3)
 5. `fix(commands): remove inline phase enumeration drift in roundtable.md` (4.4)
 6. `test(baselines): exp45 regression replay, anchor parse fixture, backward-compat resume probe` (4.5)
@@ -390,7 +399,7 @@ Per `strategy-hooks.md` §9, exp44-post-phase7b baselines, and Phase 7-lite Step
 - **Disney machine ownership**: algorithmic source remains `disney-phase-machine.md`. Phase 4 does not touch the machine.
 - **All 5 CLI flags + 6 optional flags preserved**: no removals; no semantic changes.
 - **strategy_constraints.forced wins**: profile YAML `forced: true` (brainstorm.yaml:17) continues to override CLI `--strategy`. Phase 4 does NOT relax this.
-- **Generic-mode `/s2s:roundtable` behavior preserved (Approach 4)**: `--workflow-type roundtable` or absent invocation produces structurally identical output to pre-Phase-4 stub. Phase 9 will revisit this contract.
+- **Generic-mode `/s2s:roundtable` behavior NOT regressed below pre-Phase-4 state (Approach 4)**: `--workflow-type roundtable` or absent invocation behavior is determined by §4.0 step 7 audit outcome. If pre-Phase-4 works (outcome a), Phase 4 produces structurally identical output. If pre-Phase-4 is already broken (outcome b/c), the broken state is preserved verbatim with explicit documentation; Phase 9 fixes. Either way, no NEW regression.
 - **profile-schema.md enumeration preserved**: still `Profiles: specs.yaml, design.yaml, brainstorm.yaml` (footnote added for Phase 9). No `roundtable.yaml` introduced.
 
 If any of these is violated, that is a regression and the PR cannot merge.
@@ -413,9 +422,12 @@ To be produced as `.s2s/plans/20260518-tech002-phase4-4.0-audit.md` during 4.0 e
 
 ## Appendix B: Option B parser pseudo-code
 
+**Conditional context (Approach 4 contract)**: this parser block executes ONLY when `workflow_type ∈ {"specs", "design", "brainstorm"}`. For generic-mode invocations (`workflow_type == "roundtable"` or absent), the parser is skipped entirely (see §4.3 step 1 conditional dispatch). Consequently `hook_overrides` is never written to session.yaml for generic-mode sessions, and `phase-2-core.md` Step 2.2c handles them via Branch 3 (LLM-emergent fallback).
+
 ```
 # In commands/roundtable.md, after "Get strategy configuration"
 # (current line ~199 area, post-strategy-doc-Read)
+# This block runs ONLY in the structured-workflows branch of §4.3 step 1.
 
 Read("${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/strategy-hook-resolution.md")
   → ANCHOR_TABLE  # dict of {opening_phrase_regex: override_dict}
@@ -444,6 +456,6 @@ At each round, `phase-2-core.md` Step 2.2c reads `session.yaml.agent_state.facil
 
 - **Branch 1** (`hook_overrides.skip == true`): pass `hook_overrides: {skip: true}` to facilitator agent invocation; facilitator emits no per-round overrides (strategy declares no hooks, e.g. standard, consensus-driven).
 - **Branch 2** (policy fields present): pass full dict; facilitator populates `participant_context.overrides.{participant-id}.{field}` per the policy (e.g. debate, six-hats with deterministic rule).
-- **Branch 3** (`hook_overrides` field absent in session.yaml): do NOT include `hook_overrides:` key in agent input at all; facilitator falls back to current LLM-emergent inference. Preserves backward-compat with pre-Phase-4 sessions (resume path).
+- **Branch 3** (`hook_overrides` field absent in session.yaml): do NOT include `hook_overrides:` key in agent input at all; facilitator falls back to current LLM-emergent inference. **Branch 3 has two distinct triggers**: (i) pre-Phase-4 session resumed (backward-compat); (ii) generic-mode session (`/s2s:roundtable` native, `workflow_type == "roundtable"` or absent) where the §4.3 parser block was skipped per Approach 4 contract. Both produce the same runtime behavior.
 
-Branch 1 and Branch 3 are semantically distinct: Branch 1 means "strategy has decided there are no hooks" (no inference needed); Branch 3 means "this session predates the deterministic resolver" (fall back to emergence).
+Branch 1 and Branch 3 are semantically distinct: Branch 1 means "strategy has decided there are no hooks" (e.g. standard, consensus-driven; no inference needed); Branch 3 means "no deterministic resolution has been performed" (either pre-Phase-4 session or generic-mode invocation; fall back to current LLM-emergent inference).
