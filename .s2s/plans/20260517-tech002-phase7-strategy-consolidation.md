@@ -44,7 +44,7 @@ After Phase 7:
 These are the regression targets for Phase 7. The debate hook fields are the critical preservation contract.
 
 ### Hard constraints
-- **Behavioral parity on debate path**: design+debate must still produce 16/16 debate_role and 4/4 debate_phase after Phase 7. If Phase 7 formalizes the assignment policy and that changes Pro/Con distribution, that is a regression.
+- **Behavioral parity on debate path**: design+debate must still produce `debate_role` in every participant dump and `debate_phase` in every round summary after Phase 7. Structural ratio: `debate_role` count = rounds × participants; `debate_phase` count = rounds. exp44 baseline was 16/16 and 4/4 at 4 rounds. If Phase 7 formalizes the assignment policy and that changes Pro/Con distribution, that is a regression.
 - **No change to Disney machine**: `disney-phase-machine.md` algorithmic behavior unchanged. Brainstorm replay must match exp44 exactly (3 rounds, phase progression identical).
 - **Commands stay thin**. Phase 7 should NOT add Read-strategy logic at command level. The wiring lives inside `phase-2-core.md` (facilitator agent), preserving the ~600-line command size achieved in 7B.4b.
 - **Atomic PR**. Single PR target develop, milestone v0.4.0.
@@ -58,7 +58,7 @@ The facilitator agent, at Step 2.2c (facilitator question prep), Reads `${CLAUDE
 - Commands unchanged (still thin per 7B.4b).
 - Strategy doc becomes the single source of policy.
 - Behavior change is localized to one step (2.2c), bounded blast radius.
-- One Read per session at most (or per round if config changes), low token cost.
+- One Read per round (~180 lines), no caching assumed. Cost bounded and acceptable.
 
 ### Option B: command reads strategy doc, injects into PROFILE-like context
 
@@ -89,6 +89,10 @@ Reasons:
 
 The work splits into 8 sub-phases (7.0 through 7.6, with 7.1b inserted between 7.1 and 7.2). 7.0-7.2 are audit + doc formalization. 7.1b deduplicates `SKILL.md` workflow defaults. 7.3-7.4 wire the algorithm. 7.5 renames Step 2.6d → 2.10 across docs. 7.6 is the regression replay.
 
+**Execution order vs sub-phase ID**: sub-phase IDs are stable for referencing, but execution order is: 7.0 → 7.1 → 7.1b → 7.2 → **7.5** → 7.3 → 7.4 → 7.6. 7.5 (Step 2.6d → 2.10 rename) MUST run before 7.3 and 7.4 because the latter two write `Step 2.10` references that depend on the rename being committed in `phase-2-core.md`.
+
+**Total estimated time**: ~7 hours (1.5 + 2 + 0.5 + 0.5 + 0.5 + 1 + 0.25 + 1).
+
 ### 7.0: audit strategy docs vs hook contract (research, ~1.5h)
 
 **Goal**: produce a gap matrix per `strategy-hooks.md` §3-§6, extract empirical Pro/Con mapping from exp44 dumps, and confirm facilitator agent file integration path.
@@ -103,7 +107,11 @@ The work splits into 8 sub-phases (7.0 through 7.6, with 7.1b inserted between 7
    - `six-hats.md`: untested. Document hook contract for future; mark as deferred wiring.
 3. Identify whether `consensus-driven.md` defines any consensus-related hooks that should be formalized (weighted_majority threshold, max_attempts) and whether they belong in profile (workflow level) or strategy (strategy level).
 4. Output: gap matrix as a markdown table in this plan or in a 7.0 audit file under `.s2s/`.
-5. **Extract empirical Pro/Con mapping from exp44 raw dumps** (`ElfGiftRush_s2s` worktree, branch `exp44-design-post-phase7b`, commit `94afe10`): inspect each round's participant dump, record `{participant_id, round_index → debate_role}`. This empirical map is the input to 7.1 debate.md policy formalization (R1 mitigation). If the map is inconsistent across rounds (same participant flipping Pro/Con), defer policy formalization (see R1).
+5. **Extract empirical Pro/Con mapping from exp44 raw dumps**:
+   - **Worktree state**: ensure `ElfGiftRush_s2s` worktree is at branch `exp44-design-post-phase7b` (commit `94afe10`); checkout if not.
+   - **Inspect** each round's participant dump (`rounds/{NNN}-02-participant-{role}.yaml`), extract `debate_role` field per `(participant_id, round_index)`.
+   - **Output**: empirical map in table form (4 rounds × 4 participants = 16 cells). This is the input to 7.1 `debate.md` policy formalization (R1 mitigation).
+   - **Fallback trigger**: if the map is inconsistent across rounds (same participant flipping Pro/Con), invoke R1 fallback in 7.1 (document as "facilitator-driven, no fixed policy").
 6. **Reconcile with `commands/roundtable.md:194`**: document the current command-level Read pattern (loads `{strategy}.md` and enumerates phases inline). Phase 7's facilitator-level Read at Step 2.2c must coexist with this; Phase 4 will reconcile. Note any contradiction risk.
 7. **Confirm facilitator agent file integration**: verify `agents/roundtable/facilitator.md` frontmatter has `tools: Read, Glob` (it does) and `skills: roundtable-strategies` (it does). Decide whether 7.3 needs an explicit edit to `facilitator.md` body or whether the agent inherits the Read instruction from `phase-2-core.md` Step 2.2c. Default assumption: agent inherits; flag if 7.0 finds gap.
 8. **Audit `roundtable-strategies/SKILL.md` workflow defaults vs `profiles/{workflow}.yaml`**: identify duplicated fields (default_strategy, participants.default, artifact_types). Confirm current values match (drift check). Output feeds 7.1b decision.
@@ -116,11 +124,11 @@ The work splits into 8 sub-phases (7.0 through 7.6, with 7.1b inserted between 7
 
 **Actions**:
 1. **`debate.md`**: add `## Strategy hooks` section formalizing:
-   - **Pro/Con assignment policy**: per-participant role-based mapping codified as a table. Mapping derived from empirical exp44 observation (per 7.0 step 5). Stable across rounds within a session (participant keeps the same `debate_role` end-to-end).
+   - **Pro/Con assignment policy**: per-participant role-based mapping derived from empirical exp44 observation (per 7.0 step 5). **IF** exp44 dumps show stability (same participant keeps the same `debate_role` end-to-end), codify as a fixed `{role → debate_role}` table. **IF** exp44 dumps show round-by-round flipping, fall back to documenting "facilitator-driven, no fixed policy" per R1 fallback and skip codifying a table.
    - **Debate phase progression**: **default mapping** `round 1 → opening`, `round 2 → rebuttal`, `round 3 → closing`, `round 4+ → synthesis`. **Fallback policy** for short sessions (sessions that conclude before round 4): if session concludes at round 2, the round 2 phase is `closing`; at round 3, round 3 is `closing` (rebuttal skipped or merged into closing). Codify as a decision table; facilitator may override for edge cases (justification logged in synthesis).
    - **Hook fields emitted**: `debate_role` (participant), `debate_phase` (round summary).
-   - **Facilitator instruction**: a concrete pseudo-code block the facilitator agent follows at Step 2.2c.
-2. **`disney.md`**: add explicit cross-reference block pointing to `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/disney-phase-machine.md` as the algorithmic source. Mark `disney.md` itself as the human-facing strategy guide; the machine doc as the algorithmic spec.
+   - **Policy is data, not code**: `debate.md` declares the assignment table + phase progression table as DATA. The generic Read+extract+apply pseudo-code lives once in `phase-2-core.md` Step 2.2c (see Appendix B for shape). Do NOT duplicate pseudo-code per strategy doc.
+2. **`disney.md`**: add explicit cross-reference block pointing to `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/disney-phase-machine.md` as the algorithmic source. Mark `disney.md` itself as the human-facing strategy guide; the machine doc as the algorithmic spec. ALSO add a `## Strategy hooks` section with content: "Phase progression determined by `disney-phase-machine.md` via Step 2.10 (Phase Transition). No Step 2.2c per-round overrides emitted; facilitator skips override population for this strategy." This satisfies the done-criteria uniformity requirement (all 5 strategy docs have the section) and signals the facilitator at Step 2.2c to skip overrides.
 3. **`consensus-driven.md`** and **`standard.md`**: add `## Strategy hooks` section stating explicitly "No per-round hooks. Algorithm runs with workflow defaults from PROFILE." Avoid future doubt.
 4. **`six-hats.md`**: add `## Strategy hooks` section documenting `hat_role` and `hat_phase` contract per `strategy-hooks.md` §5-§6, AND mark wiring as "deferred (not yet exercised in baselines)". Document the contract so Phase 7 + 1 can wire later.
 
@@ -163,13 +171,15 @@ The work splits into 8 sub-phases (7.0 through 7.6, with 7.1b inserted between 7
    ```
    **Before generating the response, the facilitator MUST**:
    1. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/{{STRATEGY}}.md`.
+      Note: `{{STRATEGY}}` is the runtime variable from caller scope (§2.0 of phase-2-core.md), NOT `session.yaml.strategy_to_use`. For brainstorm, runtime STRATEGY is correctly forced to "disney" at Phase 1 regardless of session.yaml propagation (see §8 brainstorm strategy edge case).
    2. Locate the `## Strategy hooks` section.
-   3. Apply the policy to populate `participant_context.overrides` (and `round_summary.debate_phase` at Step 2.6a if applicable).
+   3. IF section says "no hooks" or "no per-round overrides", skip override population (consensus-driven, standard, disney).
+   4. ELSE apply the policy to populate `participant_context.overrides` (and `round_summary.debate_phase` at Step 2.6a if applicable).
    ```
    **Read frequency**: Step 2.2c fires every round, so the Read happens once per round (~180 lines, bounded). No session-level caching mechanism is assumed.
 2. Where the response schema documents `overrides`, replace the descriptive "see strategy-hooks.md" with a concrete "see {{STRATEGY}}.md § Strategy hooks".
 3. Confirm Step 2.3c and Step 2.6a documentation is consistent (they consume; no change).
-4. Confirm the existing Step 2.10 (renamed from Step 2.6d in 7.5) disney Read instruction still works (no conflict with new Step 2.2c Read, since 2.10 is brainstorm-specific and 2.2c applies to the active strategy).
+4. Confirm the existing Step 2.10 disney Read instruction (renamed in 7.5, executed before this sub-phase per the order in §4 intro) still works: no conflict with new Step 2.2c Read, since 2.10 is brainstorm-specific and 2.2c applies to the active strategy.
 5. **Facilitator agent file**: based on 7.0 step 7 audit, decide whether `agents/roundtable/facilitator.md` needs an explicit edit. Default expectation: no edit needed because the agent follows `phase-2-core.md` Step 2.2c instructions by reference. If 7.0 found that the agent body lacks a "follow phase-2-core.md" instruction, add it here (~5 lines).
 
 **Exit condition**: `phase-2-core.md` Step 2.2c has the explicit Read+apply with documented frequency. Facilitator agent file integration confirmed (no edit or minimal edit). A facilitator agent reading the algorithm has zero ambiguity about where strategy policy comes from.
@@ -180,7 +190,7 @@ The work splits into 8 sub-phases (7.0 through 7.6, with 7.1b inserted between 7
 
 **Actions**:
 1. In `disney.md`, add a top banner: "Algorithmic implementation: `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/disney-phase-machine.md`. This file is the human-facing strategy description."
-2. In `disney-phase-machine.md`, add a reciprocal banner: "Strategy description: `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/disney.md`. This file is the algorithmic spec consumed by `phase-2-core.md` Step 2.6d."
+2. In `disney-phase-machine.md`, add a reciprocal banner: "Strategy description: `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/disney.md`. This file is the algorithmic spec consumed by `phase-2-core.md` Step 2.10."
 3. Verify no contradictory phase descriptions between the two files. Reconcile if any drift.
 
 **Exit condition**: bidirectional cross-link; no doc drift.
@@ -215,9 +225,9 @@ Runtime behavior is correct (brainstorm replay PASS, exact rounds match). The bu
 **Actions** (in `ElfGiftRush_s2s` dogfood worktree):
 1. Create branch `exp45-specs-post-phase7` and run `/s2s:specs --verbose --diagnostic`. Compare structural summary against `exp44-specs-post-phase7b.md`. Expected: no functional delta (specs+consensus has no hooks).
 2. Create branch `exp45-design-post-phase7` and run `/s2s:design --verbose --diagnostic`. Compare against `exp44-design-post-phase7b.md`. **Critical checks**:
-   - 16/16 debate_role still present in participant dumps.
-   - 4/4 debate_phase still present in round summaries.
-   - Debate phase progression matches the now-formalized policy (round 1 = opening, etc.).
+   - `debate_role` present in every participant dump (count = `rounds × 4` per structural ratio).
+   - `debate_phase` present in every round summary (count = `rounds`).
+   - Debate phase progression matches the now-formalized policy (round 1 = opening, etc., with fallback for short sessions per 7.1).
 3. Create branch `exp45-brainstorm-post-phase7` and run `/s2s:brainstorm --verbose --diagnostic`. Compare against `exp44-brainstorm-post-phase7b.md`. **Critical checks**:
    - Disney machine still produces 3-round dreamer→realist→critic sequence.
    - Schema invariants preserved.
@@ -225,8 +235,8 @@ Runtime behavior is correct (brainstorm replay PASS, exact rounds match). The bu
 
 **Acceptance threshold** (stricter than 7B because Phase 7 adds no algorithmic logic):
 - `rounds_completed` delta vs exp44: **≤ ±1 round** (LLM variance tolerance only). Any larger delta indicates a behavioral change and is a blocker.
-- `debate_role` count in design dumps: **exactly 16/16** (4 rounds × 4 participants) OR matches exp45 rounds_completed × 4 if rounds delta ≠ 0.
-- `debate_phase` count in design round summaries: **matches exp45 rounds_completed** (one per round).
+- `debate_role` count in design dumps: equal to `exp45 rounds_completed × 4` participants (structural ratio; exp44 was 16/16 at 4 rounds).
+- `debate_phase` count in design round summaries: equal to `exp45 rounds_completed` (one per round; exp44 was 4/4).
 - Disney machine in brainstorm: **exact** dreamer → realist → critic progression, no skipped or duplicated phase.
 - FIX-S1: session-observer dumps written per round (must match exp45 rounds_completed).
 
@@ -237,7 +247,7 @@ Runtime behavior is correct (brainstorm replay PASS, exact rounds match). The bu
 | ID | Risk | Likelihood | Impact | Mitigation |
 |----|------|------------|--------|------------|
 | R1 | Formalizing Pro/Con assignment policy in `debate.md` shifts the LLM-emergent distribution observed in exp44 | medium | high | **7.0 step 5** extracts the empirical `{participant_id, round_index → debate_role}` mapping from `ElfGiftRush_s2s` exp44 raw dumps. **7.1** encodes that mapping verbatim as the policy table in `debate.md`. **7.6** exp45 replay validates no drift. **Fallback**: if 7.0 reveals the mapping is INCONSISTENT (same participant flipping Pro/Con across rounds), defer policy formalization to a follow-up phase and document `debate.md` as "facilitator-driven, no fixed policy" instead. |
-| R2 | Adding Step 2.2c facilitator Read adds latency and token cost | low | low | 1 Read per session of ~180-line file; bounded. Cache-warm for subsequent rounds in same session. |
+| R2 | Adding Step 2.2c facilitator Read adds latency and token cost | low | low | One Read per round of ~180 lines; ~3-5 Reads per session. No caching assumed; cost bounded. |
 | R3 | Step 2.6d renumbering breaks references in `disney-phase-machine.md` or commands | low | medium | grep for all 2.6d references before edit; update all in 7.5. |
 | R4 | Brainstorm replay rounds_completed shifts (exp44 had 3) | low | medium | No Disney machine change planned. If observed, investigate as side effect; otherwise N/A. |
 | R5 | Consensus-driven gains accidental hook behavior because facilitator now Reads strategy doc even when no hooks apply | low | medium | 7.1 explicitly states "no hooks" in `consensus-driven.md` and `standard.md`. Facilitator instruction at 2.2c includes "if no `## Strategy hooks` section or section says 'no hooks', skip override population." |
@@ -265,14 +275,14 @@ Runtime behavior is correct (brainstorm replay PASS, exact rounds match). The bu
 
 **Single PR**: `feature/TECH-002-phase7-strategy-consolidation` → `develop`.
 
-Commit structure (granular, atomic):
+Commit structure (granular, atomic, in execution order — matches §4 intro):
 1. `docs(strategies): audit gap matrix + exp44 Pro/Con extraction for Phase 7` (7.0 audit output)
 2. `docs(strategies): formalize hook contracts in {strategy}.md files` (7.1)
 3. `docs(strategies): reconcile SKILL.md workflow defaults with profile YAMLs, bump v1.2.0` (7.1b)
 4. `docs(strategies): update strategy-hooks.md to wired state` (7.2)
-5. `feat(phase-2-core): wire Step 2.2c facilitator to Read active strategy doc` (7.3)
-6. `docs(strategies,phase-2-core): cross-link disney.md ↔ disney-phase-machine.md` (7.4)
-7. `refactor(phase-2-core): rename Step 2.6d to Step 2.10 across all docs` (7.5)
+5. `refactor(phase-2-core): rename Step 2.6d to Step 2.10 across all docs` (7.5)
+6. `feat(phase-2-core): wire Step 2.2c facilitator to Read active strategy doc` (7.3)
+7. `docs(strategies,phase-2-core): cross-link disney.md ↔ disney-phase-machine.md` (7.4)
 8. `docs(test-baselines): exp45 post-Phase 7 structural summaries` (7.6)
 9. `docs(backlog,plan): close Phase 7` (final)
 
@@ -303,7 +313,7 @@ Phase 4 plan should be drafted after Phase 7 merges, using this plan as a struct
 Per `strategy-hooks.md` §9 (Phase 7B contract) and `.s2s/test-baselines/exp44-*-post-phase7b.md`:
 
 - **Design + debate**: every participant dump (N rounds × 4 participants) includes `debate_role`; every round summary includes `debate_phase`. exp44 baseline: 16/16 and 4/4 at 4 rounds. exp45 must match the **structural ratio** (count = rounds × participants for `debate_role`; count = rounds for `debate_phase`), not necessarily the absolute count if rounds_completed differs within ±1 tolerance.
-- **Brainstorm + disney**: 3 rounds with phases `dreamer → realist → critic`, transitions at round 1→2 and 2→3, conclude in critic phase. Phase machine extraction transparency holds.
+- **Brainstorm + disney**: phase progression sequence `dreamer → realist → critic` preserved; conclusion in critic phase; Disney machine extraction transparency holds. Strict invariant: no skipped or duplicated phase, transitions only at phase boundaries. Rounds_completed within ±1 of exp44 baseline (3 rounds; ±1 LLM variance tolerance).
 - **Specs + consensus-driven**: no strategy hook fields appear (negative invariant).
 - **Schema additivity**: hooks add optional fields, never remove or rename baseline fields.
 - **FIX-S1**: session-observer dumps still written `{NNN}-04-session-observer.yaml` per round. Phase 7 must not break this.
