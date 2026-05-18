@@ -259,3 +259,24 @@ Think outside the box.
 Edward de Bono's "Six Thinking Hats" (1985). Widely used in business and education. Adapted for LLM context with explicit phase separation and parallel within-phase execution.
 
 In LLM multi-agent research, the PTFA framework (2024) showed heterogeneous thinking styles improve problem-solving by 47% over homogeneous approaches.
+
+## Strategy hooks
+
+No per-round overrides (wiring deferred to future phase — no empirical baseline yet).
+
+### Documented contract (not yet exercised)
+
+Six-hats has never been exercised in dogfood. The hook contract below is documented for completeness; wiring is blocked on baseline acquisition.
+
+| Hook | Phase 2 step | Field added |
+|------|--------------|-------------|
+| Hat role assignment | Step 2.3c (participant response) | `hat_role: "white" \| "red" \| "black" \| "yellow" \| "green" \| "blue"` |
+| Hat phase tracking | Step 2.6a (round summary entry) | `hat_phase: "blue-opening" \| "white-hat" \| "red-hat" \| "black-hat" \| "yellow-hat" \| "green-hat" \| "blue-closing"` |
+
+### Status
+
+- **No empirical baseline**: `/s2s:design --strategy six-hats` has never been run; structural behaviour is unverified.
+- **Prerequisite for wiring**: capture an empirical baseline by running `/s2s:design --strategy six-hats --verbose --diagnostic` on dogfood and freezing a structural summary in `.s2s/test-baselines/`.
+- **Wiring deferred** until baseline exists. The opening line phrase `"No per-round overrides"` signals the facilitator at Step 2.2c to skip override population in the meantime (per `strategy-hooks.md` §8 future-wiring contract).
+
+For full hook contract details, see `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/strategy-hooks.md` §5 (`participant_response.hat_role`) and §6 (`round_summary.hat_phase`).

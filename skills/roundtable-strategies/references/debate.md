@@ -181,3 +181,25 @@ As facilitator, synthesize this debate:
 ## Research Basis
 
 Structured debate is a proven technique for evaluating options. In LLM contexts, adversarial setups help mitigate sycophancy by forcing agents into opposing roles.
+
+## Strategy hooks
+
+Facilitator-driven, LLM-emergent. No fixed policy codified. Phase 4 will decide the wiring mechanism (Option A/B/C) and may add a codified policy table at that time.
+
+### Hook fields emitted
+
+| Hook | Phase 2 step | Field added |
+|------|--------------|-------------|
+| Pro/Con role assignment | Step 2.3c (participant response) | `debate_role: "pro" \| "con"` (top-level in participant dump's `response`) |
+| Debate phase tracking | Step 2.6a (round summary entry) | `debate_phase: "opening" \| "rebuttal" \| "closing" \| "synthesis"` (optional in `rounds[].` entry) |
+
+### Current state (post Phase 7-lite, pre Phase 4 wiring)
+
+Both `debate_role` and `debate_phase` are emitted by the facilitator agent through LLM interpretation of the strategy context. No deterministic policy is codified in this document. The "automatic" side assignment referenced in the §How It Works section above is realised by LLM choice at session start, not by a rule.
+
+Phase 4 will decide the resolution mechanism. Three options under consideration:
+- **Option A** (facilitator Reads this doc): if chosen, a policy table for Pro/Con assignment may be added below this section as data.
+- **Option B** (command-side parsing): a structured YAML config (likely separate from this prose doc) becomes authoritative; this doc remains human-facing.
+- **Option C** (full YAML profile per strategy): a `strategies/debate.yaml` file becomes the structured config; this doc remains human-facing.
+
+For full hook contract details (field types, source, behaviour), see `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/strategy-hooks.md` §3 (`participant_response.debate_role`) and §4 (`round_summary.debate_phase`).
