@@ -262,7 +262,7 @@ In LLM multi-agent research, the PTFA framework (2024) showed heterogeneous thin
 
 ## Strategy hooks
 
-No per-round overrides (wiring deferred to future phase — no empirical baseline yet).
+No per-round overrides (wiring deferred to future phase, no empirical baseline yet).
 
 ### Documented contract (not yet exercised)
 

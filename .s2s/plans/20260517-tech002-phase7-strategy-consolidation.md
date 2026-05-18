@@ -102,7 +102,7 @@ Phase 7-lite delivers the precondition for Phase 4's decision: formalized strate
 **Uniform shape**:
 - Opening line declares hook applicability with one of these phrases (Phase 4 will use them as skip-triggers if Option A is chosen):
   - `"No per-round hooks. Algorithm runs with workflow defaults from PROFILE."`
-  - `"No per-round overrides (wiring deferred to future phase — no empirical baseline yet)."`
+  - `"No per-round overrides (wiring deferred to future phase, no empirical baseline yet)."`
   - `"Facilitator-driven, LLM-emergent. No fixed policy codified. Phase 4 will decide wiring mechanism."`
   - `"Phase progression determined by {file}. No Step 2.2c per-round overrides."`
 - Body documents the hook fields the strategy emits (or "none") + cross-reference to `strategy-hooks.md` §X for full contract.
@@ -115,7 +115,7 @@ Phase 7-lite delivers the precondition for Phase 4's decision: formalized strate
    - Current behavior: `"Facilitator-driven, LLM-emergent. No fixed policy codified. Phase 4 will decide the wiring mechanism (Option A/B/C) and may add a codified policy table at that time."`
    - Cross-reference to `strategy-hooks.md` §3-§4.
 4. **`disney.md`**: `## Strategy hooks` opening: `"Phase progression determined by disney-phase-machine.md via Step 2.10 (Phase Transition). No Step 2.2c per-round overrides."` Plus cross-link banner per 7.4.
-5. **`six-hats.md`**: `## Strategy hooks` opening: `"No per-round overrides (wiring deferred to future phase — no empirical baseline yet)."` Below the opening, document `hat_role` and `hat_phase` contract per `strategy-hooks.md` §5-§6 as descriptive prose.
+5. **`six-hats.md`**: `## Strategy hooks` opening: `"No per-round overrides (wiring deferred to future phase, no empirical baseline yet)."` Below the opening, document `hat_role` and `hat_phase` contract per `strategy-hooks.md` §5-§6 as descriptive prose.
 
 **Exit condition**: all 5 strategy docs have `## Strategy hooks` sections in uniform shape; opening lines match the future skip-trigger phrase pattern.
 
