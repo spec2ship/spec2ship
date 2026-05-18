@@ -1827,8 +1827,8 @@ skills/
 | 2 | Validation consolidation | ✅ | Phase 6 |
 | 3 | Phase 2 uniformization (approach A — drift elimination + canonical reference) | ✅ | Phase 2 |
 | 7B | Phase 2 deep extraction (approach B — was originally part of Phase 3 scope) | ✅ | Phase 3 |
-| 7-lite | Strategy doc hardening (rename 2.6d→2.10, SKILL.md dedup, §Strategy hooks formalization, disney cross-link) | in_progress | Phase 7B |
-| 4 | roundtable.md as master (includes strategy wiring Option A/B/C decision) | planned | Phase 7-lite |
+| 7-lite | Strategy doc hardening (rename 2.6d→2.10, SKILL.md dedup, §Strategy hooks formalization, disney cross-link) | ✅ executed (awaiting PR) | Phase 7B |
+| 4 | roundtable.md as master (includes strategy wiring Option A/B/C decision) | in_progress (awaiting Phase 7-lite PR merge) | Phase 7-lite |
 | 8 | Thin launcher conversion | planned | Phase 4 |
 
 **Phase 0: Test baseline** ✅
@@ -1978,11 +1978,17 @@ Make commands actually USE roundtable-strategies instead of duplicating.
   - ADR-0011 promoted `proposed` → `accepted` with Phase 7B addendum
   - Plan: `.s2s/plans/20260506-tech002-phase7b-deep-extraction.md`
   - Final regression replay (7B.7) verified all 3 workflows — see `.s2s/test-baselines/exp44-{specs,design,brainstorm}-post-phase7b.md`
-- Phases 7-lite, 4, 8 remaining (in dependency order):
-  - **Phase 7-lite (current)**: strategy doc hardening — documentation + tidying only, NO runtime wiring. Delivers: (1) 5 strategy reference docs gain uniform `## Strategy hooks` sections, (2) `roundtable-strategies/SKILL.md` workflow defaults gain "authoritative source: profiles/" disclaimer + version bump to 1.2.0, (3) Step 2.6d renamed to Step 2.10 across `phase-2-core.md` + `disney-phase-machine.md` + `strategy-hooks.md`, (4) bidirectional cross-link `disney.md` ↔ `disney-phase-machine.md`. Plan: `.s2s/plans/20260517-tech002-phase7-strategy-consolidation.md` (revised 2026-05-18 from "full" to "lite" after macro review #4). Runtime wiring at Step 2.2c deliberately deferred to Phase 4. Estimated ~3.5h.
-  - Phase 4: roundtable.md as master (~600 lines, all workflows funnel through it) + **strategy wiring architectural decision (Option A/B/C)** using Phase 7-lite's uniform strategy docs as substrate.
-  - Phase 8: thin launcher conversion (specs/design/brainstorm → ~150 lines each).
-- **Next action**: execute Phase 7-lite plan (sub-phase 7.0 audit). Until 4+8 done, do NOT release v0.4.0 → main.
+- **Phase 7-lite ✅ executed (2026-05-18, branch `feature/TECH-002-phase7-strategy-consolidation`, awaiting PR)**:
+  - Plan: `.s2s/plans/20260517-tech002-phase7-strategy-consolidation.md` (revised 2026-05-18 from "full" to "lite" after macro review #4)
+  - 7.0 audit: `.s2s/plans/20260518-tech002-phase7-lite-7.0-audit.md` (3 passes, definitive site inventory)
+  - 7.6 smoke: `.s2s/plans/20260518-tech002-phase7-lite-7.6-smoke.md` (4/4 PASS)
+  - Deliverables: (1) 5 strategy reference docs with uniform `## Strategy hooks` sections [+73 lines doc]; (2) `roundtable-strategies/SKILL.md` v1.1.0 → v1.2.0 with "authoritative source: profiles/" disclaimers + drift D1/D2 fixes; (3) Step 2.6d renamed to Step 2.10 across 18 sites in 6 files (`phase-2-core.md` block relocated post-§2.9); (4) bidirectional cross-link `disney.md` ↔ `disney-phase-machine.md`; (5) `strategy-hooks.md` reframed with Option A/B/C decision matrix in §7 (Phase 4 target state); (6) ADR-0011 addendum.
+  - 13 stale `Phase 7 → Phase 4` references resolved across 4 files; 18 stale `Step 2.6d → 2.10` resolved across 6 files.
+  - Plan branch commits: 15 (audit ×3, formalize + sweep, dedup, rename, cross-link, hooks update, smoke, final).
+- **Phase 4 (next, ~3-4h)**: roundtable.md as master + **Option A/B/C wiring decision** for strategy hook consumption at runtime. Plan to be drafted using Phase 7-lite plan as structural template; §3 MUST include explicit Option A/B/C decision matrix per ADR-0011 Phase 7-lite addendum. Triple-duplication of strategy/workflow defaults (`templates/project/config.yaml` ↔ `profiles/{workflow}.yaml` ↔ `roundtable-strategies/SKILL.md`) and `default_strategy` resolution hierarchy clarification are Phase 4 prerequisites (per 7.0 audit §6.2 + §7.3).
+- **Phase 8 (after Phase 4, ~2-3h)**: thin launcher conversion (specs/design/brainstorm → ~150 lines each).
+- **Six-hats wiring** (prerequisite-blocked): requires empirical baseline acquisition. Separate task.
+- **Next action**: open PR `feature/TECH-002-phase7-strategy-consolidation` → develop, milestone v0.4.0. After merge, draft Phase 4 plan. Until 4+8 done, do NOT release v0.4.0 → main.
 
 ---
 

@@ -4,7 +4,7 @@
 **Branch**: `feature/TECH-002-phase7-strategy-consolidation`
 **Forked from**: `develop` @ `35cdf10` (post Phase 7B PR #14 merge)
 **Author**: Claude (Opus 4.7) + Francesco
-**Status**: draft (re-scoped to lite, awaiting execution)
+**Status**: executed (2026-05-18, awaiting PR open + merge; will become `completed (PR #XX merged YYYY-MM-DD)` post-merge)
 **Created**: 2026-05-17
 **Revised**: 2026-05-18 — re-scoped from "full" to "lite" after macro review (round #4). Runtime wiring at Step 2.2c deferred to Phase 4.
 **Predecessor plan**: `.s2s/plans/20260506-tech002-phase7b-deep-extraction.md`
