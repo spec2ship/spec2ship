@@ -37,7 +37,7 @@ For quick reference, the workflow differences captured by the profiles:
 | Synthesis output progress field | `agenda_update` | `agenda_update` | `phase_recommendation` | `progress.synthesis_output_field` |
 | Round summary tag | `topic_id` | `topic_id` (+ optional `debate_phase` for debate) | `disney_phase` | `round_summary.tag_field` |
 | `next` values | `continue` / `conclude` / `escalate` | same | + **`phase`** | `next_values` |
-| Step 2.6d Phase Transition | n/a | n/a | **present** | `has_phase_transition` |
+| Step 2.10 Phase Transition | n/a | n/a | **present** | `has_phase_transition` |
 | Step 2.1 display block | minimal | minimal | rich (Disney phase rules) | `display_block_style` |
 
 The table is informational; the authoritative source is each profile YAML.
@@ -777,19 +777,6 @@ Proceed automatically. Do NOT stop. Do NOT ask.
 
 ---
 
-### Step 2.6d — Phase Transition (BRAINSTORM ONLY)
-
-**Applicable only when** `PROFILE.has_phase_transition == true`.
-
-**Read** `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/disney-phase-machine.md` and follow §6 (Implementation note for Step 2.6d). The reference document is the canonical state machine spec.
-
-Summary:
-- When Step 2.4 returned `next: "phase"`: advance phase per state machine, update session.yaml, display banner.
-- When `session.current_phase == "critic"` AND Step 2.4 returned `next: "conclude"`: exit loop (proceed to Step 2.9 dispatch).
-- Drift handling: if facilitator returns `conclude` from a non-critic phase, override to `phase` and warn.
-
----
-
 ### Step 2.9 — Evaluate Next Action (CRITICAL)
 
 #### 2.9a Min_rounds enforcement (MANDATORY)
@@ -809,11 +796,24 @@ Dispatch on `next` (validated against `PROFILE.next_values`):
 | `next` value | Action |
 |--------------|--------|
 | `continue` | loop back to Step 2.0 (next round) |
-| `phase` (brainstorm only) | execute Step 2.6d (phase transition), then loop back to Step 2.0 |
+| `phase` (brainstorm only) | execute Step 2.10 (phase transition), then loop back to Step 2.0 |
 | `conclude` | exit Phase 2; control returns to command for Phase 3 |
 | `escalate` | ask user via `AskUserQuestion` (options: continue, conclude, abort); based on choice, loop or exit |
 
 For brainstorm: `conclude` is only valid when `session.current_phase == "critic"`. If facilitator returns `conclude` from an earlier phase, treat as drift (override to `phase` and warn).
+
+---
+
+### Step 2.10 — Phase Transition (BRAINSTORM ONLY)
+
+**Applicable only when** `PROFILE.has_phase_transition == true`.
+
+**Read** `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/disney-phase-machine.md` and follow §6 (Implementation note for Step 2.10). The reference document is the canonical state machine spec.
+
+Summary:
+- When Step 2.4 returned `next: "phase"`: advance phase per state machine, update session.yaml, display banner.
+- When `session.current_phase == "critic"` AND Step 2.4 returned `next: "conclude"`: exit loop (proceed to Step 2.9 dispatch).
+- Drift handling: if facilitator returns `conclude` from a non-critic phase, override to `phase` and warn.
 
 ---
 
@@ -855,7 +855,7 @@ Phase 1 (init, profile-aware Phase 1 setup) and Phase 3 (output generation) rema
 The §10 contract invariants in `.s2s/plans/20260506-tech002-phase7b-deep-extraction.md` MUST be preserved by this document and its callers. Key items:
 
 - Dump file naming `rounds/{NNN}-{PP}-{actor}.yaml` (NNN=3-digit round, PP=01|02|03|04, actor per role).
-- Step ordering 2.0 → 2.1 → 2.2 → 2.3 → 2.4 → 2.5 → 2.6 → 2.6b → 2.6c → (2.6d for brainstorm) → 2.7 → 2.8 → 2.9.
+- Step ordering 2.0 → 2.1 → 2.2 → 2.3 → 2.4 → 2.5 → 2.6 → 2.6b → 2.6c → 2.7 → 2.8 → 2.9 → (2.10 if brainstorm and `next == "phase"`) → loop.
 - Token checkpoints T1 (after 2.2), T2 (after 2.3), T3 (after 2.4).
 - Min_rounds enforcement at Step 2.9.
 - Resume conditions on `agent_state.{facilitator,participants}.agent_id`.
@@ -876,6 +876,6 @@ Breaking any of these is grounds for revert per the plan.
 - ✅ Disney phase machine extracted (`disney-phase-machine.md`).
 - ✅ `verbose-dump-format.md` documents `{NNN}-04-session-observer.yaml` (FIX-S1, BUG-013).
 - ✅ `roundtable-execution/SKILL.md` restructured to thin overview pointing here (7B.5).
-- ✅ Strategy hooks contract documented (`strategy-hooks.md` — TECH-002 Phase 7B.6). Hook points integrated in Step 2.2c (overrides), Step 2.3c (debate_role, hat_role), Step 2.6a (debate_phase, hat_phase). Wiring (strategy skill consolidation) deferred to Phase 7.
+- ✅ Strategy hooks contract documented (`strategy-hooks.md` — TECH-002 Phase 7B.6). Hook points integrated in Step 2.2c (overrides), Step 2.3c (debate_role, hat_role), Step 2.6a (debate_phase, hat_phase). Wiring (strategy skill consolidation) deferred to Phase 4 (Option A/B/C decision).
 
 This document is the authoritative execution source for Phase 2 across all three workflows.

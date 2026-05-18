@@ -694,7 +694,7 @@ session_rounds:
     synthesis_next_phase: "rebuttal"
 ```
 
-**What This Detects**: debate_phase may not be included in round summary. Fix location: Step 2.6 in `skills/roundtable-execution/references/phase-2-core.md` (strategy hook wiring deferred to Phase 7).
+**What This Detects**: debate_phase may not be included in round summary. Fix location: Step 2.6 in `skills/roundtable-execution/references/phase-2-core.md` (strategy hook wiring deferred to Phase 4 — Option A/B/C decision).
 
 ---
 

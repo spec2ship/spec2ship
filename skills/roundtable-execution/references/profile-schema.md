@@ -80,7 +80,7 @@ next_values: [<string>, ...]       # allowed values returned by facilitator at S
                                    # specs/design: ["continue", "conclude", "escalate"]
                                    # brainstorm: ["continue", "phase", "conclude", "escalate"]
 
-# Step 2.6d Phase Transition gating
+# Step 2.10 Phase Transition gating
 has_phase_transition: <bool>       # true only for brainstorm
 
 # Step 2.1 Display Round Start style
@@ -107,7 +107,7 @@ Every cell in `phase-2-core.md` §1 maps to exactly one profile field:
 | Synthesis output progress field | `progress.synthesis_output_field` |
 | Round summary tag | `round_summary.tag_field` |
 | `next` values | `next_values` |
-| Step 2.6d Phase Transition | `has_phase_transition` |
+| Step 2.10 Phase Transition | `has_phase_transition` |
 | Step 2.1 display block | `display_block_style` |
 
 Additional fields not in §1 but required for execution:

@@ -1,5 +1,7 @@
 # Disney Creative Strategy
 
+> **Algorithmic implementation**: `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/disney-phase-machine.md`. This file is the human-facing strategy description (mindsets, prompts, when-to-use); the machine doc is the canonical algorithmic spec consumed by `phase-2-core.md` Step 2.10.
+
 Based on Walt Disney's creative process, this strategy separates ideation, planning, and critique into distinct phases.
 
 ## Configuration
@@ -182,3 +184,11 @@ Be constructive - improve the plan, don't just criticize.
 ## Research Basis
 
 Based on the Disney Creative Strategy attributed to Robert Dilts' modeling of Walt Disney's creative process. Widely used in NLP and creative facilitation.
+
+## Strategy hooks
+
+Phase progression determined by `disney-phase-machine.md` via Step 2.10 (Phase Transition). No Step 2.2c per-round overrides emitted; facilitator skips override population for this strategy.
+
+The Disney phase machine is gated on `PROFILE.has_phase_transition: true` (set only for the `brainstorm` workflow profile). When the facilitator returns `next: "phase"`, `phase-2-core.md` Step 2.10 delegates to `disney-phase-machine.md` for transition logic.
+
+For full algorithmic spec (state machine, transitions, gating conditions), see `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/disney-phase-machine.md`.

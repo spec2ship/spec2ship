@@ -57,7 +57,7 @@ progress:
 round_summary:
   tag_field: "topic_id"
   # NOTE: when strategy == "debate", an additional optional field "debate_phase" is appended.
-  # Hook defined in phase-2-core.md §strategy-hooks; wiring deferred to Phase 7.
+  # Hook defined in phase-2-core.md §strategy-hooks; wiring deferred to Phase 4 (Option A/B/C decision).
 
 next_values:
   - "continue"

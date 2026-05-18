@@ -56,10 +56,10 @@ round_summary:
 
 next_values:
   - "continue"
-  - "phase"     # advance Disney phase (handled by Step 2.6d)
+  - "phase"     # advance Disney phase (handled by Step 2.10)
   - "conclude"  # only valid in critic phase
   - "escalate"
 
-has_phase_transition: true  # Step 2.6d applies
+has_phase_transition: true  # Step 2.10 applies
 
 display_block_style: "rich"  # full Disney phase rules block at Step 2.1

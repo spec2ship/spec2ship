@@ -174,3 +174,15 @@ else:
 ## Research Basis
 
 Based on Sociocracy and Holacracy consent-based decision making. Adapted for LLM multi-agent context with explicit position states.
+
+## Strategy hooks
+
+No per-round hooks. Algorithm runs with workflow defaults from PROFILE.
+
+This strategy emits no strategy-specific fields at the Phase 2 hook points:
+- Step 2.3c (participant response): no `*_role` field added to participant dumps.
+- Step 2.6a (round summary): no `*_phase` field added to `rounds[]` entries.
+
+The consent-based consensus logic described above (`policy: "consent"`, `max_attempts_per_conflict: 2`) operates at session conclusion (Phase 3 scope), not as per-round Phase 2 hooks. Therefore it is NOT covered by the Phase 2 hook contract documented in `strategy-hooks.md`.
+
+Facilitator instructions at Step 2.2c skip override population for this strategy.
