@@ -4,9 +4,9 @@
 **Branch**: `feature/TECH-002-phase4-roundtable-master`
 **Forked from**: `develop` @ `3043c1a` (post Phase 7-lite PR #15 merge)
 **Author**: Claude (Opus 4.7) + Francesco
-**Status**: draft (created 2026-05-18, revised 2026-05-19 after review #2)
+**Status**: draft (created 2026-05-18, revised 2026-05-19 after reviews #2 and #4)
 **Created**: 2026-05-18
-**Revised**: 2026-05-19 (Approach 4 pivot: `profiles/roundtable.yaml` NOT created; `--workflow-type roundtable` keeps current Phase 3 stub; Phase 9 will address generic-mode hardening)
+**Revised**: 2026-05-19 (Approach 4 pivot + Option δ refinement: `profiles/roundtable.yaml` NOT created; `--workflow-type roundtable` keeps current stub UNLESS §4.0 step 7 reveals broken state, in which case mandatory minimum-viable fix (MVF) ships in Phase 4; full hardening deferred to Phase 9. Test gate strengthened to cover all 3 master paths. CI-style anchor drift check in-scope.)
 **Predecessor plan**: `.s2s/plans/20260517-tech002-phase7-strategy-consolidation.md` (Phase 7-lite)
 **Contract sources**:
 - `skills/roundtable-execution/references/strategy-hooks.md` (Phase 7-lite hardened state, §7 Option A/B/C decision matrix)
@@ -23,7 +23,7 @@ Make the explicit **Option A/B/C decision** for runtime consumption of strategy 
 
 Phase 4 delivers five concrete wins:
 
-1. **roundtable.md master for structured workflows**: full Phase 2 wiring via `phase-2-core.md` for specs/design/brainstorm (no "follow the skill" deferral on those paths), with `--workflow-type` profile dispatch, resume/diagnostic, and proper output dispatch per workflow. Generic-mode path (`--workflow-type roundtable` or default) explicitly preserved as current stub.
+1. **roundtable.md master for structured workflows**: full Phase 2 wiring via `phase-2-core.md` for specs/design/brainstorm (no "follow the skill" deferral on those paths), with `--workflow-type` profile dispatch, resume/diagnostic, and proper output dispatch per workflow. Generic-mode path (`--workflow-type roundtable` or default) explicitly preserved as current stub (or MVF if §4.0 step 7 reveals broken state). **Honest disclosure**: master capability is **dormant until Phase 8** thin launchers consume it (only `/s2s:roundtable --workflow-type X` invocations exercise the master path in v0.4.0). Phase 4 builds the foundation; Phase 8 makes it user-visible.
 2. **Option B implementation across 3 files**: deterministic parser in roundtable.md, plus Step 2.2c modification in `phase-2-core.md` to consume `agent_state.facilitator.hook_overrides`, plus `agents/roundtable/facilitator.md` updated to honor passed overrides instead of LLM-inferring per-round overrides. Three-branch semantics codified: `{skip: true}` (strategy has no hooks), policy dict (strategy has hooks), absent field (pre-Phase-4 session, LLM-emergent fallback).
 3. **Triple-duplication unification**: single canonical source per concern via resolution hierarchy (CLI, then config.yaml, then profile fallback). `templates/project/config.yaml` clarified as user-facing canonical; profile YAMLs clarified as plugin defaults; SKILL.md table disclaimers from 7-lite extended with resolution-hierarchy diagram.
 4. **commands/roundtable.md drift reconciliation**: keyword auto-detect table (currently lines 170-179) and inline phase enumeration (currently lines 194-199, with phase-name drift versus strategy docs for `consensus-driven` and `six-hats`) reconciled per Option B.
@@ -129,15 +129,16 @@ The profile YAML's `strategy_constraints.forced: true` (e.g. `brainstorm.yaml:17
 
 ### 3.4 Work breakdown
 
-Phase 4 delivers in 7 sub-phases over an estimated **~6.25 hours** (revised from ~6.75 after Approach 4 pivot removed profile YAML creation work):
+Phase 4 delivers in 7 sub-phases over an estimated **~7.75 hours** (revised from ~6.25 after Option δ refinements: mandatory MVF if audit outcome b/c, +CI anchor drift check, +master test coverage expansion):
 
-- **4.0** audit (~1.5h): inventory of inline duplication, drift sites, Step 2.X dispatch points in roundtable.md, anchor fixture map, generic-mode preservation lines, 3-pass grep verification.
-- **4.1** triple-dup resolution (~0.5h, down from 1h): D3 hierarchy codified, SKILL.md disclaimer + diagram, profile-schema.md updated with Phase 9 footnote. NO profile YAML created.
-- **4.2** Option B implementation across 3 files (~1h): `strategy-hook-resolution.md` fixture (with 2 dict shapes) + parse block in roundtable.md + `phase-2-core.md` Step 2.2c with 3-branch dispatch + facilitator agent consumer with matching 3-branch logic + 3 strategy-doc pointer sharpening.
-- **4.3** roundtable.md conditional Phase 2 dispatch (~1.5h): replace lines 359-437 with `if workflow_type in {specs, design, brainstorm}: load profile + Read phase-2-core.md; else: preserve current stub`.
+- **4.0** audit (~1.5h): inventory of inline duplication, drift sites, Step 2.X dispatch points in roundtable.md, anchor fixture map, generic-mode preservation lines, 3-pass grep verification, **pre-Phase-4 generic-mode smoke test (CRITICAL, gates MVF inclusion)**.
+- **4.1** triple-dup resolution (~0.5h): D3 hierarchy codified, SKILL.md disclaimer + diagram, profile-schema.md updated with Phase 9 footnote. NO profile YAML created.
+- **4.2** Option B implementation across 3 files (~1.25h, +0.25h for anchor drift check): `strategy-hook-resolution.md` fixture (with 2 dict shapes) + parse block in roundtable.md + `phase-2-core.md` Step 2.2c with 3-branch dispatch + facilitator agent consumer with matching 3-branch logic + 3 strategy-doc pointer sharpening + **CI-style anchor drift check script in `skills/dev-testing/references/`**.
+- **4.3** roundtable.md conditional Phase 2 dispatch (~1.5h): replace lines 359-437 with `if workflow_type in {specs, design, brainstorm}: load profile + Read phase-2-core.md; else: preserve current stub OR MVF`.
 - **4.4** drift fix (currently lines 170-179 + 194-199) (~0.5h): keyword-auto-detect table disclaimer-protected; inline phase enumeration removed by source-of-truth deferral.
-- **4.5** regression replay + fixture assertions + backward-compat (~0.75h): exp45-{specs,design,brainstorm,roundtable-routed-as-specs,roundtable-native} via dogfood; 5 anchor parse fixture assertions; backward-compat resume probe; light + (optional) heavy smoke probes.
-- **4.6** close-out (~0.5h): BACKLOG (acceptance criteria #2 and #4 marked partially done with scope notes), ADR-0011 addendum, plan Status finalization, MEMORY.md update.
+- **4.4b (conditional)** generic-mode MVF (~0.5-1h, ONLY if §4.0 step 7 outcome is b/c): minimum-viable fix in `/s2s:roundtable` native path. See §4.4b for spec.
+- **4.5** regression replay + fixture assertions + backward-compat (~1h, +0.25h for expanded master coverage): exp45-{specs, design, brainstorm, roundtable-routed-as-specs, roundtable-routed-as-design, roundtable-routed-as-brainstorm, roundtable-native} via dogfood; 5 anchor parse fixture assertions; anchor drift check passes; backward-compat resume probe; light + (optional) heavy smoke probes.
+- **4.6** close-out (~0.5h): BACKLOG (acceptance criteria #2 and #4 marked partially done with scope notes), ADR-0011 addendum (Option B + D3 + Approach 4 + Option δ refinements + dormant master acknowledgment + roundtable-strategies asymmetry), plan Status finalization, MEMORY.md update.
 
 ### 3.5 Generic-mode roundtable deferral rationale (Approach 4)
 
@@ -159,7 +160,11 @@ This plan adopts **Approach 4** (defer generic-mode hardening to Phase 9). Three
 
 **Trade-off acknowledged**: TECH-002 acceptance criterion #2 ("roundtable.md can execute all workflows") is **partially done** after Phase 4 (3 of 4 workflow types). v0.4.0 → main release is gated on Phase 8 (thin launchers) regardless; Phase 9 generic-mode hardening lands in v0.5.0 or later.
 
-**Important caveat re "preserve verbatim"**: the current `/s2s:roundtable` native stub (lines 359-437) does NOT load a profile before delegating to `phase-2-core.md`. Post-Phase-7B, `phase-2-core.md` is profile-aware (`{{profile.X}}` references throughout). Whether native mode actually works today is unverified (no exp44 baseline for roundtable native). §4.0 step 7 makes pre-Phase-4 smoke test MANDATORY before declaring "preserve verbatim" feasible. Three possible outcomes (a/b/c documented in §4.0 step 7) determine the final shape of the Approach 4 contract: if (a) works, we preserve; if (b/c) broken, we document the broken state explicitly and Phase 9 fixes it. Either way, Phase 4 does NOT regress generic mode below its current functional state.
+**Dormant master disclosure (Option δ honest framing)**: Phase 4 builds the master capability in `commands/roundtable.md` but specs/design/brainstorm commands remain UNCHANGED (Phase 8 territory). Consequently, the master path is exercised only by non-canonical `/s2s:roundtable --workflow-type X` invocations in v0.4.0; users invoking `/s2s:specs`, `/s2s:design`, `/s2s:brainstorm` continue to use the existing inline implementation. The architectural shift becomes user-visible only when Phase 8 thin launchers consume the master. This is acceptable as a Phase 4/8 split (separate PRs, easier review) but the dormant interval requires explicit ADR acknowledgment and stronger Phase 4 test coverage (§4.5 step 1 expanded to exercise master path for all 3 structured workflow types, not just specs).
+
+**MVF contract (Option δ, mandatory if §4.0 step 7 outcome b/c)**: if pre-Phase-4 smoke test reveals generic-mode broken state, Phase 4 expands scope by sub-phase 4.4b (~0.5-1h) to ship a Minimum Viable Fix: detect generic-mode invocation at Phase 0/1 of roundtable.md, display clear warning/error directing user to `--workflow-type {specs|design|brainstorm}` workaround, and either (i) stop session creation gracefully or (ii) proceed with explicit "best-effort, unsupported" annotation in session.yaml. The MVF is documented in commands help text and BACKLOG. No silent broken behavior ships to v0.4.0.
+
+**Important caveat re "preserve verbatim"**: the current `/s2s:roundtable` native stub (lines 359-437) does NOT load a profile before delegating to `phase-2-core.md`. Post-Phase-7B, `phase-2-core.md` is profile-aware (`{{profile.X}}` references throughout, confirmed via grep in Phase 7B post-merge state). Whether native mode actually works today is unverified (no exp44 baseline for roundtable native). §4.0 step 7 makes pre-Phase-4 smoke test MANDATORY before declaring "preserve verbatim" feasible. Three outcomes (a/b/c in §4.0 step 7) determine §4.3 + §4.4b contract: (a) works → preserve verbatim; (b/c) broken → MVF ships in Phase 4 (§4.4b mandatory). Either way, Phase 4 does NOT regress generic mode below its current functional state, and does NOT ship silent broken behavior.
 
 ## 4. Sub-phases
 
@@ -178,11 +183,12 @@ This plan adopts **Approach 4** (defer generic-mode hardening to Phase 9). Three
 4. **Strategy-hook anchor fixture map**: for each of 5 strategy docs, capture the exact opening-line phrase in `## Strategy hooks` (Phase 7-lite output) and map to expected override dict, distinguishing `{skip: true}` shape (standard, consensus-driven) from policy-dict shape (debate, six-hats, disney). Output: candidate fixture for §4.2.
 5. **Phase-name drift inventory**: confirm `consensus-driven` and `six-hats` mismatches; flag any others (compare command line 194-199 against each `{strategy}.md` `phases:` block).
 6. **Resolution hierarchy gap inventory**: confirm `default_strategy` is currently unread by any command; identify whether any other profile field has the same "documented intent, unread" status (e.g. `strategy_constraints.forced`).
-7. **Pre-Phase-4 generic-mode smoke test + preservation map** (CRITICAL, gates Approach 4 contract): BEFORE declaring "preserve verbatim" feasible, run `/s2s:roundtable "test topic" --diagnostic` in dogfood on PRE-Phase-4 code (current develop @ 3043c1a) and capture structural summary. Three possible outcomes determine §4.3 contract shape:
-   - **(a) Works fine**: capture as `.s2s/test-baselines/exp45-roundtable-native-pre-phase4.md`; becomes the post-Phase-4 invariant target. Approach 4 "preserve verbatim" contract stands as written.
-   - **(b) Fails silently or produces structurally broken output**: document the failure mode in audit; update §10 invariant + §3.5 caveat from "preserve verbatim" to "leave broken state as-is, Phase 9 fixes". §4.5 step 1 generic-mode probe re-scoped to "no NEW regressions introduced by Phase 4 conditional dispatch wrapper".
-   - **(c) Fails with hard error**: same as (b) but visible; consider expanding Phase 4 scope to include minimum-viable generic-mode fix (e.g. document workaround "use --workflow-type specs/design/brainstorm explicitly" in command help text + error message). Decision deferred until outcome observed.
-   Then document exact lines (probably 357-437 stub area) that must NOT be touched by §4.3 conditional dispatch.
+7. **Pre-Phase-4 generic-mode smoke test + preservation map** (CRITICAL, gates §4.4b MVF inclusion): BEFORE declaring "preserve verbatim" feasible, run `/s2s:roundtable "test topic" --diagnostic` in dogfood on PRE-Phase-4 code (current develop @ 3043c1a) and capture structural summary. Three possible outcomes determine §4.3 + §4.4b contract:
+   - **(a) Works fine**: capture as `.s2s/test-baselines/exp45-roundtable-native-pre-phase4.md`; becomes the post-Phase-4 invariant target. §4.3 step 1 else-branch preserves stub verbatim; §4.4b SKIPPED.
+   - **(b) Fails silently or produces structurally broken output**: document the failure mode in audit; §4.4b MVF MANDATORY (per Option δ refinement); §4.3 step 1 else-branch dispatches to MVF code path instead of broken stub; §10 invariant adjusted to "no NEW regression" framing.
+   - **(c) Fails with hard error**: §4.4b MVF MANDATORY (per Option δ refinement); error is converted to a user-friendly warning + workaround suggestion before the failure surfaces. §10 invariant adjusted same as (b).
+   Outcomes (b) and (c) BOTH trigger §4.4b expansion. Phase 4 scope grows by ~0.5-1h if triggered. Phase 4 NEVER ships with silent or hard-error broken generic-mode behavior to users.
+   Then document exact lines (probably 357-437 stub area) that must NOT be touched by §4.3 conditional dispatch (if outcome a), OR document the MVF replacement scope (if outcome b/c).
 8. **phase-2-core.md Step 2.2c facilitator invocation**: locate the exact lines in §2.2c that invoke the facilitator agent (around line 269); identify where 3-branch `hook_overrides` dispatch will be inserted.
 9. **Facilitator agent strategy-doc pointers**: confirm exact line numbers (currently 518/579/607 area) for `#strategy-hooks` anchor sharpening in §4.2 step 5.
 
@@ -227,8 +233,9 @@ This plan adopts **Approach 4** (defer generic-mode hardening to Phase 9). Three
    - `hook_overrides` key absent in input → fall back to current LLM-emergent inference (preserves pre-Phase-4 session resume behavior).
 5. **Strategy-doc pointer sharpening** (win #5): in `agents/roundtable/facilitator.md`, change the 3 strategy-doc pointers (currently around lines 518/579/607, exact lines confirmed in 4.0 step 9) from `{strategy}.md` (whole-file) to `{strategy}.md#strategy-hooks` (anchor). Reduces coupling; cost ~3 edits.
 6. **Test fixture**: add 5 unit-style assertions inside `.s2s/plans/20260518-tech002-phase4-4.2-fixture.md` (kept in plans/ to avoid muddling with `.s2s/test-baselines/` structural baselines): for each strategy doc, capture the parse output dict and freeze it. Used in §4.5 to assert no regression.
+7. **CI-style anchor drift check** (Option δ in-scope, ~15min): create `skills/dev-testing/references/strategy-hook-anchor-check.md` (~30 lines) containing a bash snippet that, for each of 5 strategy docs, extracts the first non-empty line of `## Strategy hooks` section and compares to the corresponding regex anchor in `strategy-hook-resolution.md`. Exits non-zero if drift detected. Documented as "run before any docs PR touching strategy docs". Phase 4 ships the check; Phase 8 or post-v0.4.0 work may wire it to actual CI infra if/when added.
 
-**Exit condition**: roundtable.md has deterministic hook resolution; phase-2-core.md Step 2.2c reads + dispatches via 3-branch logic; facilitator agent consumes input with matching 3-branch logic; 5 fixture assertions documented. Backward-compat preserved: missing `hook_overrides` field triggers LLM-emergent fallback (Branch 3), semantically distinct from `{skip: true}` (Branch 1).
+**Exit condition**: roundtable.md has deterministic hook resolution; phase-2-core.md Step 2.2c reads + dispatches via 3-branch logic; facilitator agent consumes input with matching 3-branch logic; 5 fixture assertions documented; anchor drift check script exists and passes for all 5 strategies as-is. Backward-compat preserved: missing `hook_overrides` field triggers LLM-emergent fallback (Branch 3), semantically distinct from `{skip: true}` (Branch 1).
 
 ### 4.3: expand roundtable.md to master for structured workflows (~1.5h)
 
@@ -270,18 +277,40 @@ This plan adopts **Approach 4** (defer generic-mode hardening to Phase 9). Three
 
 **Exit condition**: no inline phase enumeration in roundtable.md; keyword table disclaimer-protected; phase-name drift eliminated by source-of-truth deferral.
 
-### 4.5: regression replay + Option B fixture verification + backward-compat (~0.75h)
+### 4.4b: generic-mode Minimum Viable Fix (~0.5-1h, CONDITIONAL on §4.0 step 7 outcome b/c)
+
+**Goal**: ensure Phase 4 NEVER ships silent or hard-error broken generic-mode behavior to v0.4.0 users. Triggered only when §4.0 step 7 outcome is (b) or (c). Skipped if outcome is (a).
+
+**Actions** (executed only if triggered):
+1. **Detect at Phase 0**: in `commands/roundtable.md` Phase 0 (or early Phase 1 after `--workflow-type` parsing), detect generic-mode invocation (`workflow_type` is absent OR equal to `"roundtable"`).
+2. **MVF behavior selection** (decide based on §4.0 step 7 outcome severity):
+   - **For outcome (c) hard error**: display a clear AskUserQuestion-style message: "Generic-mode `/s2s:roundtable` (without `--workflow-type`) is currently not fully supported in v0.4.0 due to phase-2-core.md profile-awareness requirements (TECH-002 Phase 9 will harden). Workaround: re-invoke with `--workflow-type {specs|design|brainstorm}` explicitly." Stop session creation gracefully (exit code 1 with non-error message in user-facing display).
+   - **For outcome (b) silent broken**: display a non-blocking warning at session start: "WARNING: generic-mode roundtable is in best-effort state in v0.4.0 (TECH-002 Phase 9 pending). Output may be structurally incomplete. Recommended: use `--workflow-type {specs|design|brainstorm}` for guaranteed behavior." Annotate session.yaml with `generic_mode_warning: true` for diagnostic. Proceed with current stub flow.
+3. **Help text update**: update `commands/roundtable.md` frontmatter `description` and `argument-hint` to mention `--workflow-type` recommendation. Update `docs/` user-facing doc if relevant.
+4. **BACKLOG note**: add entry under TECH-002 referencing Phase 9 as the fix; record §4.0 step 7 outcome (b or c) explicitly.
+5. **Test fixture**: capture the MVF behavior structural summary in `.s2s/test-baselines/exp45-roundtable-native-phase4-mvf.md` for Phase 9 to use as comparison baseline.
+
+**Exit condition** (only if triggered): generic-mode invocation produces user-facing warning OR friendly error (NO silent failure, NO bare exception); workaround documented in command help; Phase 9 BACKLOG entry references this MVF as the predecessor state.
+
+**Skipped condition** (if §4.0 step 7 outcome is (a)): no MVF needed; current stub preserved verbatim per §4.3 step 1 else-branch.
+
+### 4.5: regression replay + Option B fixture verification + backward-compat (~1h)
 
 **Goal**: confirm no behavioral regression across the 3 structured workflows that have baselines; verify Option B fixture matches expected dicts; confirm pre-Phase-4 sessions resume cleanly via Branch 3 (LLM-emergent fallback); confirm generic-mode preserved.
 
 **Actions**:
-1. **Regression replay** in dogfood (`ElfGiftRush_s2s/exp45-phase4`):
-   - `/s2s:specs "..."` compare structural summary to `.s2s/test-baselines/exp44-specs-post-phase7b.md`.
-   - `/s2s:design "..."` same, `exp44-design-post-phase7b.md`.
-   - `/s2s:brainstorm "..."` same, `exp44-brainstorm-post-phase7b.md`.
-   - `/s2s:roundtable "..." --workflow-type specs` NEW comparison; expected output structurally equivalent to `/s2s:specs` (roundtable is the master path for structured workflows; session_id will use `specs-` prefix per §4.3 step 2).
-   - **Generic-mode light probe**: `/s2s:roundtable "test topic"` (no --workflow-type), inspect at Phase 1 boundary only (do NOT wait for 3+ round completion). Assert: (i) no Phase 0/1 errors; (ii) session.yaml created with `workflow_type: roundtable`; (iii) first round invocation starts; (iv) compare to baseline captured in §4.0 step 7 (outcome (a) `.s2s/test-baselines/exp45-roundtable-native-pre-phase4.md`). If §4.0 step 7 outcome was (b)/(c), the assertion is only "no NEW regressions introduced by §4.3 conditional wrapper" (the documented broken state from pre-Phase-4 remains).
-   - **Generic-mode full probe (optional)**: if light probe passes AND §4.0 step 7 outcome was (a), optionally complete one full /s2s:roundtable session and confirm output matches baseline. Skip if budget is tight.
+1. **Regression replay + expanded master coverage** in dogfood (`ElfGiftRush_s2s/exp45-phase4`):
+   - **Direct invocations (unchanged paths, full regression)**:
+     - `/s2s:specs "..."` compare structural summary to `.s2s/test-baselines/exp44-specs-post-phase7b.md`.
+     - `/s2s:design "..."` same, `exp44-design-post-phase7b.md`.
+     - `/s2s:brainstorm "..."` same, `exp44-brainstorm-post-phase7b.md`.
+   - **Master path via roundtable.md (Option δ expanded coverage, all 3 structured workflows)**:
+     - `/s2s:roundtable "..." --workflow-type specs` expected output structurally equivalent to `/s2s:specs` (session_id will use `specs-` prefix per §4.3 step 2).
+     - `/s2s:roundtable "..." --workflow-type design` expected output structurally equivalent to `/s2s:design`.
+     - `/s2s:roundtable "..." --workflow-type brainstorm` expected output structurally equivalent to `/s2s:brainstorm`.
+   - **Generic-mode probe (depends on §4.0 step 7 outcome)**:
+     - **Outcome (a)**: light probe at Phase 1 boundary only (no 3+ round wait). Assert: (i) no Phase 0/1 errors; (ii) session.yaml created with `workflow_type: roundtable`; (iii) first round invocation starts; (iv) compare to `.s2s/test-baselines/exp45-roundtable-native-pre-phase4.md`. Optional full probe if time permits.
+     - **Outcome (b)/(c) with §4.4b MVF**: probe the MVF behavior. Assert: (i) user-facing warning/error displayed correctly (matches §4.4b spec); (ii) no silent failure; (iii) session annotated with `generic_mode_warning: true` (outcome b) OR session creation stopped gracefully (outcome c); (iv) structural summary matches `.s2s/test-baselines/exp45-roundtable-native-phase4-mvf.md`.
 2. **Anchor parse fixture**: for each of 5 strategies, run the parse block standalone (manual Read + match probe), assert output dict equals `.s2s/plans/20260518-tech002-phase4-4.2-fixture.md` frozen values. Distinguishes 2-of-5 strategies with `{skip: true}` shape (standard, consensus-driven) from 3-of-5 with policy-dict shape.
 3. **Backward-compat resume probe**: take a frozen pre-Phase-4 session file (from `.s2s/test-baselines/exp44-*`) and resume via `/s2s:roundtable --session {id}`. Assert behavior:
    - No error on missing `agent_state.facilitator.hook_overrides` field.
@@ -298,7 +327,7 @@ This plan adopts **Approach 4** (defer generic-mode hardening to Phase 9). Three
 
 **Actions**:
 1. `.s2s/BACKLOG.md` TECH-002 block: Phase 4 marked ✅ completed; Phase 8 promoted to `in_progress (next session)`; Acceptance Criterion **#2** ("`roundtable.md can execute all workflows`") marked **partially done** with note: "3/4 workflow types covered (specs/design/brainstorm via Phase 4); generic-mode roundtable hardening deferred to Phase 9. Full closure of #2 awaits Phase 9."; Acceptance Criterion **#4** ("`Skills actually used, not just declared`") marked **partially done** with note: "roundtable.md now uses both skills for structured workflows; specs/design/brainstorm commands continue inline until Phase 8 thin-launcher conversion."
-2. `.s2s/decisions/0011-roundtable-command-unification.md` Phase 4 addendum: record Option B choice with §3.1 matrix summary, D3 hierarchy decision, Approach 4 (generic-mode deferral) rationale, phase-2-core.md Step 2.2c modification with 3-branch semantics, drift fixes, pointer sharpening.
+2. `.s2s/decisions/0011-roundtable-command-unification.md` Phase 4 addendum: record (i) Option B choice with §3.1 matrix summary; (ii) D3 hierarchy decision; (iii) Approach 4 generic-mode deferral rationale + §4.0 step 7 outcome (a/b/c) actual result; (iv) §4.4b MVF if triggered (outcome b/c) with behavior spec; (v) phase-2-core.md Step 2.2c modification with 3-branch semantics; (vi) drift fixes + pointer sharpening; (vii) **dormant master acknowledgment** ("Phase 4 master capability is dormant in v0.4.0 until Phase 8 thin launchers consume it; user-visible only post-Phase-8 merge"); (viii) **roundtable-strategies/ asymmetry note** ("roundtable-execution = executable via Read; roundtable-strategies = parsed by command, documentation-only at runtime; asymmetry by D3 design, not accidental"); (ix) CI anchor drift check existence + invocation path.
 3. Plan Status field finalize: `draft` → `completed (PR #XX merged YYYY-MM-DD)` post-merge.
 4. `MEMORY.md` `project_tech002_progress.md` updated to reflect Phase 4 done; Phase 8 + Phase 9 (generic-mode) + six-hats baseline as remaining items; MEMORY.md index entry updated.
 
@@ -315,30 +344,34 @@ This plan adopts **Approach 4** (defer generic-mode hardening to Phase 9). Three
 | R5 | Debate Pro/Con deterministic assignment (Option B) produces worse pairings than LLM-emergent | low | medium | exp44 sample is one observation; deterministic anchor policy is `facilitator_emergent` until empirical data justifies a coded rule. Option B initial overrides preserve current emergent behavior; only six-hats and future strategies get deterministic policy at this stage. |
 | R6 | Phase 4 changes break the 3 structured-workflow baselines (regression) | low | high | §4.5 replay is the gate. Mitigation if unacceptable delta: fix in-place for minor deltas; for significant deltas, escalate to additional review round or split PR into smaller commits; full Phase 4 rollback only as last resort. |
 | R7 | `default_strategy` change from "documented intent" to "actual fallback" exposes a latent bug if profile YAML value disagrees with current implicit behavior | low | low | §4.0 audit cross-checks profile.default_strategy vs config.yaml.by_workflow_type for each workflow; reconcile any disagreement in §4.1 commit. |
-| R8 | Generic-mode roundtable invocation breaks after §4.3 conditional dispatch | low | high | §4.3 step 1 preserves current stub flow for the else branch (verbatim per §4.0 step 7 outcome). §4.5 step 1 generic-mode LIGHT probe verifies at Phase 1 boundary (no full session required). If §4.0 step 7 reveals pre-Phase-4 generic mode is already broken (outcome b/c), the contract becomes "no NEW regression"; the broken state stays documented and Phase 9 fixes. Either way Phase 4 does NOT regress generic mode below current state. |
+| R8 | Generic-mode roundtable invocation breaks after §4.3 conditional dispatch | low | high | §4.3 step 1 preserves current stub OR dispatches to §4.4b MVF based on §4.0 step 7 outcome. §4.5 step 1 generic-mode probe verifies behavior matches expected (outcome a preserved, b/c MVF). Phase 4 never ships silent or hard-error broken behavior to users (Option δ guarantee via mandatory §4.4b MVF if outcome b/c). |
 | R9 | `phase-2-core.md` Step 2.2c modification not done: Option B data path incomplete (overrides written to session.yaml but never read) | medium | high | §4.2 step 3 explicitly delivers Step 2.2c modification as in-scope work with 3-branch semantics. §4.0 step 8 confirms exact insertion site. §4.5 step 6 light smoke probe verifies `hook_overrides` populated AND structurally consumable via Branch 2. |
 | R10 | Backward-compat resume probe fails: pre-Phase-4 session resumes throw on missing `agent_state.facilitator.hook_overrides` field | low | high | §4.2 steps 3+4 specify 3-branch logic with absent-field fallback (Branch 3) to LLM-emergent, semantically distinct from `{skip: true}` (Branch 1). §4.5 step 3 dedicated probe with frozen pre-Phase-4 session file verifies. |
-| R11 | Approach 4 (generic-mode deferral) leaves user confusion about `/s2s:roundtable` capabilities | medium | low | BACKLOG note + ADR-0011 Phase 4 addendum + plan §3.5 all explicitly document deferral. Generic-mode behavior unchanged from current; only "master" capability gain is for structured workflows. |
+| R11 | Approach 4 (generic-mode deferral) leaves user confusion about `/s2s:roundtable` capabilities | medium | low | BACKLOG note + ADR-0011 Phase 4 addendum + plan §3.5 all explicitly document deferral. If §4.0 step 7 outcome b/c, §4.4b MVF surfaces clear user-facing warning/error reducing confusion to "tell me what to do" guidance. |
+| R12 | §4.4b MVF triggered when outcome was actually (a), OR skipped when outcome was actually (b)/(c) (decision error) | low | high | §4.0 step 7 is explicit: outcome must be classified into exactly one of a/b/c with structural-summary evidence captured in audit. Phase 4 review (this plan) before execution + audit review before §4.4b decision reduces classification error. If misclassified, §4.5 step 1 generic-mode probe will fail because expected vs actual behavior diverges. Rollback path: re-run §4.0 step 7, reclassify, redo §4.3+§4.4b. |
+| R13 | Phase 4 master code is dormant until Phase 8; if Phase 8 is delayed indefinitely, v0.4.0 ships partial architectural change with no user value | medium | medium | Acknowledged in §1 win #1 framing + §3.5 dormant disclosure + ADR-0011 Phase 4 addendum. Phase 4 deliverables are still useful as structural prerequisite (D3 hierarchy, Option B wiring substrate, drift fixes). Phase 8 plan should be drafted promptly post-Phase-4 merge. v0.4.0 release timing is explicitly gated on Phase 8 completion per release flow note. |
 
 ## 6. Done criteria
 
-- [ ] 4.0 audit file produced; per-sub-phase task lists finalized; pass-3 grep verification recorded; generic-mode preservation lines explicitly listed; phase-2-core.md Step 2.2c modification site identified.
+- [ ] 4.0 audit file produced; per-sub-phase task lists finalized; pass-3 grep verification recorded; generic-mode preservation lines explicitly listed; phase-2-core.md Step 2.2c modification site identified; **§4.0 step 7 pre-Phase-4 generic-mode smoke test executed; outcome (a/b/c) recorded; §4.4b inclusion decided based on outcome**.
 - [ ] D3 hierarchy codified: profile-schema.md (with Phase 9 footnote on roundtable profile absence), SKILL.md (v1.3.0 with new "Strategy resolution hierarchy" section + ASCII diagram), templates/project/config.yaml, profiles/*.yaml comments, strategy-resolution.md reference file all in agreement.
 - [ ] `grep -rn "default_strategy" skills/ commands/` returns only "plugin fallback" or hierarchy-quoting sites; no orphan references.
 - [ ] `ls skills/roundtable-execution/profiles/` still shows 3 files; no `roundtable.yaml` created (Approach 4 invariant).
 - [ ] Option B implemented across 3 files: `strategy-hook-resolution.md` fixture exists with 2 dict shapes documented (`{skip: true}` vs policy dict); roundtable.md Phase 1 has parse block; `phase-2-core.md` Step 2.2c reads `agent_state.facilitator.hook_overrides` and dispatches via 3-branch logic; facilitator agent consumes input with matching 3-branch logic; 5 anchor assertions frozen in `.s2s/plans/20260518-tech002-phase4-4.2-fixture.md`.
+- [ ] **CI-style anchor drift check script** exists at `skills/dev-testing/references/strategy-hook-anchor-check.md` and passes for all 5 strategies as-is. Documented invocation path in script header.
+- [ ] **§4.4b MVF status**: if §4.0 step 7 outcome was (a), §4.4b SKIPPED and noted in audit. If outcome (b)/(c), §4.4b executed: user-facing warning/error implemented; command help text updated; `.s2s/test-baselines/exp45-roundtable-native-phase4-mvf.md` captured; BACKLOG references Phase 9 fix.
 - [ ] 3 facilitator-agent strategy-doc pointers sharpened to `#strategy-hooks` anchors (lines 518/579/607 area).
 - [ ] roundtable.md expanded to master for structured workflows: conditional dispatch in place; `--workflow-type {specs|design|brainstorm}` runs through phase-2-core.md; `--workflow-type roundtable` (or absent) preserves current stub verbatim; resume works for all workflow_types; `wc -l commands/roundtable.md` ≤ 550.
 - [ ] specs/design/brainstorm commands UNCHANGED in this PR (Phase 8 territory).
 - [ ] Keyword-auto-detect table disclaimer-protected; inline phase enumeration removed.
 - [ ] consensus-driven and six-hats phase-name drift resolved (by source-of-truth deferral, no inline enumeration).
-- [ ] Regression replay: 3 structured baselines match structurally; debate data-path delta documented (no behavioral shift since `facilitator_emergent` policy preserved); roundtable.md master path produces structurally-equivalent specs output (with workflow_type-prefixed session_id per §4.3 step 2); generic-mode light probe shows no NEW regression vs §4.0 step 7 baseline (whether outcome a/b/c).
+- [ ] Regression replay: 3 structured baselines match structurally; debate data-path delta documented (no behavioral shift since `facilitator_emergent` policy preserved); **roundtable.md master path produces structurally-equivalent output for ALL 3 structured workflows** via `/s2s:roundtable --workflow-type {specs,design,brainstorm}` (Option δ expanded coverage, not just specs); generic-mode probe behaves per §4.0 step 7 outcome (preserved if (a), MVF if (b)/(c)).
 - [ ] §4.0 step 7 pre-Phase-4 generic-mode smoke test executed; outcome (a/b/c) recorded in audit file; if outcome (b)/(c), §10 invariant + §3.5 caveat reframed from "preserve verbatim" to "no NEW regression".
 - [ ] 5 anchor parse fixture assertions pass.
 - [ ] Backward-compat resume probe: pre-Phase-4 session file resumes without error on missing `hook_overrides` field; facilitator falls back to LLM-emergent inference via Branch 3 (NOT via Branch 1's skip path); behavior verified visible.
 - [ ] Light smoke probe (`/s2s:roundtable "test" --workflow-type design --strategy debate`) populates `agent_state.facilitator.hook_overrides` with `debate_role` and `debate_phase` fields (Branch 2 working).
 - [ ] `.s2s/BACKLOG.md` TECH-002 block: Phase 4 ✅; Phase 8 `in_progress (next session)`; TECH-002 acceptance criteria #2 and #4 marked **partially done** with explicit scope notes (structured workflows only; generic mode deferred to Phase 9).
-- [ ] ADR-0011 Phase 4 addendum: Option B + D3 + Approach 4 deferral rationale + phase-2-core.md Step 2.2c modification (3-branch) + drift fixes + pointer sharpening all recorded.
+- [ ] ADR-0011 Phase 4 addendum: Option B + D3 + Approach 4 deferral rationale + §4.0 step 7 outcome (a/b/c) actual result + §4.4b MVF spec if triggered + phase-2-core.md Step 2.2c modification (3-branch) + drift fixes + pointer sharpening + **dormant master acknowledgment** + **roundtable-strategies/ asymmetry note** + CI anchor drift check existence all recorded.
 - [ ] PR opened against `develop`, milestone v0.4.0.
 - [ ] Plan `Status` field updated from `draft` to `completed (PR #XX merged YYYY-MM-DD)` post-merge.
 
@@ -350,13 +383,14 @@ Commit structure (in execution order):
 
 1. `docs(plans): Phase 4 audit, triple-dup map, dispatch sites, anchor fixture map` (4.0)
 2. `refactor(config): codify D3 strategy resolution hierarchy across profiles, SKILL.md, template` (4.1)
-3. `feat(roundtable): Option B strategy-hook parser, fixture, Step 2.2c 3-branch dispatch, facilitator consumer, pointer sharpening` (4.2). **Optional split if reviewer prefers atomic commits**: 3a `feat(roundtable): strategy-hook-resolution.md fixture + parser block in roundtable.md`, 3b `feat(phase-2-core): Step 2.2c 3-branch hook_overrides dispatch`, 3c `feat(facilitator): hook_overrides consumer logic + sharpen 3 strategy-doc pointers to #strategy-hooks anchors`.
-4. `feat(commands): expand roundtable.md to master for structured workflows (conditional dispatch, generic mode preserved)` (4.3)
+3. `feat(roundtable): Option B strategy-hook parser, fixture, Step 2.2c 3-branch dispatch, facilitator consumer, pointer sharpening, anchor drift check` (4.2). **Optional split if reviewer prefers atomic commits**: 3a `feat(roundtable): strategy-hook-resolution.md fixture + parser block + anchor-check script`, 3b `feat(phase-2-core): Step 2.2c 3-branch hook_overrides dispatch`, 3c `feat(facilitator): hook_overrides consumer logic + sharpen 3 strategy-doc pointers to #strategy-hooks anchors`.
+4. `feat(commands): expand roundtable.md to master for structured workflows (conditional dispatch, generic mode preserved OR MVF)` (4.3)
 5. `fix(commands): remove inline phase enumeration drift in roundtable.md` (4.4)
-6. `test(baselines): exp45 regression replay, anchor parse fixture, backward-compat resume probe` (4.5)
-7. `docs(adr,backlog,plan): close Phase 4, ADR-0011 Phase 4 addendum with Approach 4 deferral rationale` (4.6)
+5b. `fix(roundtable): MVF for generic-mode invocation (warning/error + workaround guidance)` (4.4b, CONDITIONAL on §4.0 step 7 outcome b/c; SKIPPED if outcome a).
+6. `test(baselines): exp45 regression replay (expanded master coverage), anchor parse fixture, backward-compat resume probe` (4.5)
+7. `docs(adr,backlog,plan): close Phase 4, ADR-0011 Phase 4 addendum (Option B + D3 + Approach 4 + Option δ refinements + dormant master + asymmetry)` (4.6)
 
-7 commits, atomic.
+7 commits if outcome (a); 8 commits if outcome (b)/(c).
 
 PR body must include:
 - Link to plan file and to 4.0 audit file.
@@ -373,7 +407,7 @@ PR body must include:
 - **Six-hats wiring with empirical baseline**: capture baseline via `/s2s:design --strategy six-hats --verbose --diagnostic` on dogfood; freeze structural summary in `.s2s/test-baselines/`. Then add a deterministic anchor policy to `strategy-hook-resolution.md` (Option B configuration change only, no architectural work). Separate task.
 - **`debate-phase-machine.md` extraction**: if 4.0 audit reveals debate complexity rivals disney, extract analogously. Deferred otherwise.
 - **session-schema.md `INT-*` / `CONF-*` gaps**: pre-existing drift unrelated to Phase 4; tracked separately in BACKLOG.
-- **CI drift check for anchor fixture**: `strategy-hook-resolution.md` opening-line phrases vs strategy-docs opening lines, small bash check. Post-v0.4.0 follow-up.
+- ~~**CI drift check for anchor fixture**~~ **MOVED TO IN-SCOPE (§4.2 step 7, Option δ)**. The bash check script ships in Phase 4 as `skills/dev-testing/references/strategy-hook-anchor-check.md`. Wiring to actual CI infrastructure (if/when the plugin acquires one) remains post-v0.4.0.
 - **`templates/project/config.yaml` per-strategy consensus rules duplication**: lines 35-57 carry consensus thresholds per strategy that profile YAMLs also reference indirectly. Phase 4 D3 keeps config.yaml as user canonical; further normalization (e.g. moving consensus rules into strategy docs) is post-v0.4.0.
 - **New strategy onboarding doc**: with Option B in place, adding a 6th strategy is a 3-step procedure (new strategy doc with `## Strategy hooks` + new anchor row + optional override policy). Document this in `s2s-guide` skill; post-v0.4.0 task.
 - **Promote debate anchor policy from `facilitator_emergent` to deterministic rule**: once enough exp45+ debate runs are observed, codify Pro/Con assignment rule in `strategy-hook-resolution.md` instead of falling back to facilitator emergence. Empirical-data-driven; not in Phase 4 scope.
