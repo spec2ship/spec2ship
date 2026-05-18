@@ -1827,8 +1827,8 @@ skills/
 | 2 | Validation consolidation | ✅ | Phase 6 |
 | 3 | Phase 2 uniformization (approach A — drift elimination + canonical reference) | ✅ | Phase 2 |
 | 7B | Phase 2 deep extraction (approach B — was originally part of Phase 3 scope) | ✅ | Phase 3 |
-| 7 | Strategy skill consolidation | in_progress | Phase 7B |
-| 4 | roundtable.md as master | planned | Phase 7 |
+| 7-lite | Strategy doc hardening (rename 2.6d→2.10, SKILL.md dedup, §Strategy hooks formalization, disney cross-link) | in_progress | Phase 7B |
+| 4 | roundtable.md as master (includes strategy wiring Option A/B/C decision) | planned | Phase 7-lite |
 | 8 | Thin launcher conversion | planned | Phase 4 |
 
 **Phase 0: Test baseline** ✅
@@ -1978,11 +1978,11 @@ Make commands actually USE roundtable-strategies instead of duplicating.
   - ADR-0011 promoted `proposed` → `accepted` with Phase 7B addendum
   - Plan: `.s2s/plans/20260506-tech002-phase7b-deep-extraction.md`
   - Final regression replay (7B.7) verified all 3 workflows — see `.s2s/test-baselines/exp44-{specs,design,brainstorm}-post-phase7b.md`
-- Phases 7, 4, 8 remaining (in dependency order):
-  - **Phase 7 (current)**: strategy skill consolidation — wire `roundtable-strategies/{strategy}.md` to `phase-2-core.md` hooks per `strategy-hooks.md` contract. Move Disney phase logic out of inline (already extracted in 7B.5 to `disney-phase-machine.md`; this phase ensures `disney.md` strategy doc owns it). Verify `roundtable-strategies/SKILL.md` workflow defaults complete. Also touches: Step 2.6d positioning doc inconsistency in `phase-2-core.md` (3-way mismatch between §2 layout, §4 invariant, §2.9b dispatch).
-  - Phase 4: roundtable.md as master (~600 lines, all workflows funnel through it)
-  - Phase 8: thin launcher conversion (specs/design/brainstorm → ~150 lines each)
-- **Next action**: plan Phase 7 (`/s2s:plan` or markdown plan in `.s2s/plans/`). Until 4+8 done, do NOT release v0.4.0 → main.
+- Phases 7-lite, 4, 8 remaining (in dependency order):
+  - **Phase 7-lite (current)**: strategy doc hardening — documentation + tidying only, NO runtime wiring. Delivers: (1) 5 strategy reference docs gain uniform `## Strategy hooks` sections, (2) `roundtable-strategies/SKILL.md` workflow defaults gain "authoritative source: profiles/" disclaimer + version bump to 1.2.0, (3) Step 2.6d renamed to Step 2.10 across `phase-2-core.md` + `disney-phase-machine.md` + `strategy-hooks.md`, (4) bidirectional cross-link `disney.md` ↔ `disney-phase-machine.md`. Plan: `.s2s/plans/20260517-tech002-phase7-strategy-consolidation.md` (revised 2026-05-18 from "full" to "lite" after macro review #4). Runtime wiring at Step 2.2c deliberately deferred to Phase 4. Estimated ~3.5h.
+  - Phase 4: roundtable.md as master (~600 lines, all workflows funnel through it) + **strategy wiring architectural decision (Option A/B/C)** using Phase 7-lite's uniform strategy docs as substrate.
+  - Phase 8: thin launcher conversion (specs/design/brainstorm → ~150 lines each).
+- **Next action**: execute Phase 7-lite plan (sub-phase 7.0 audit). Until 4+8 done, do NOT release v0.4.0 → main.
 
 ---
 
