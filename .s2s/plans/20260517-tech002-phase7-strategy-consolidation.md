@@ -273,17 +273,16 @@ If any of these is violated, that is a regression and the PR cannot merge.
 
 ---
 
-## Appendix A: 7.0 gap matrix template
+## Appendix A: 7.0 audit output
 
-To be filled during 7.0 audit. Pre-populated with expected actions per Phase 7-lite scope:
+7.0 audit complete (2026-05-18). Full output: `.s2s/plans/20260518-tech002-phase7-lite-7.0-audit.md`.
 
-| Strategy | Hooks per contract | Currently in {strategy}.md | Gap | Action in 7.1 |
-|----------|-------------------|----------------------------|-----|---------------|
-| standard | none | n/a | no §Strategy hooks section | add §Strategy hooks: `"No per-round hooks..."` |
-| consensus-driven | none | n/a | no §Strategy hooks section | add §Strategy hooks: `"No per-round hooks..."` |
-| debate | debate_role, debate_phase | Pro/Con + 4 phases described prose-style | no §Strategy hooks section | add §Strategy hooks: descriptive only, `"Facilitator-driven, LLM-emergent. ... Phase 4 will decide wiring"` |
-| disney | (machine) | machine extracted to disney-phase-machine.md | no cross-link, no §Strategy hooks | add cross-link banner (7.4) + §Strategy hooks: `"Phase progression determined by disney-phase-machine.md ... No Step 2.2c per-round overrides"` |
-| six-hats | hat_role, hat_phase (deferred) | 6 hats described prose-style | no §Strategy hooks, no baseline | add §Strategy hooks: `"No per-round overrides (wiring deferred ... no empirical baseline yet)"` + descriptive contract below |
+Output contains:
+1. **Gap matrix** — strategy reference docs vs `strategy-hooks.md` contract; per-strategy action list for 7.1.
+2. **SKILL.md duplication audit** — workflow defaults + artifact types tables vs profile YAMLs. Two drift items identified (D1: `ADR-*` category conflation; D2: missing `CONF-*` in brainstorm secondary).
+3. **Stale references inventory** — `2.6d` references for 7.5 grep, "deferred to Phase 7" comments for 7.2/7.5 to update to "Phase 4".
+4. **Phase 4 flag** — `commands/roundtable.md` lines 170-179 + 194-199 duplication and minor consensus-driven phase-name drift (`proposal/discussion/resolution` in roundtable.md vs `proposal/refinement/convergence` in `consensus-driven.md`).
+5. **Per-strategy task list** for 7.1 execution.
 
 ## Appendix B (deferred to Phase 4 plan)
 
