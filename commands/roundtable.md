@@ -171,6 +171,8 @@ Read `.s2s/config.yaml` and extract:
 
 If --strategy not provided:
 
+> **Keyword → strategy mapping (user discoverability)**: this table is documented here for UX hints. The authoritative strategy descriptions live in `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/{strategy}.md` (consumed via the Option B parser, see "Resolve strategy hooks" section below). If this table drifts from the strategy docs, the strategy docs are correct. (TECH-002 Phase 4 §4.4 disclaimer.)
+
 1. Analyze topic for keywords:
    | Keywords | Recommended Strategy | Reason |
    |----------|---------------------|--------|
@@ -193,17 +195,12 @@ If --strategy not provided:
 
 ## Get strategy configuration
 
-Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/{strategy}.md` and load strategy phases:
-- **standard**: phases: ["discussion"]
-- **disney**: phases: ["dreamer", "realist", "critic"]
-- **debate**: phases: ["opening", "rebuttal", "closing"]
-- **consensus-driven**: phases: ["proposal", "discussion", "resolution"]
-- **six-hats**: phases: ["blue-opening", "white", "red", "black", "yellow", "green", "blue-closing"]
+Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/{strategy}.md`. The canonical phase enumeration for the chosen strategy lives in its Configuration block (YAML at the top of the doc). The strategy-hook overrides parsed in the "Resolve strategy hooks" section below surface phase metadata when needed (e.g. `debate_phase` for debate strategy). Per TECH-002 Phase 4 §4.4: inline phase enumeration removed to eliminate drift versus strategy docs (consensus-driven and six-hats had stale phase names pre-Phase-4; source-of-truth deferral resolves).
 
-Each phase has:
+Each phase in the strategy doc declares:
 - `name`: phase identifier
 - `min_rounds`: minimum rounds before advancing (default: 1)
-- `goal`: what the phase should achieve
+- `goal` / `prompt_suffix`: what the phase should achieve / how facilitator frames it
 
 ## Resolve strategy hooks (Option B parser, TECH-002 Phase 4)
 
