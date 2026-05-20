@@ -1,0 +1,69 @@
+# Workflow profile: roundtable
+# Schema: skills/roundtable-execution/references/profile-schema.md
+# Consumed by: phase-2-core.md (Phase 2 Round Loop), commands/roundtable.md (Phase 1/3 inline)
+#
+# Created in TECH-002 Phase 4 (Option ε pivot, 2026-05-20). Plugin's runtime
+# spec captured during §4.0 step 7 smoke test (.s2s/test-baselines/exp45-roundtable-native-pre-phase4.md)
+# recommended this profile shape; DEC added to artifact_types for backward-compat
+# with current session.yaml init (decisions/open_questions/conflicts).
+
+workflow_type: "roundtable"
+
+topic:
+  pattern: "{topic}"
+  source: "cli-arg.topic"
+
+state_phase: "discussion"
+
+default_strategy: "standard"
+# Plugin fallback. Consumed only when .s2s/config.yaml omits roundtable.strategy.by_workflow_type[roundtable].
+strategy_constraints:
+  allowed:
+    - "standard"
+    - "consensus-driven"
+    - "debate"
+    - "six-hats"
+    # disney excluded: forced for brainstorm only, not appropriate for generic discussion
+  forced: false  # --strategy CLI flag honored
+
+participants:
+  default:
+    - "software-architect"
+    - "technical-lead"
+  configurable: true  # --participants CLI flag overrides default
+
+artifact_types:
+  # DEC: review #5 A2 fix. Preserves backward-compat with current
+  # commands/roundtable.md:266 session.yaml init `decisions: {}` slot.
+  # Roundtable native discussions commonly emit decisions; DEC primary.
+  - prefix: "DEC"
+    session_key: "decisions"
+    is_primary: true
+  - prefix: "OQ"
+    session_key: "open_questions"
+    is_primary: false
+  - prefix: "CONF"
+    session_key: "conflicts"
+    is_primary: false
+
+progress:
+  axis: "agenda"
+  agenda_count: 1
+  # No agenda_reference: roundtable agenda is a single user-provided topic, no reference file
+  changes_field: "agenda_changes"
+  synthesis_input_fields:
+    - "full_agenda"
+    - "focus_topic"
+  synthesis_output_field: "agenda_update"
+
+round_summary:
+  tag_field: "topic_id"
+
+next_values:
+  - "continue"
+  - "conclude"
+  - "escalate"
+
+has_phase_transition: false  # No Step 2.10 dispatch (no Disney-like phase machine)
+
+display_block_style: "minimal"

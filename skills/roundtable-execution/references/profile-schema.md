@@ -1,8 +1,8 @@
 # Workflow Profile Schema
 
-> **Status**: canonical schema (TECH-002 Phase 7B)
+> **Status**: canonical schema (TECH-002 Phase 7B, extended Phase 4 with `roundtable.yaml`)
 > **Consumers**: `phase-2-core.md` reads profile values via `{{profile.X}}` references; Phase 1 init in commands may consult some fields.
-> **Profiles**: `profiles/specs.yaml`, `profiles/design.yaml`, `profiles/brainstorm.yaml`.
+> **Profiles**: `profiles/specs.yaml`, `profiles/design.yaml`, `profiles/brainstorm.yaml`, `profiles/roundtable.yaml`.
 
 Each workflow profile YAML captures every workflow-specific value referenced by the canonical Phase 2 Round Loop algorithm. The schema is a tight 1-to-1 mapping from `phase-2-core.md` §1 (workflow profiles table) plus the minimum data needed to execute Phase 2 correctly.
 
@@ -10,7 +10,7 @@ Each workflow profile YAML captures every workflow-specific value referenced by 
 
 ```yaml
 # Top-level: workflow identification
-workflow_type: <string>            # one of: "specs" | "design" | "brainstorm"
+workflow_type: <string>            # one of: "specs" | "design" | "brainstorm" | "roundtable"
 
 # Topic generation for session.yaml.topic + state.json
 topic:
@@ -26,7 +26,12 @@ state_phase: <string>              # literal value to write
                                    # OR "{current_phase}" (variable, substituted with dreamer/realist/critic)
 
 # Strategy defaults and constraints
-default_strategy: <string>         # e.g., "consensus-driven" | "debate" | "disney"
+#
+# default_strategy: PLUGIN FALLBACK. Consulted by commands/roundtable.md Phase 1 ONLY when
+# CLI --strategy and .s2s/config.yaml.roundtable.strategy.by_workflow_type[{workflow}] are
+# both absent. See references/strategy-resolution.md for full resolution hierarchy.
+# Codified in TECH-002 Phase 4 (D3 hierarchy decision, ADR-0011 Phase 4 addendum).
+default_strategy: <string>         # e.g., "consensus-driven" | "debate" | "disney" | "standard"
 strategy_constraints:
   allowed: [<string>, ...]         # strategies OFFICIALLY SUPPORTED for this workflow
                                    # (per roundtable-strategies/SKILL.md compatibility table).

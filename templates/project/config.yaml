@@ -1,5 +1,11 @@
 # Spec2Ship Project Configuration
 # This file is created by /s2s:init
+#
+# AUTHORITATIVE SOURCE for strategy/participant defaults at runtime.
+# See plugin profiles in skills/roundtable-execution/profiles/{workflow}.yaml
+# for fallback values consulted ONLY when a key is omitted from this file.
+# Resolution hierarchy: CLI --strategy → this file → profile fallback → error.
+# Full hierarchy + worked examples: skills/roundtable-execution/references/strategy-resolution.md
 
 name: "{project-name}"
 type: "{standalone | workspace | component}"
