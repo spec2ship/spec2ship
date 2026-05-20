@@ -203,6 +203,23 @@ Each phase has:
 - `min_rounds`: minimum rounds before advancing (default: 1)
 - `goal`: what the phase should achieve
 
+## Resolve strategy hooks (Option B parser, TECH-002 Phase 4)
+
+Deterministic resolution of per-strategy hook overrides. Reads the strategy doc's `## Strategy hooks` opening line, matches against the fixture, produces `strategy_hook_overrides` dict for persistence in session.yaml at `agent_state.facilitator.hook_overrides`.
+
+**Read** `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/strategy-hook-resolution.md` and load the anchor table.
+
+**Extract** the first non-empty line of the `## Strategy hooks` section from the strategy doc already read above.
+
+**Match** the opening line against each regex in the anchor table; first match wins. Produce `HOOK_OVERRIDES` per the matching row:
+- `standard` / `consensus-driven`: `{skip: true}` (Branch 1)
+- `disney` / `six-hats`: `{skip: true}` (Branch 1)
+- `debate`: `{participant_response_field: "debate_role", round_summary_field: "debate_phase", policy: "facilitator_emergent"}` (Branch 2)
+
+If no regex matches, display error to user: `"Strategy doc opening line did not match any anchor in strategy-hook-resolution.md. Edit the doc or update the fixture."` Stop session creation.
+
+Store `HOOK_OVERRIDES` for inclusion in `session.yaml.agent_state.facilitator.hook_overrides` at session creation (Phase 1 step "Create session"). `phase-2-core.md` Step 2.2c reads this field per round and dispatches via 3-branch logic (skip / policy / absent). See `strategy-hook-resolution.md` for full details.
+
 ## Handle debate strategy
 
 If strategy is "debate":
@@ -259,6 +276,7 @@ agent_state:
     agent_id: null
     last_round: 0
     last_action: null
+    hook_overrides: {HOOK_OVERRIDES from "Resolve strategy hooks" step above}  # Option B (TECH-002 Phase 4)
   participants: {}
 
 # Artifacts embedded
