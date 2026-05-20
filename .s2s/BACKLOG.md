@@ -1828,9 +1828,8 @@ skills/
 | 3 | Phase 2 uniformization (approach A — drift elimination + canonical reference) | ✅ | Phase 2 |
 | 7B | Phase 2 deep extraction (approach B — was originally part of Phase 3 scope) | ✅ | Phase 3 |
 | 7-lite | Strategy doc hardening (rename 2.6d→2.10, SKILL.md dedup, §Strategy hooks formalization, disney cross-link) | ✅ (PR #15 merged 2026-05-18) | Phase 7B |
-| 4 | roundtable.md as master for **structured workflows** (specs/design/brainstorm) + Option B wiring (3-branch dispatch) + D3 hierarchy | in_progress (plan drafted 2026-05-18, revised 2026-05-19 Approach 4) | Phase 7-lite |
+| 4 | roundtable.md as master for **all 4 workflows** (specs/design/brainstorm/roundtable) + `profiles/roundtable.yaml` + Option B wiring (3-branch dispatch) + D3 hierarchy | in_progress (plan drafted 2026-05-18, revised 2026-05-19 reviews #2-#4, **revised 2026-05-20 Option ε pivot post smoke test**) | Phase 7-lite |
 | 8 | Thin launcher conversion (specs/design/brainstorm → ~150 lines each) | planned | Phase 4 |
-| 9 | Generic-mode roundtable hardening (Approach 4 deferral: define `/s2s:roundtable` native mode semantics) | planned | Phase 8 |
 
 **Phase 0: Test baseline** ✅
 - [x] Create `skills/dev-testing/references/roundtable-tests.md` with test cases
@@ -1985,20 +1984,21 @@ Make commands actually USE roundtable-strategies instead of duplicating.
   - 7.6 smoke: `.s2s/plans/20260518-tech002-phase7-lite-7.6-smoke.md` (4/4 PASS)
   - Deliverables: (1) 5 strategy reference docs with uniform `## Strategy hooks` sections [+73 lines doc]; (2) `roundtable-strategies/SKILL.md` v1.1.0 → v1.2.0 with "authoritative source: profiles/" disclaimers + drift D1/D2 fixes; (3) Step 2.6d renamed to Step 2.10 across 18 sites in 6 files (`phase-2-core.md` block relocated post-§2.9); (4) bidirectional cross-link `disney.md` ↔ `disney-phase-machine.md`; (5) `strategy-hooks.md` reframed with Option A/B/C decision matrix in §7 (Phase 4 target state); (6) ADR-0011 addendum.
   - 13 stale `Phase 7 → Phase 4` references resolved across 4 files; 18 stale `Step 2.6d → 2.10` resolved across 6 files.
-- **Phase 4 in_progress** (plan drafted 2026-05-18, revised 2026-05-19 after reviews #2 and #4):
-  - Plan: `.s2s/plans/20260518-tech002-phase4-roundtable-master.md` (495 lines)
+- **Phase 4 in_progress** (plan drafted 2026-05-18, revised 4 times: reviews #2, #4 Option δ, then **Option ε pivot 2026-05-20** post smoke test):
+  - Plan: `.s2s/plans/20260518-tech002-phase4-roundtable-master.md` (~550 lines post pivot)
+  - 4.0 audit: `.s2s/plans/20260518-tech002-phase4-4.0-audit.md` (389 lines + Option ε pivot notes)
+  - Smoke test baseline: `.s2s/test-baselines/exp45-roundtable-native-pre-phase4.md` (outcome (c) graceful captured 2026-05-20)
   - §3.1 contains explicit Option A/B/C decision matrix (8 criteria); recommendation = **Option B** (command-side parsing in roundtable.md, deterministic resolution via `strategy-hook-resolution.md` fixture).
   - §3.3 codifies **D3 triple-duplication hierarchy**: `config.yaml` user-canonical → `profiles/*.yaml` plugin fallback → `SKILL.md` documentation-only.
-  - §3.5 documents **Approach 4 (generic-mode deferral)** + **Option δ refinements** (review #4 macro outcome): Phase 4 scope = structured workflows (specs/design/brainstorm); `--workflow-type roundtable` keeps current stub UNLESS §4.0 step 7 audit reveals broken state, in which case mandatory §4.4b MVF ships in Phase 4 (no silent broken behavior ever ships to v0.4.0 users). Generic-mode hardening still deferred to **Phase 9** but with MVF safety net in v0.4.0.
-  - **Option δ refinements over base Approach 4**: (i) mandatory MVF (§4.4b) if §4.0 step 7 outcome b/c; (ii) test coverage expanded to all 3 master paths via `/s2s:roundtable --workflow-type {specs,design,brainstorm}`, not just specs; (iii) CI-style anchor drift check shipped IN-SCOPE (`skills/dev-testing/references/strategy-hook-anchor-check.md`); (iv) ADR-0011 addendum acknowledges dormant master + roundtable-strategies/ asymmetry explicitly.
-  - 7 sub-phases (8 if outcome b/c triggers §4.4b): 4.0 audit → 4.1 D3 codification → 4.2 Option B 3-file impl + anchor drift check → 4.3 conditional dispatch → 4.4 drift fix → [4.4b conditional MVF] → 4.5 regression replay (expanded master coverage) → 4.6 close-out. Estimated ~7.75h execution (was ~6.25 pre-Option δ).
+  - §3.5 documents **Option ε pivot** (post smoke test 2026-05-20): pre-Phase-4 `/s2s:roundtable` native graceful abort + SKILL.md L178 pre-existing Phase 4 commitment + plugin runtime spec for roundtable.yaml invalidated previous Approach 4 deferral. Phase 4 now creates `profiles/roundtable.yaml` (per plugin's authoritative spec: `artifact_types: [OQ, CONF]`, `progress.axis: agenda` single `main` topic, `participants.default` from config). Phase 9 ELIMINATED; generic-mode fully resolved in Phase 4.
+  - 6 sub-phases (was 7-8 pre-pivot): 4.0 audit (✅ done) → 4.1 D3 codification + profiles/roundtable.yaml creation → 4.2 Option B 3-file impl + anchor drift check → 4.3 uniform dispatch (no conditional needed) → 4.4 drift fix → 4.5 regression replay (expanded master coverage + roundtable native) → 4.6 close-out. Estimated ~7.5h execution.
   - Option B implementation spans 3 files: roundtable.md parser + `phase-2-core.md` Step 2.2c 3-branch dispatch (skip/policy/absent) + facilitator agent consumer. Backward-compat preserved for pre-Phase-4 sessions via Branch 3 (LLM-emergent fallback).
-  - Acceptance criteria #2 and #4 will be marked **partially done** after Phase 4 (3/4 workflow types covered for #2; structured workflows only for #4; generic mode deferred to Phase 9).
-  - **Dormant master disclosure**: master capability in roundtable.md is exercised only by non-canonical `/s2s:roundtable --workflow-type X` invocations in v0.4.0; specs/design/brainstorm commands remain inline until Phase 8 thin launchers consume the master.
+  - Acceptance criteria #2 ("execute all workflows") and #4 ("Skills actually used") will be marked **FULLY DONE** after Phase 4 (all 4 workflow types covered including generic roundtable; specs/design/brainstorm inline until Phase 8 but routable via roundtable.md master path).
+  - **Pre-existing commitment honored**: `roundtable-execution/SKILL.md:178` parenthetical "(Phase 4 will align it)" updated to "(aligned in Phase 4 PR #XX)" in §4.1 step 7.
 - **Phase 8 (after Phase 4, ~2-3h)**: thin launcher conversion (specs/design/brainstorm → ~150 lines each).
-- **Phase 9 (after Phase 8)**: generic-mode roundtable hardening (Approach 4 deferral). Decision A/B/C blocked on Phase 8 thin-launcher empirical data. Lands in v0.5.0 or later.
+- **Phase 9**: ELIMINATED by Option ε pivot. Generic-mode roundtable hardening resolved in Phase 4 via `profiles/roundtable.yaml` creation.
 - **Six-hats wiring** (prerequisite-blocked): requires empirical baseline acquisition. Separate task; Option B parser in Phase 4 makes six-hats wiring a configuration change only.
-- **Next action**: review #3 on Phase 4 plan, then execute 4.0 audit → 4.1 → ... → 4.6, then open PR `feature/TECH-002-phase4-roundtable-master` → develop, milestone v0.4.0. Until Phase 4 + 8 done, do NOT release v0.4.0 → main.
+- **Next action**: execute §4.1 (D3 hierarchy + profiles/roundtable.yaml creation), then §4.2 → §4.6, then open PR `feature/TECH-002-phase4-roundtable-master` → develop, milestone v0.4.0. Until Phase 4 + 8 done, do NOT release v0.4.0 → main.
 
 ---
 
