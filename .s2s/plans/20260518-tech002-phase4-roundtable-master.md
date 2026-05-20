@@ -24,14 +24,15 @@ Expand `commands/roundtable.md` (currently 437 lines, "follow the skill" stub fo
 
 Make the explicit **Option A/B/C decision** for runtime consumption of strategy hooks (debate Pro/Con assignment, six-hats hat rotation, disney phase already handled by machine) and implement the chosen option (recommendation: Option B). Unify the triple-duplication of strategy/workflow defaults across `templates/project/config.yaml`, `profiles/{workflow}.yaml`, and `roundtable-strategies/SKILL.md`. Clarify and codify the `default_strategy` resolution hierarchy.
 
-Phase 4 delivers six concrete wins:
+Phase 4 delivers seven concrete wins:
 
 1. **roundtable.md master for ALL 4 workflows**: full Phase 2 wiring via `phase-2-core.md` for specs/design/brainstorm/roundtable, with `--workflow-type` profile dispatch, resume/diagnostic, and proper output dispatch per workflow. All 4 paths uniform.
-2. **`profiles/roundtable.yaml` created** per plugin's runtime spec: `artifact_types: [OQ, CONF]`, `progress.axis: agenda` with single `main` topic, `participants.default` from config. ~40-50 lines, uses existing schema (no extension needed). Resolves the structural blocker surfaced in §4.0 step 7 smoke test.
+2. **`profiles/roundtable.yaml` created**: based on plugin's runtime spec (`progress.axis: agenda` single `main` topic, `participants.default` from config), with `artifact_types: [DEC, OQ, CONF]` (review #5 A2 fix: added DEC for backward-compat with current session.yaml init `decisions: {}` slot). ~45-50 lines, uses existing schema (no extension needed). Resolves the structural blocker surfaced in §4.0 step 7 smoke test.
 3. **Option B implementation across 3 files**: deterministic parser in roundtable.md, plus Step 2.2c modification in `phase-2-core.md` to consume `agent_state.facilitator.hook_overrides`, plus `agents/roundtable/facilitator.md` updated to honor passed overrides instead of LLM-inferring per-round overrides. Three-branch semantics codified: `{skip: true}` (strategy has no hooks), policy dict (strategy has hooks), absent field (pre-Phase-4 session, LLM-emergent fallback).
 4. **Triple-duplication unification**: single canonical source per concern via resolution hierarchy (CLI, then config.yaml, then profile fallback). `templates/project/config.yaml` clarified as user-facing canonical; profile YAMLs clarified as plugin defaults; SKILL.md table disclaimers from 7-lite extended with resolution-hierarchy diagram.
 5. **commands/roundtable.md drift reconciliation**: keyword auto-detect table (currently lines 170-179) and inline phase enumeration (currently lines 194-199, with phase-name drift versus strategy docs for `consensus-driven` and `six-hats`) reconciled per Option B.
 6. **Facilitator-agent strategy-doc pointer sharpening + SKILL.md L178 commitment honored**: 3 pointers in `agents/roundtable/facilitator.md` (currently lines 518/579/607) sharpened from whole-file references to `#strategy-hooks` anchors; `skills/roundtable-execution/SKILL.md:178` parenthetical "(the latter still uses pre-7B inline pattern; Phase 4 will align it)" updated to "(aligned in Phase 4 PR #XX)".
+7. **`skills/output-generation/` extended for roundtable** (review #5 A1 fix): create `skills/output-generation/references/roundtable-summary.md` (~60 lines, mirrors `brainstorm.md` pattern); update `output-generation/SKILL.md` description + dispatch table (line 66) to support `workflow_type=roundtable`. Without this, post-Phase-4 `/s2s:roundtable` native invocation would hit a NEW output-template gap analogous to the profile gap that triggered Option ε pivot.
 
 Phase 8 (thin launcher conversion specs/design/brainstorm to ~150 lines each) is the immediate downstream consumer and is NOT in Phase 4 scope; it runs separately after Phase 4 merges.
 
@@ -134,10 +135,10 @@ The profile YAML's `strategy_constraints.forced: true` (e.g. `brainstorm.yaml:17
 
 ### 3.4 Work breakdown
 
-Phase 4 delivers in 6 sub-phases over an estimated **~7.5 hours** (Option ε pivot: removed §4.4b conditional MVF, added profile creation to §4.1, added Approach 1 work):
+Phase 4 delivers in 6 sub-phases over an estimated **~8 hours** (Option ε pivot: removed §4.4b conditional MVF, added profile creation + output template to §4.1):
 
 - **4.0** audit (~1.5h, COMPLETED 2026-05-19, with §7 empirical confirmation 2026-05-20): inventory + smoke test outcome (c) graceful + plugin's Option A spec captured.
-- **4.1** triple-dup resolution + `profiles/roundtable.yaml` creation (~1.25h, was 0.5h): D3 hierarchy codified, SKILL.md disclaimer + diagram, profile-schema.md updated (with roundtable added to enumeration L5), `profiles/roundtable.yaml` created per plugin spec.
+- **4.1** triple-dup resolution + `profiles/roundtable.yaml` + output template (~1.75h, was 1.25h; +0.5h for output template per review #5 A1): D3 hierarchy codified, SKILL.md disclaimer + diagram, profile-schema.md updated (roundtable added to enumeration L5), `profiles/roundtable.yaml` created per plugin spec with DEC added (review #5 A2), `output-generation/references/roundtable-summary.md` created + SKILL.md updated to support roundtable workflow_type.
 - **4.2** Option B implementation across 3 files (~1.25h): `strategy-hook-resolution.md` fixture (with 2 dict shapes) + parse block in roundtable.md + `phase-2-core.md` Step 2.2c with 3-branch dispatch + facilitator agent consumer with matching 3-branch logic + 3 strategy-doc pointer sharpening + CI-style anchor drift check script.
 - **4.3** roundtable.md uniform dispatch (~1.5h, was conditional dispatch): replace lines 359-437 with profile-load + Read phase-2-core.md pattern (same as commands/specs|design|brainstorm.md). Uniform for all 4 workflow_types (no conditional branching needed; roundtable.yaml is now a real profile).
 - **4.4** drift fix (currently lines 170-179 + 194-199) (~0.5h): keyword-auto-detect table disclaimer-protected; inline phase enumeration removed by source-of-truth deferral.
@@ -198,7 +199,7 @@ This plan went through 4 review rounds and two architectural pivots:
 3. **`templates/project/config.yaml`** header comment: add `# This file is the user-canonical source for strategy/participant defaults at runtime.` Add `# See plugin profiles for fallback values if a key is omitted.` near the strategy block.
 4. **Profile YAML comments**: in `profiles/{workflow}.yaml` (4 files post-§4.1 step 6), prefix `default_strategy` with a comment block: `# Plugin fallback. Consumed only when .s2s/config.yaml omits roundtable.strategy.by_workflow_type[{workflow}].`
 5. **Cross-reference fixture**: add a single-source table `skills/roundtable-execution/references/strategy-resolution.md` (new file, ~60 lines) that documents the hierarchy with one worked example per workflow (4 examples now: specs/design/brainstorm/roundtable). Referenced from SKILL.md and roundtable.md.
-6. **Create `profiles/roundtable.yaml`** per plugin's runtime spec (~45 lines):
+6. **Create `profiles/roundtable.yaml`** per plugin's runtime spec + review #5 A2 fix (DEC added for backward-compat) (~50 lines):
    ```yaml
    # Workflow profile: roundtable
    # Schema: skills/roundtable-execution/references/profile-schema.md
@@ -229,6 +230,12 @@ This plan went through 4 review rounds and two architectural pivots:
      configurable: true
 
    artifact_types:
+     # DEC added (review #5 A2): preserves backward-compat with current
+     # commands/roundtable.md:266 session.yaml init `decisions: {}` slot.
+     # Roundtable native discussions commonly emit decisions; DEC primary.
+     - prefix: "DEC"
+       session_key: "decisions"
+       is_primary: true
      - prefix: "OQ"
        session_key: "open_questions"
        is_primary: false
@@ -259,8 +266,10 @@ This plan went through 4 review rounds and two architectural pivots:
    display_block_style: "minimal"
    ```
 7. **Update SKILL.md L178 commitment**: change parenthetical from `(the latter still uses pre-7B inline pattern; Phase 4 will align it)` to `(aligned in Phase 4 PR #XX, see ADR-0011 Phase 4 addendum)`.
+8. **Create `skills/output-generation/references/roundtable-summary.md`** (review #5 A1 fix, ~60 lines): mirror `references/brainstorm.md` pattern. Provides pseudo-code for Phase 3 summary generation from roundtable session.yaml: read artifacts (DEC/OQ/CONF), render summary doc with topic + decisions + open questions + conflicts; write to `.s2s/sessions/{session-id}-summary.md` or stdout per output_type.
+9. **Update `skills/output-generation/SKILL.md`** (review #5 A1 fix): description line 3 update from "Supports specs (SRS), design (arc42 + ADR), and brainstorm (summary + ideas)" to add "and roundtable (generic summary)"; dispatch table at line 66 update to include `workflow_type=roundtable → references/roundtable-summary.md`; line 104 used-by list extended.
 
-**Exit condition**: D3 hierarchy is the single explanation of strategy resolution across plugin; no contradictory text remains. `grep -rn "default_strategy" skills/ commands/` returns only sites that explicitly state "plugin fallback" or quote the resolution hierarchy. `ls skills/roundtable-execution/profiles/` shows **4 files** (brainstorm, design, specs, roundtable). SKILL.md L178 reflects Phase 4 completion.
+**Exit condition**: D3 hierarchy is the single explanation of strategy resolution across plugin; no contradictory text remains. `grep -rn "default_strategy" skills/ commands/` returns only sites that explicitly state "plugin fallback" or quote the resolution hierarchy. `ls skills/roundtable-execution/profiles/` shows **4 files** (brainstorm, design, specs, roundtable). SKILL.md L178 reflects Phase 4 completion. `ls skills/output-generation/references/` shows **4 files** (brainstorm, design-arc42, specs-srs, roundtable-summary).
 
 ### 4.2: Option B implementation across 3 files (~1.25h)
 
@@ -332,7 +341,7 @@ This plan went through 4 review rounds and two architectural pivots:
 **Goal**: confirm no behavioral regression across the 3 structured workflows that have baselines; verify `/s2s:roundtable` native works end-to-end post-Phase-4 (no more abort); verify Option B fixture matches expected dicts; confirm pre-Phase-4 sessions resume cleanly via Branch 3.
 
 **Actions**:
-1. **Regression replay + expanded master coverage** in dogfood (`ElfGiftRush_s2s/exp45-phase4` worktree or similar):
+1. **Regression replay + expanded master coverage** in dogfood (`ElfGiftRush_s2s/exp45` worktree, same used for §4.0 step 7 smoke test; user can reset to af9af48 between runs or use sibling worktree if persistence needed):
    - **Direct invocations (unchanged paths, full regression)**:
      - `/s2s:specs "..."` compare structural summary to `.s2s/test-baselines/exp44-specs-post-phase7b.md`.
      - `/s2s:design "..."` same, `exp44-design-post-phase7b.md`.
@@ -377,7 +386,8 @@ This plan went through 4 review rounds and two architectural pivots:
 | R5 | Debate Pro/Con deterministic assignment (Option B) produces worse pairings than LLM-emergent | low | medium | exp44 sample is one observation; deterministic anchor policy is `facilitator_emergent` until empirical data justifies a coded rule. Option B initial overrides preserve current emergent behavior; only six-hats and future strategies get deterministic policy at this stage. |
 | R6 | Phase 4 changes break the 3 structured-workflow baselines (regression) | low | high | §4.5 replay is the gate. Mitigation if unacceptable delta: fix in-place for minor deltas; for significant deltas, escalate to additional review round or split PR into smaller commits; full Phase 4 rollback only as last resort. |
 | R7 | `default_strategy` change from "documented intent" to "actual fallback" exposes a latent bug if profile YAML value disagrees with current implicit behavior | low | low | §4.0 audit cross-checks profile.default_strategy vs config.yaml.by_workflow_type for each workflow; reconcile any disagreement in §4.1 commit. |
-| R8 | `profiles/roundtable.yaml` content (per plugin spec) has incorrect schema field values, causing post-Phase-4 generic-mode runtime errors | low | high | §4.1 step 6 yaml content is drafted per plugin's runtime spec (validated by plugin LLM's own analysis during smoke test). §4.5 step 1 generic-mode probe is the definitive test: if outcome NOT (a) post-Phase-4, the yaml needs adjustment. Easy iteration: edit yaml + re-run probe. |
+| R8 | `profiles/roundtable.yaml` content has incorrect schema field values, causing post-Phase-4 generic-mode runtime errors | low | high | §4.1 step 6 yaml drafted per plugin's runtime spec + review #5 A2 (DEC added). §4.5 step 1 generic-mode probe is the definitive test: if outcome NOT (a) post-Phase-4, the yaml needs adjustment. Easy iteration: edit yaml + re-run probe. |
+| R14 | output-generation skill lacks roundtable template, breaking Phase 3 output dispatch for `/s2s:roundtable` native sessions post-Phase-4 (analogous to profile gap discovered in §4.0 step 7) | medium | high | §4.1 step 8 + step 9 ship `roundtable-summary.md` + SKILL.md update IN-SCOPE. §4.5 step 1 generic-mode probe end-to-end test includes Phase 3 output rendering. Without this fix, /s2s:roundtable native would abort at Phase 3 same way pre-Phase-4 aborted at Phase 1. |
 | R9 | `phase-2-core.md` Step 2.2c modification not done: Option B data path incomplete (overrides written to session.yaml but never read) | medium | high | §4.2 step 3 explicitly delivers Step 2.2c modification as in-scope work with 3-branch semantics. §4.0 step 8 confirmed exact insertion site (line 269 area, overrides field at 286). §4.5 step 6 light smoke probe verifies `hook_overrides` populated AND structurally consumable via Branch 2. |
 | R10 | Backward-compat resume probe fails: pre-Phase-4 session resumes throw on missing `agent_state.facilitator.hook_overrides` field | low | high | §4.2 steps 3+4 specify 3-branch logic with absent-field fallback (Branch 3) to LLM-emergent. §4.5 step 3 dedicated probe with frozen pre-Phase-4 session file verifies. |
 | R11 | `profiles/roundtable.yaml` spec (per plugin: `artifact_types: [OQ, CONF]` only, no primary artifacts) results in user-visible "no decisions emerged" complaint for `/s2s:roundtable` usage | medium | low | Roundtable is generic discussion; users get OQs + conflicts as natural emergent artifacts. Decisions can still be created via Phase 3 output summary or by user manually editing session.yaml. Documented in `profiles/roundtable.yaml` header comment + SKILL.md description. If feedback emerges, easy to add `DEC` (decisions) prefix in a future minor release. |
@@ -389,8 +399,9 @@ This plan went through 4 review rounds and two architectural pivots:
 - [x] Smoke test baseline captured at `.s2s/test-baselines/exp45-roundtable-native-pre-phase4.md`.
 - [ ] D3 hierarchy codified: profile-schema.md (with roundtable added to L5 enumeration), SKILL.md (v1.3.0 with new "Strategy resolution hierarchy" section + ASCII diagram + roundtable row in defaults table), templates/project/config.yaml, profiles/*.yaml comments (4 files), strategy-resolution.md reference file (4 worked examples).
 - [ ] `grep -rn "default_strategy" skills/ commands/` returns only "plugin fallback" or hierarchy-quoting sites; no orphan references.
-- [ ] **`profiles/roundtable.yaml` created** per plugin's runtime spec (~45 lines, uses existing schema fields, no extension); `ls skills/roundtable-execution/profiles/` shows 4 files.
+- [ ] **`profiles/roundtable.yaml` created** per plugin's runtime spec + review #5 A2 fix (artifact_types includes DEC for backward-compat) (~50 lines, uses existing schema fields, no extension); `ls skills/roundtable-execution/profiles/` shows 4 files.
 - [ ] **SKILL.md L178 commitment updated** from "Phase 4 will align it" to "aligned in Phase 4 PR #XX".
+- [ ] **`skills/output-generation/references/roundtable-summary.md` created** (review #5 A1 fix, ~60 lines mirrors brainstorm.md pattern); `output-generation/SKILL.md` description + dispatch table updated to support `workflow_type=roundtable`; `ls skills/output-generation/references/` shows 4 files.
 - [ ] Option B implemented across 3 files: `strategy-hook-resolution.md` fixture exists with 2 dict shapes documented (`{skip: true}` vs policy dict); roundtable.md Phase 1 has parse block; `phase-2-core.md` Step 2.2c reads `agent_state.facilitator.hook_overrides` and dispatches via 3-branch logic; facilitator agent consumes input with matching 3-branch logic; 5 anchor assertions frozen in `.s2s/plans/20260518-tech002-phase4-4.2-fixture.md`.
 - [ ] **CI-style anchor drift check script** exists at `skills/dev-testing/references/strategy-hook-anchor-check.md` and passes for all 5 strategies as-is. Documented invocation path in script header.
 - [ ] 3 facilitator-agent strategy-doc pointers sharpened to `#strategy-hooks` anchors (lines 518/579/607 area).
@@ -414,7 +425,7 @@ This plan went through 4 review rounds and two architectural pivots:
 Commit structure (in execution order):
 
 1. `docs(plans,baselines): Phase 4.0 audit + smoke test baseline + Option ε pivot` (4.0, includes 2026-05-20 smoke test execution and pivot documentation)
-2. `refactor(config,profiles): codify D3 strategy resolution hierarchy + create profiles/roundtable.yaml` (4.1)
+2. `refactor(config,profiles,output): codify D3 strategy resolution hierarchy + create profiles/roundtable.yaml + create roundtable output template` (4.1)
 3. `feat(roundtable): Option B strategy-hook parser, fixture, Step 2.2c 3-branch dispatch, facilitator consumer, pointer sharpening, anchor drift check` (4.2). **Optional split**: 3a `feat(roundtable): strategy-hook-resolution.md fixture + parser block + anchor-check script`, 3b `feat(phase-2-core): Step 2.2c 3-branch hook_overrides dispatch`, 3c `feat(facilitator): hook_overrides consumer logic + sharpen 3 strategy-doc pointers to #strategy-hooks anchors`.
 4. `feat(commands): expand roundtable.md to master via uniform dispatch (all 4 workflow types)` (4.3)
 5. `fix(commands): remove inline phase enumeration drift in roundtable.md` (4.4)
