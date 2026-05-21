@@ -184,7 +184,7 @@ Structured debate is a proven technique for evaluating options. In LLM contexts,
 
 ## Strategy hooks
 
-Facilitator-driven, LLM-emergent. No fixed policy codified. Phase 4 will decide the wiring mechanism (Option A/B/C) and may add a codified policy table at that time.
+Facilitator-driven, LLM-emergent. Phase 4 chose Option B; current policy is `facilitator_emergent` (LLM picks Pro/Con role values; field names provided via hook_overrides). Promote to deterministic rule once empirical baseline sample size justifies.
 
 ### Hook fields emitted
 

@@ -30,6 +30,8 @@ For each strategy doc, the parser:
 | `six-hats` | `^No per-round overrides` | `{skip: true}` (until empirical baseline acquired; post-baseline transitions to policy dict per session-qa) |
 | `debate` | `^Facilitator-driven, LLM-emergent` | `{participant_response_field: "debate_role", round_summary_field: "debate_phase", policy: "facilitator_emergent"}` |
 
+> Note on shared regex: `standard` and `consensus-driven` share the regex `^No per-round hooks\.` and the same override dict `{skip: true}`. First-match-wins iteration order is therefore irrelevant for these two rows; both rows are preserved in the table for documentation clarity (one entry per strategy).
+
 ## Parser pseudocode
 
 ```
