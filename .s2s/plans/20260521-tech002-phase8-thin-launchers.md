@@ -179,6 +179,8 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 
 ### 8.1: generalize roundtable.md master, profile-driven PHASE 0+1 (~2.5h)
 
+**Status**: COMPLETED 2026-05-21. `commands/roundtable.md` 479 → 587 lines (≤600). All 7 actions applied: `## Invocation modes` note; workflow_type resolution + 5 hardcode sites parametrized; profile load in PHASE 1; profile-driven `Create session` (folder + 3 snapshots + profile-driven skeleton, 4 ordered steps); runtime-context alignment to `config-snapshot.yaml`; PHASE 2 resume reads `workflow_type` from session file. Native smoke check (action 7) is a runtime test, deferred to §8.5 dogfood.
+
 **Goal**: one session-setup path for all 4 workflows; native roundtable behavior preserved as a superset.
 
 **Actions**:
@@ -270,8 +272,8 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 ## 6. Done criteria
 
 - [x] 8.0 audit file produced (`.s2s/plans/20260521-tech002-phase8-8.0-audit.md`); canonical profile-driven session-file skeleton + snapshot spec frozen; snapshot-consumption mapped; per-command keep/delete classification complete; 5 hardcode sites confirmed empirically; handoff contract frozen; Smart Source Detection placement decided (inline).
-- [ ] roundtable.md master PHASE 0+1 generalized: profile-driven folder + snapshot creation (all 4 workflows); profile-driven session-file skeleton (artifacts / agenda-or-phases / metrics+by_state / validation); `workflow_type` parametric at 5 sites; `## Invocation modes` contract note added.
-- [ ] §8.1 native smoke check: `/s2s:roundtable --diagnostic` creates session folder + 3 snapshots; artifacts/agenda/rounds match `exp45` modulo additive fields.
+- [x] roundtable.md master PHASE 0+1 generalized: profile-driven folder + snapshot creation (all 4 workflows); profile-driven session-file skeleton (artifacts / agenda-or-phases / metrics+by_state / validation); `workflow_type` parametric at 5 sites; `## Invocation modes` contract note added. (roundtable.md 479 → 587 lines)
+- [ ] §8.1 native smoke check: `/s2s:roundtable --diagnostic` creates session folder + 3 snapshots; artifacts/agenda/rounds match `exp45` modulo additive fields. (runtime test, executed in §8.5)
 - [ ] `commands/specs.md` is a thin launcher, `wc -l` ≤ 180 (≤150 if source-detection extracted); no inline Phase 1/2/3.
 - [ ] `commands/design.md` is a thin launcher, `wc -l` ≤ 150; no inline Phase 1/2/3.
 - [ ] `commands/brainstorm.md` is a thin launcher, `wc -l` ≤ 130; no inline Phase 1/2/3.

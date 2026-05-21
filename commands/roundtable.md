@@ -24,6 +24,25 @@ If S2S is initialized:
 - Read `.s2s/CONTEXT.md` for project context
 - Read `.s2s/config.yaml` for roundtable configuration
 
+## Invocation modes
+
+`roundtable.md` is the master orchestrator for all 4 workflow types. It runs in two modes:
+
+- **Native**: invoked directly as `/s2s:roundtable`. `workflow_type` resolves to `roundtable`.
+- **Delegated**: a thin launcher (`/s2s:specs`, `/s2s:design`, `/s2s:brainstorm`) Reads this file and follows it after its own workflow-specific prep. The launcher pre-sets handoff variables in conversation context.
+
+**Handoff-variable contract** (delegated mode; in native mode none are set):
+
+| Variable | Set by | Consumed at |
+|----------|--------|-------------|
+| `WORKFLOW_TYPE` | launcher (mandatory) | PHASE 0 workflow_type resolution + profile load |
+| `INPUT_SOURCES` | specs launcher | PHASE 1 `context-snapshot.yaml` `input_sources:` block |
+| `OUTPUT_MERGE_MODE` | specs/design launcher | PHASE 4 output generation (`override` / `merge`) |
+| `OUTPUT_FORMAT` | specs launcher | PHASE 4 output generation (`--format` value) |
+| `FOCUS_AREA` | design launcher | facilitator discussion-context hint + PHASE 4 |
+
+Strategy and output-type are NOT handoff variables: the master resolves strategy via the D3 hierarchy and output-type from `workflow_type`.
+
 ---
 
 # PHASE 0: AUTO-DETECT ACTIVE SESSIONS
@@ -40,8 +59,10 @@ Extract from $ARGUMENTS:
 - **Topic**: First quoted string or unquoted words (required unless resuming)
 - **--strategy**: Optional. Facilitation strategy
 - **--participants**: Optional. Comma-separated list
-- **--workflow-type**: Optional (specs|design|brainstorm|roundtable). Default: "roundtable"
+- **--workflow-type**: Optional (specs|design|brainstorm|roundtable).
 - **--output-type**: Optional (adr|requirements|architecture|summary). Default: based on workflow
+
+**Resolve `workflow_type`** (used throughout this command and to load the profile): if the `WORKFLOW_TYPE` handoff variable is set (delegated mode), use it; else if `--workflow-type` is given, use that; else default `"roundtable"` (native mode).
 - **--verbose**: Optional. Include full participant responses in session file
 - **--interactive**: Optional. Ask user after each round
 - **--new**: Optional. Force create new session (skip auto-detect)
@@ -72,8 +93,8 @@ Other optional arguments:
 
 **IF** `.s2s/state.json` exists:
 1. Read the file and check `active_session`
-2. **IF** `active_session` is not null AND `active_session.workflow_type IN ["roundtable", "specs", "design", "brainstorm"]`:
-   - Per TECH-002 Phase 4 §4.3 step 4: master path now supports resuming sessions of any workflow_type (was restricted to "roundtable" only pre-Phase-4).
+2. **IF** `active_session` is not null AND `active_session.workflow_type == {workflow_type}` (the resolved workflow_type):
+   - Auto-detect is scoped to the invoked workflow_type (TECH-002 Phase 8): `/s2s:specs` (delegated) offers only `specs` sessions; native `/s2s:roundtable` offers only `roundtable` sessions. Resume of any workflow_type is supported (Phase 4 §4.3 step 4).
    - Extract session_id from `active_session.id`
    - Verify session file exists: `.s2s/sessions/{session_id}.yaml`
    - Read session file and check `status`
@@ -102,10 +123,10 @@ Other optional arguments:
 
 ## Fallback: Grep scan for active sessions
 
-**YOU MUST use Bash tool** to find active roundtable sessions:
+**YOU MUST use Bash tool** to find active sessions for the resolved workflow_type:
 
 ```bash
-grep -l 'workflow_type: roundtable' .s2s/sessions/*.yaml 2>/dev/null | xargs grep -l 'status: active' 2>/dev/null
+grep -l 'workflow_type: {workflow_type}' .s2s/sessions/*.yaml 2>/dev/null | xargs grep -l 'status: active' 2>/dev/null
 ```
 
 **IF** no active sessions found:
@@ -122,7 +143,7 @@ grep -l 'workflow_type: roundtable' .s2s/sessions/*.yaml 2>/dev/null | xargs gre
 2. Display list:
 
 ```
-Active roundtable sessions found:
+Active {workflow_type} sessions found:
 ══════════════════════════════════
 
 1. {session-id}
@@ -150,9 +171,15 @@ Which would you like to continue?
 
 # PHASE 1: SETUP
 
+## Load workflow profile
+
+**Read** `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/profiles/{workflow_type}.yaml` and store the parsed object as `PROFILE`. All 4 workflow types have a profile. `PROFILE` drives session setup below (topic, artifacts, agenda/phases, participants) and is reused in PHASE 3.
+
 ## Validate topic
 
-If no topic provided and not resuming, ask using AskUserQuestion.
+The session topic is resolved per `PROFILE.topic`:
+- IF `PROFILE.topic.source == "cli-arg.topic"` (roundtable, brainstorm): use the topic from `$ARGUMENTS`. If no topic was provided and not resuming, ask using AskUserQuestion.
+- IF `PROFILE.topic.source` begins with `context-snapshot.` (specs, design): the topic is **synthesized** in "Create session" below from `PROFILE.topic.pattern` (no prompt).
 
 ## Load configuration
 
@@ -249,17 +276,93 @@ rationale: "Assignment reasoning"
 
 ## Create session
 
-1. Create sessions directory: `mkdir -p .s2s/sessions`
-2. Generate session ID: `{timestamp}-{workflow_type}-{topic-slug}` (slug: lowercase, hyphens, max 30 chars). Per TECH-002 Phase 4 §4.3 step 2: prefix uses `workflow_type` (one of specs/design/brainstorm/roundtable), NOT command name. So `/s2s:roundtable "topic"` (default workflow_type=roundtable) → `{ts}-roundtable-{slug}` (unchanged); `/s2s:roundtable "topic" --workflow-type specs` → `{ts}-specs-{slug}` (consistent with `/s2s:specs` and Phase 8 thin launchers).
-3. Determine initial phase from strategy phases[0]
-4. Create session file `.s2s/sessions/{session-id}.yaml`:
+`PROFILE` (loaded above) drives every workflow-specific value here. This session-setup path is identical for all 4 workflow types (TECH-002 Phase 8: profile-driven PHASE 1).
+
+### Step 1: Resolve the topic
+
+Per `PROFILE.topic`:
+- `source: cli-arg.topic` → the topic from `$ARGUMENTS` (resolved at "Validate topic" above).
+- `source: context-snapshot.project_name` → substitute `{project_name}` (from `.s2s/CONTEXT.md`) into `PROFILE.topic.pattern`.
+
+### Step 2: Session folder
+
+1. `mkdir -p .s2s/sessions`
+2. Generate session ID: `{YYYYMMDD}-{HHMMSS}-{workflow_type}-{topic-slug}` (slug: lowercase, hyphens, max 30 chars, from the resolved topic). The `workflow_type` prefix keeps ids consistent across native and delegated invocation.
+3. `mkdir -p .s2s/sessions/{session-id}`
+4. IF `verbose_flag` OR `diagnostic_flag`: `mkdir -p .s2s/sessions/{session-id}/rounds`
+
+### Step 3: Snapshot files
+
+`phase-2-core.md` (§2.0, §3) reads `config-snapshot.yaml` and `context-snapshot.yaml` as canonical inputs. The master writes them for **all** workflow types.
+
+**Write** `.s2s/sessions/{session-id}/context-snapshot.yaml`. Read `.s2s/CONTEXT.md` (and `.s2s/requirements.md` when present) and write:
+
+```yaml
+# Captured: {ISO timestamp}
+source: ".s2s/CONTEXT.md"
+project_name: "{extracted}"
+description: "{extracted}"
+objectives:
+  - "{extracted}"
+constraints:
+  - "{extracted}"
+scope:
+  in: ["{extracted}"]
+  out: ["{extracted}"]
+```
+
+Append the workflow-specific block:
+- **specs**: `input_sources:` populated from the `INPUT_SOURCES` handoff variable (brainstorm sessions / ideas / backlog / `primary_id`), or empty when unset.
+- **design**: `requirements_summary:` with `core:` and `nfr:` lists from `.s2s/requirements.md`.
+- **brainstorm**: `brainstorm_topic: "{topic}"`.
+- **roundtable**: no extra block.
+
+**Write** `.s2s/sessions/{session-id}/config-snapshot.yaml`. Read `.s2s/config.yaml` and write:
+
+```yaml
+# Captured: {ISO timestamp}
+source: ".s2s/config.yaml"
+verbose: {verbose_flag}
+interactive: {interactive_flag}
+diagnostic: {diagnostic_flag}
+strategy: "{strategy_to_use}"
+limits:
+  min_rounds: {from config: roundtable.limits.min_rounds}
+  max_rounds: {from config: roundtable.limits.max_rounds}
+escalation:
+  max_rounds_per_conflict: {from config: roundtable.escalation.triggers.max_rounds_per_conflict}
+  confidence_below: {from config: roundtable.escalation.triggers.confidence_below}
+  critical_keywords: {from config: roundtable.escalation.triggers.critical_keywords}
+participants:
+  - "{each resolved participant}"
+```
+
+**IF** `PROFILE.progress.agenda_reference` is set (specs, design): **Write** `.s2s/sessions/{session-id}/agenda.yaml`. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/{PROFILE.progress.agenda_reference}` and copy its topics:
+
+```yaml
+# Captured: {ISO timestamp}
+source: "{PROFILE.progress.agenda_reference}"
+workflow: "{workflow_type}"
+topics:
+  # ... all topics from the referenced agenda file
+```
+
+Workflows without `agenda_reference` (roundtable, brainstorm) get no `agenda.yaml`.
+
+### Step 4: Session file
+
+**Write** `.s2s/sessions/{session-id}.yaml`. The skeleton is profile-driven:
+- `artifacts:` is one empty map per entry in `PROFILE.artifact_types`, keyed by its `session_key`.
+- progress block, per `PROFILE.progress.axis`:
+  - `axis: agenda` → an `agenda:` list with one `{topic_id, status: "open", coverage: []}` entry per agenda topic (the `agenda.yaml` topics, or a single `main` topic when `agenda_reference` is absent); and `metrics.topics: {total: {count}, closed: 0}`.
+  - `axis: disney_phase` → `current_phase:` (first phase) and a `phases:` list of `{name, status, rounds: []}`; and `metrics.phases: {<phase>: 0, ...}`.
 
 ```yaml
 # Session file - Single Source of Truth
 id: "{session-id}"
-workflow_type: "roundtable"
-topic: "{topic}"
-strategy: "{strategy}"
+topic: "{resolved topic}"
+workflow_type: "{workflow_type}"
+strategy: "{strategy_to_use}"
 status: "active"
 
 timing:
@@ -267,7 +370,7 @@ timing:
   updated_at: "{ISO timestamp}"
   closed_at: null
 
-participants: ["{list}"]
+participants: ["{resolved list}"]
 
 # Agent state (for resume capability)
 agent_state:
@@ -278,17 +381,13 @@ agent_state:
     hook_overrides: {HOOK_OVERRIDES from "Resolve strategy hooks" step above}  # Option B (TECH-002 Phase 4)
   participants: {}
 
-# Artifacts embedded
+# Artifacts: one empty map per PROFILE.artifact_types[].session_key
 artifacts:
-  decisions: {}
-  open_questions: {}
-  conflicts: {}
+  {session_key}: {}
+  # ... repeat for every PROFILE.artifact_types entry
 
-# Agenda (for roundtable, typically single topic)
-agenda:
-  - topic_id: "main"
-    status: "open"
-    coverage: []
+# Progress block per PROFILE.progress.axis (agenda: OR current_phase: + phases:)
+{agenda or phases block per the rule above}
 
 # Rounds with summary
 rounds: []
@@ -299,17 +398,25 @@ metrics:
   artifacts:
     total: 0
     by_type: {}
+    by_state: {}
+  {topics or phases counter per axis}
   consensus_rate: 0.0
   # TECH-009: Token tracking
   tokens:
-    total: 0        # TECH-009
+    total: 0
     by_round: []
+
+# Validation state
+validation:
+  last_check: null
+  status: null
+  warnings: []
 
 # Linked sessions (optional)
 linked_sessions: {}
 ```
 
-   - If strategy="debate", include `debate_sides` with pro/con participant assignments
+   - If `strategy == "debate"`, include `debate_sides` with pro/con participant assignments.
 
 ## Display session start
 
@@ -320,7 +427,7 @@ linked_sessions: {}
     Topic: {topic}
     Strategy: {strategy}
     Participants: {list}
-    Workflow: roundtable
+    Workflow: {workflow_type}
 
     Starting discussion...
 
@@ -329,6 +436,7 @@ linked_sessions: {}
 # PHASE 2: RESUME SESSION
 
 Read the session file `.s2s/sessions/{session-id}.yaml` and extract:
+- `workflow_type` (drives profile load and state.json below; do NOT assume `roundtable`)
 - `topic`
 - `strategy`
 - `metrics.rounds_completed`
@@ -344,9 +452,9 @@ Use Write tool to write `.s2s/state.json`:
 {
   "active_session": {
     "id": "{session-id}",
-    "workflow_type": "roundtable",
+    "workflow_type": "{workflow_type from session file}",
     "strategy": "{strategy}",
-    "phase": "discussion",
+    "phase": "{state_phase: from session file progress block, or PROFILE.state_phase}",
     "round": {rounds_completed},
     "participants_count": {participants count from session}
   },
@@ -379,16 +487,16 @@ Per TECH-002 Phase 4 §4.3: roundtable.md is now master for all 4 workflow types
 
 ## Profile loading and context setup
 
-**Read** `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/profiles/{workflow_type}.yaml` and store the parsed YAML object as `PROFILE`. All 4 workflow_types are supported post Phase 4 (`profiles/roundtable.yaml` added in §4.1). This provides workflow-specific values (artifact types, participants, agenda axis, default strategy, phase transition gating) consumed throughout Phase 2 of the skill.
+**Ensure `PROFILE` is loaded**: on the new-session path it was loaded in PHASE 1 ("Load workflow profile"). On the resume path (PHASE 2, PHASE 1 skipped), **Read** `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/profiles/{workflow_type}.yaml` now and store it as `PROFILE` (`{workflow_type}` from the resumed session file). `PROFILE` provides workflow-specific values (artifact types, participants, agenda axis, default strategy, phase transition gating) consumed throughout Phase 2.
 
 Make the following variables available in conversation context for the algorithm:
 
 - `STRATEGY` = `{strategy_to_use}` (resolved earlier in this command per the resolution hierarchy: CLI → config.yaml → profile fallback; see `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/strategy-resolution.md`)
 - `SESSION_ID` = the session id created in Phase 1 (workflow_type-prefixed per §4.3 step 2)
 - `ROUND_NUMBER` = `session.yaml.metrics.rounds_completed` (0 for fresh sessions, N for resume)
-- `VERBOSE_FLAG` = `{verbose_flag}` parsed earlier
-- `DIAGNOSTIC_FLAG` = `{diagnostic_flag}` parsed earlier
-- `INTERACTIVE_FLAG` = `{interactive_flag}` parsed earlier
+- `VERBOSE_FLAG` = `config-snapshot.yaml.verbose` (the snapshot written in Phase 1; canonical source per `phase-2-core.md` §3)
+- `DIAGNOSTIC_FLAG` = `config-snapshot.yaml.diagnostic`
+- `INTERACTIVE_FLAG` = `config-snapshot.yaml.interactive`
 - `TOKEN_SCRIPT` = will be resolved by phase-2-core.md Step 2.0 (reads from `references/token-tracking.md`)
 
 ## Execute the canonical algorithm
