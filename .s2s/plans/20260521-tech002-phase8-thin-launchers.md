@@ -4,7 +4,7 @@
 **Branch**: `feature/TECH-002-phase8-thin-launchers`
 **Forked from**: `develop` @ `773fb75` (post Phase 4 PR #16 merge)
 **Author**: Claude (Opus 4.7) + Francesco
-**Status**: draft (self-review round 1 applied 2026-05-21)
+**Status**: draft (self-review rounds 1-2 applied 2026-05-21)
 **Created**: 2026-05-21
 **Predecessor plan**: `.s2s/plans/20260518-tech002-phase4-roundtable-master.md` (Phase 4, completed)
 **Baselines**:
@@ -27,7 +27,7 @@ Phase 8 therefore has two coupled deliverables:
 
 Phase 8 delivers five wins:
 
-1. **Command-layer LOC collapse**: ~2097 lines (600 + 536 + 482 + 479) drop to ~960 (~150×3 + ~510). TECH-002 acceptance criterion #6 satisfied for the command layer.
+1. **Command-layer LOC collapse**: ~2097 lines (600 + 536 + 482 + 479) drop to roughly ~1000 (≈150×3 thin launchers + ≈555 master; the master grows because it absorbs the generalized PHASE 1). TECH-002 acceptance criterion #6 satisfied for the command layer.
 2. **Single execution path, end to end**: all 4 workflows run PHASE 0 → PHASE 1 → `phase-2-core.md` → completion through one master. Zero inline duplication remains. Acceptance criterion #4 ("skills actually used") becomes structurally airtight, including session setup (not just the round loop).
 3. **A latent inconsistency fixed**: roundtable native currently relies on in-context flag variables instead of the `config-snapshot.yaml`/`context-snapshot.yaml` that `phase-2-core.md` documents as canonical inputs. The generalized PHASE 1 makes the master create them for all 4 workflows. Net correctness gain.
 4. **Acceptance criterion #3 DONE**: specs/design/brainstorm are thin launchers (~150 lines each).
@@ -65,6 +65,8 @@ Static read of the four command files (2026-05-21) shows roundtable.md's PHASE 1
 
 roundtable native "works" today because roundtable.md PHASE 3 passes `VERBOSE_FLAG`/`DIAGNOSTIC_FLAG`/etc. as in-context variables (roundtable.md:388-392), and `phase-2-core.md` tolerates that as a fallback to its documented "from config-snapshot.yaml" source. This is exactly the kind of drift TECH-002 exists to remove. Phase 8 fixes it: the master creates the canonical snapshot files for **all 4** workflows.
 
+`phase-2-core.md` anticipated this work explicitly. Its §3 closing line (L859) states: *"Phase 1 (init, profile-aware Phase 1 setup) and Phase 3 (output generation) remain inline in each command. They are out of scope for 7B; cleanup deferred to Phase 8."* Phase 8 is the named owner of profile-aware PHASE 1; the profile schema was designed to drive it.
+
 ### Other master hardcode sites (workflow_type literals)
 
 - `roundtable.md:108`: fallback grep `grep -l 'workflow_type: roundtable'` (hardcoded scope).
@@ -81,11 +83,10 @@ roundtable native "works" today because roundtable.md PHASE 3 passes `VERBOSE_FL
 | Prerequisite gate | CONTEXT.md populated (not placeholder) | requirements.md absent → warn/continue choice | S2S-init only |
 | Smart Source Detection | yes (~60 lines: brainstorm sessions / ideas.md / BACKLOG.md → `INPUT_SOURCES`; `IDEA-*`/`FEAT-*` ID parsing) | no | no |
 | Existing-output handling | requirements.md → override/merge/cancel | architecture.md → override/merge/cancel | no |
-| Default-strategy fallback | `consensus-driven` | `debate` | `disney` |
 | Workflow flags | `--format srs\|volere\|simple` | `--focus components\|api\|deployment` | `--participants` |
 | Skip-roundtable mode | yes (~6 lines) | yes (~5 lines) | no |
 
-Everything else (generic flag parse, auto-detect, session-id generation, **session folder + snapshot creation, profile-driven session-file skeleton**, Phase 2 round loop, diagnostic report, status update, summary, output dispatch) belongs to the generalized master and is removed from the launchers.
+Everything else (generic flag parse, auto-detect, session-id generation, **session folder + snapshot creation, profile-driven session-file skeleton**, Phase 2 round loop, diagnostic report, status update, summary, output dispatch) belongs to the generalized master and is removed from the launchers. Strategy and default output-type are also master-resolved (D3 hierarchy `CLI → config.yaml → profile.default_strategy`, and `workflow_type → output_type` dispatch), so the launcher does **not** pass them.
 
 ### Hard constraints
 
@@ -124,7 +125,7 @@ Each thin launcher executes, in order:
 4. **Workflow-specific Phase 0 prep** (new-session path only): prerequisite gate; Smart Source Detection (specs only); existing-output override/merge/cancel.
 5. **Parse workflow-specific flags**: `--format` (specs), `--focus` (design), `--participants` (brainstorm), `--skip-roundtable` (specs/design).
 6. **`--skip-roundtable` branch**: if present, run the inline skip mode and exit. Unchanged logic, kept in the launcher (workflow-specific, never touches the master).
-7. **Set handoff variables**: `WORKFLOW_TYPE`, `DEFAULT_STRATEGY_FALLBACK`, `OUTPUT_TYPE` default, plus carry-through vars: `INPUT_SOURCES` (specs), `OUTPUT_MERGE_MODE` (specs/design), `OUTPUT_FORMAT` (specs `--format`), `FOCUS_AREA` (design `--focus`).
+7. **Set handoff variables** (minimal contract, simplified in review round 2): `WORKFLOW_TYPE` (mandatory), plus only values the master cannot derive from `workflow_type` + profile: `INPUT_SOURCES` (specs, a source-detection result), `OUTPUT_MERGE_MODE` (specs/design, an existing-output decision), `OUTPUT_FORMAT` (specs `--format`), `FOCUS_AREA` (design `--focus`). Strategy and default output-type are NOT passed: the master resolves strategy via the D3 hierarchy and output-type from `workflow_type`.
 8. **Delegate**: Read `${CLAUDE_PLUGIN_ROOT}/commands/roundtable.md` and follow it from `PHASE 0`, treating the invocation as if `--workflow-type {WORKFLOW_TYPE}` were passed.
 
 The launcher does **not** auto-detect sessions itself (Risk R2): auto-detect lives entirely in the master's PHASE 0, scoped to `WORKFLOW_TYPE` after §8.1.
@@ -134,9 +135,10 @@ The launcher does **not** auto-detect sessions itself (Risk R2): auto-detect liv
 The master's PHASE 0 and PHASE 1 become driven by `profiles/{workflow}.yaml` for all 4 workflow types:
 
 - **Session folder + snapshots**: master creates `.s2s/sessions/{id}/` (+ `rounds/` when verbose/diagnostic), `config-snapshot.yaml` (config.yaml + resolved flags, **all** workflows), `context-snapshot.yaml` (CONTEXT.md + `INPUT_SOURCES` handoff var), and `agenda.yaml` when `PROFILE.progress.agenda_reference` is set.
-- **Profile-driven session-file skeleton**: `topic` from `PROFILE.topic.source` (cli-arg / `context-snapshot.project_name` / synthesized); `artifacts:` block built from `PROFILE.artifact_types` (one empty map per `session_key`); progress block built per `PROFILE.progress.axis` (`agenda:` from `agenda_reference`, or single `main` when none, or `phases:` + `current_phase:` when `PROFILE.has_phase_transition`); `metrics` always includes `by_state` and an axis-appropriate counter (`topics` or `phases`); `validation:` block always present.
-- **workflow_type parametrization**: the 5 hardcode sites from §2 (L260 session file, L323 banner, L346/352 resume state.json, L108 grep, L75 fast-path scope) use the resolved `WORKFLOW_TYPE`.
-- **`## Invocation modes` contract note**: a new section near the top of roundtable.md documenting native vs delegated entry and the handoff-variable contract (§3.2 step 7).
+- **Profile-driven session-file skeleton**: `topic` per `PROFILE.topic` (`source: cli-arg.topic` uses the CLI topic; `source: context-snapshot.*` synthesizes via `pattern`); the "Validate topic" prompt fires only when `source == cli-arg.topic` and no topic was given. `artifacts:` block from `PROFILE.artifact_types` (one empty map per `session_key`). Progress block discriminated by `PROFILE.progress.axis`: `axis: agenda` builds `agenda:` (multi-topic from `agenda_reference`, or single `main` when absent) + `metrics.topics`; `axis: disney_phase` builds `phases:` + `current_phase:` + `metrics.phases`. `metrics` always includes `by_state`; `validation:` block always present.
+- **Runtime-context alignment**: roundtable.md's caller-side "Set runtime context" block (PHASE 3) is rewritten to read `VERBOSE/DIAGNOSTIC/INTERACTIVE_FLAG` from `config-snapshot.yaml`, matching `phase-2-core.md` §3, instead of the current undocumented in-context-variable shortcut.
+- **workflow_type resolution + parametrization**: workflow_type resolves as handoff `WORKFLOW_TYPE` → `--workflow-type` flag → default `roundtable` for new sessions, and from the session file on resume. The 5 hardcode sites from §2 (L260 session file, L323 banner, L346/352 resume state.json, L108 grep, L75 fast-path scope) use the resolved value.
+- **`## Invocation modes` contract note**: a new section near the top of roundtable.md documenting native vs delegated entry and the minimal handoff-variable contract (§3.2 step 7).
 
 When invoked natively, `WORKFLOW_TYPE` defaults to `roundtable`; the generalized skeleton resolves through `profiles/roundtable.yaml` to the same artifacts/agenda roundtable native produces today, plus the additive `by_state`/`validation`/snapshot files. Native behavior is a superset, not a change. Re-verified in §8.5.
 
@@ -179,13 +181,14 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 
 **Actions**:
 1. **Session folder + snapshots**: master PHASE 1 creates `.s2s/sessions/{id}/` (+ `rounds/` on verbose/diagnostic); writes `config-snapshot.yaml`, `context-snapshot.yaml`, and `agenda.yaml` (per 8.0 step 2 decision) for all workflow types.
-2. **Profile-driven session-file skeleton** per §3.3: `topic`, `artifacts:`, progress axis (`agenda:` or `phases:`), `metrics` (incl. `by_state` + axis counter), `validation:` block, all from `PROFILE`.
-3. **workflow_type parametrization**: fix the 5 hardcode sites (L260, L323, L346/352, L108 grep, L75 fast-path) to use resolved `WORKFLOW_TYPE`.
-4. **`## Invocation modes`** section: native vs delegated entry; handoff-variable contract.
-5. **Verify** Phase 4 output dispatch table (L463-470) still covers all 4 workflows (no change expected).
-6. **Native smoke check**: run `/s2s:roundtable "..." --diagnostic`; confirm session folder + 3 snapshots created, artifacts/agenda/rounds identical to `exp45-roundtable-native-post-phase4.md` modulo additive fields.
+2. **Profile-driven session-file skeleton** per §3.3: `topic` per `PROFILE.topic`; `artifacts:` from `PROFILE.artifact_types`; progress block discriminated by `PROFILE.progress.axis` (`agenda` → `agenda:` + `metrics.topics`; `disney_phase` → `phases:`/`current_phase:` + `metrics.phases`); `metrics.by_state` + `validation:` block always.
+3. **Runtime-context alignment**: rewrite roundtable.md PHASE 3 "Set runtime context" to read `VERBOSE/DIAGNOSTIC/INTERACTIVE_FLAG` from `config-snapshot.yaml`, matching `phase-2-core.md` §3 (removes the undocumented context-variable shortcut).
+4. **workflow_type resolution + parametrization**: resolve workflow_type (handoff var → `--workflow-type` → default `roundtable` for new; session file on resume); fix the 5 hardcode sites (L260, L323, L346/352, L108 grep, L75 fast-path) to use it.
+5. **`## Invocation modes`** section: native vs delegated entry; minimal handoff-variable contract; note that "Validate topic" prompts only when `PROFILE.topic.source == cli-arg.topic`.
+6. **Verify** Phase 4 output dispatch table (L463-470) still covers all 4 workflows (no change expected).
+7. **Native smoke check**: run `/s2s:roundtable "..." --diagnostic`; confirm session folder + snapshots created, artifacts/agenda/rounds identical to `exp45-roundtable-native-post-phase4.md` modulo additive fields.
 
-**Exit condition**: master PHASE 0+1 fully profile-driven; one session-setup path serves all 4 workflows; native roundtable re-verified as superset-equivalent; `grep -n 'roundtable' commands/roundtable.md` shows no hardcoded `workflow_type` literal where a parameter belongs.
+**Exit condition**: master PHASE 0+1 fully profile-driven; one session-setup path serves all 4 workflows; native roundtable re-verified as superset-equivalent; `wc -l commands/roundtable.md` ≤ 600 (BACKLOG-sanctioned master budget); no hardcoded `workflow_type` literal where a parameter belongs.
 
 ### 8.2: convert specs.md to thin launcher (~1.25h)
 
@@ -194,7 +197,7 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 **Actions**:
 1. Keep: frontmatter; Context + Interpret Context; parse `--session`/`--new` (delegate immediately on `--session`); Check prerequisites (CONTEXT.md populated); Smart Source Detection (or its Read pointer per 8.0 step 6); Check existing requirements.md (override/merge/cancel); parse `--format`/`--skip-roundtable`; Skip Roundtable Mode.
 2. Delete: generic flag parse, auto-detect, PHASE 1 Session Setup (snapshots, session file, folder), Phase 2 inline block, Phase 3 Completion.
-3. Add the handoff block (§3.2 steps 7-8): `WORKFLOW_TYPE=specs`, `DEFAULT_STRATEGY_FALLBACK=consensus-driven`, `OUTPUT_TYPE=requirements`, carry `INPUT_SOURCES`/`OUTPUT_MERGE_MODE`/`OUTPUT_FORMAT`; Read and follow `roundtable.md`.
+3. Add the handoff block (§3.2 steps 7-8): `WORKFLOW_TYPE=specs`, carry `INPUT_SOURCES`/`OUTPUT_MERGE_MODE`/`OUTPUT_FORMAT`; Read and follow `roundtable.md`. Strategy (`consensus-driven`) and output-type (`requirements`) are resolved by the master from `profiles/specs.yaml` + workflow_type, not passed.
 4. `wc -l` budget: ≤180 (≤150 if Smart Source Detection extracted per 8.0 step 6).
 
 **Exit condition**: specs.md ≤180 lines; no inline Phase 1/2/3.
@@ -204,7 +207,7 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 **Actions**:
 1. Keep: frontmatter; Context + Interpret; parse `--session`/`--new`; Check prerequisites (requirements.md absent → warn/continue); Check existing architecture.md (override/merge/cancel); parse `--focus`/`--skip-roundtable`; Skip Roundtable Mode.
 2. Delete: same generic blocks as §8.2.
-3. Handoff: `WORKFLOW_TYPE=design`, `DEFAULT_STRATEGY_FALLBACK=debate`, `OUTPUT_TYPE=architecture`, carry `OUTPUT_MERGE_MODE`/`FOCUS_AREA`.
+3. Handoff: `WORKFLOW_TYPE=design`, carry `OUTPUT_MERGE_MODE`/`FOCUS_AREA`. Strategy (`debate`) and output-type (`architecture`) resolved by the master from `profiles/design.yaml`.
 4. `wc -l` budget: ≤150.
 
 **Exit condition**: design.md ≤150 lines; no inline Phase 1/2/3.
@@ -214,7 +217,7 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 **Actions**:
 1. Keep: frontmatter; Context + Interpret; parse `--session`/`--new`; Validate environment; parse `topic`/`--participants`; the Disney intro display (optional, workflow-flavored UX, keep ~8 lines).
 2. Delete: same generic blocks; brainstorm has no prereq doc, no existing-output check, no skip-roundtable mode, so it is the cleanest conversion.
-3. Handoff: `WORKFLOW_TYPE=brainstorm`, `DEFAULT_STRATEGY_FALLBACK=disney`, `OUTPUT_TYPE=summary`, carry `--participants` override.
+3. Handoff: `WORKFLOW_TYPE=brainstorm`, carry `--participants` override. Strategy (`disney`, forced by `profiles/brainstorm.yaml` `strategy_constraints.forced`) and output-type (`summary`) resolved by the master.
 4. `wc -l` budget: ≤130.
 
 **Exit condition**: brainstorm.md ≤130 lines; no inline Phase 1/2/3.
@@ -322,7 +325,7 @@ TECH-002 is the last work item gating v0.4.0. Phase 8 completes the command-unif
 - **`phase-2-core.md` Step 2.0-2.10 frozen**. Phase 8 touches command files and the master only; it feeds phase-2-core.md the canonical snapshot inputs it already expects.
 - **CLI surface frozen**. No flag added, removed, or renamed for any of the 4 commands.
 - **Native `/s2s:roundtable` behavior preserved**. The generalized PHASE 1 is parameter-neutral for the native path; new snapshot files are a correctness fix, not a behavior change.
-- **`profiles/*.yaml` schema not changed**. Phase 8 *consumes* existing profile fields in PHASE 1. If §8.0 finds a missing field, any change is additive only and flagged in the audit.
+- **`profiles/*.yaml` schema not changed**. Round-2 verification confirmed the profiles already carry every field PHASE 1 needs (`topic.pattern`/`topic.source`, `artifact_types[].session_key`, `progress.axis`/`agenda_reference`/`agenda_count`, `participants`, `default_strategy`, `strategy_constraints`). Phase 8 only *consumes* them. If §8.0 still finds a gap, any change is additive only and flagged in the audit.
 - **`output-generation/`, `roundtable-strategies/`, `agents/` untouched**. Phase 8 is a command-layer plus master refactor.
 - **`strategy_constraints.forced` still wins** (brainstorm `disney` forced): the thin launcher's `DEFAULT_STRATEGY_FALLBACK` is a fallback, not an override.
 
