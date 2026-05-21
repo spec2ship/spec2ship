@@ -162,6 +162,8 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 
 ### 8.0: audit current state (~1.25h)
 
+**Status**: COMPLETED 2026-05-21. Output: `.s2s/plans/20260521-tech002-phase8-8.0-audit.md`. Empirical finding: master-path dogfood sessions (exp49/51/52) carry the correct `workflow_type` but **no snapshot files** (round-1 finding proven). Canonical skeleton + snapshot spec + handoff contract frozen; Smart Source Detection stays inline.
+
 **Goal**: produce a definitive inventory so 8.1 is generalization-by-spec, not redesign-in-flight.
 
 **Actions**:
@@ -267,7 +269,7 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 
 ## 6. Done criteria
 
-- [ ] 8.0 audit file produced; canonical profile-driven session-file skeleton + snapshot spec frozen; snapshot-consumption mapped; per-command keep/delete classification complete; 5 hardcode sites confirmed; handoff contract frozen; Smart Source Detection placement decided.
+- [x] 8.0 audit file produced (`.s2s/plans/20260521-tech002-phase8-8.0-audit.md`); canonical profile-driven session-file skeleton + snapshot spec frozen; snapshot-consumption mapped; per-command keep/delete classification complete; 5 hardcode sites confirmed empirically; handoff contract frozen; Smart Source Detection placement decided (inline).
 - [ ] roundtable.md master PHASE 0+1 generalized: profile-driven folder + snapshot creation (all 4 workflows); profile-driven session-file skeleton (artifacts / agenda-or-phases / metrics+by_state / validation); `workflow_type` parametric at 5 sites; `## Invocation modes` contract note added.
 - [ ] §8.1 native smoke check: `/s2s:roundtable --diagnostic` creates session folder + 3 snapshots; artifacts/agenda/rounds match `exp45` modulo additive fields.
 - [ ] `commands/specs.md` is a thin launcher, `wc -l` ≤ 180 (≤150 if source-detection extracted); no inline Phase 1/2/3.
