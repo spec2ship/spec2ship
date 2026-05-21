@@ -129,4 +129,4 @@ After Phase 4 ships with `profiles/roundtable.yaml` (Option ε), the same `/s2s:
 - Produce session.yaml with `status: completed`, populated artifacts (OQ/CONF as defined in profile), Phase 3 output rendered
 - NO `smoke_test:` block, NO `close_reason: aborted_profile_gap`
 
-This file (pre-Phase-4 baseline) is the "before" state; Phase 4.5 captures the "after" state in `.s2s/test-baselines/exp45-roundtable-native-post-phase4.md` (TBD).
+This file (pre-Phase-4 baseline) is the "before" state; Phase 4.5 captured the "after" state in `.s2s/test-baselines/exp45-roundtable-native-post-phase4.md` (2026-05-21).
