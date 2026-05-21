@@ -210,6 +210,8 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 
 ### 8.3: convert design.md to thin launcher (~1h)
 
+**Status**: COMPLETED 2026-05-21. `commands/design.md` 536 → 114 lines (≤150).
+
 **Actions**:
 1. Keep: frontmatter; Context + Interpret; parse `--session`/`--new`; Check prerequisites (requirements.md absent → warn/continue); Check existing architecture.md (override/merge/cancel); parse `--focus`/`--skip-roundtable`; Skip Roundtable Mode.
 2. Delete: same generic blocks as §8.2.
@@ -277,7 +279,7 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 - [x] roundtable.md master PHASE 0+1 generalized: profile-driven folder + snapshot creation (all 4 workflows); profile-driven session-file skeleton (artifacts / agenda-or-phases / metrics+by_state / validation); `workflow_type` parametric at 5 sites; `## Invocation modes` contract note added. (roundtable.md 479 → 587 lines)
 - [ ] §8.1 native smoke check: `/s2s:roundtable --diagnostic` creates session folder + 3 snapshots; artifacts/agenda/rounds match `exp45` modulo additive fields. (runtime test, executed in §8.5)
 - [x] `commands/specs.md` is a thin launcher, `wc -l` = 172 (≤180); no inline Phase 1/2/3.
-- [ ] `commands/design.md` is a thin launcher, `wc -l` ≤ 150; no inline Phase 1/2/3.
+- [x] `commands/design.md` is a thin launcher, `wc -l` = 114 (≤150); no inline Phase 1/2/3.
 - [ ] `commands/brainstorm.md` is a thin launcher, `wc -l` ≤ 130; no inline Phase 1/2/3.
 - [ ] All per-command flags preserved with current semantics (`--format`, `--focus`, `--skip-roundtable`, `--participants`, plus the generic set).
 - [ ] §8.5 regression: exp44 specs/design/brainstorm + exp45 roundtable-native baselines replay structurally identically (additive fields allowed).
