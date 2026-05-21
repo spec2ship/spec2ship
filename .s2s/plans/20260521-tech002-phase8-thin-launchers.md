@@ -22,8 +22,8 @@ Collapse `commands/{specs,design,brainstorm}.md` from their current post-Phase-4
 
 Phase 8 therefore has two coupled deliverables:
 
-- **(a) Generalize the master's PHASE 0+1 to be profile-driven** — the real work. One session-setup path, parametrized by `profiles/{workflow}.yaml`, replacing both roundtable.md's reduced PHASE 1 and the 3 commands' inline PHASE 1.
-- **(b) Collapse specs/design/brainstorm into thin launchers** — the mechanical payoff. Once the master's PHASE 0+1 is universal, the launchers keep only what is genuinely workflow-specific and delegate everything else.
+- **(a) Generalize the master's PHASE 0+1 to be profile-driven**: the real work. One session-setup path, parametrized by `profiles/{workflow}.yaml`, replacing both roundtable.md's reduced PHASE 1 and the 3 commands' inline PHASE 1.
+- **(b) Collapse specs/design/brainstorm into thin launchers**: the mechanical payoff. Once the master's PHASE 0+1 is universal, the launchers keep only what is genuinely workflow-specific and delegate everything else.
 
 Phase 8 delivers five wins:
 
@@ -134,7 +134,7 @@ The launcher does **not** auto-detect sessions itself (Risk R2): auto-detect liv
 The master's PHASE 0 and PHASE 1 become driven by `profiles/{workflow}.yaml` for all 4 workflow types:
 
 - **Session folder + snapshots**: master creates `.s2s/sessions/{id}/` (+ `rounds/` when verbose/diagnostic), `config-snapshot.yaml` (config.yaml + resolved flags, **all** workflows), `context-snapshot.yaml` (CONTEXT.md + `INPUT_SOURCES` handoff var), and `agenda.yaml` when `PROFILE.progress.agenda_reference` is set.
-- **Profile-driven session-file skeleton**: `topic` from `PROFILE.topic.source` (cli-arg / `context-snapshot.project_name` / synthesized); `artifacts:` block built from `PROFILE.artifact_types` (one empty map per `session_key`); progress block built per `PROFILE.progress.axis` — `agenda:` from `agenda_reference` (or single `main` when none), or `phases:` + `current_phase:` when `PROFILE.has_phase_transition`; `metrics` always includes `by_state` and an axis-appropriate counter (`topics` or `phases`); `validation:` block always present.
+- **Profile-driven session-file skeleton**: `topic` from `PROFILE.topic.source` (cli-arg / `context-snapshot.project_name` / synthesized); `artifacts:` block built from `PROFILE.artifact_types` (one empty map per `session_key`); progress block built per `PROFILE.progress.axis` (`agenda:` from `agenda_reference`, or single `main` when none, or `phases:` + `current_phase:` when `PROFILE.has_phase_transition`); `metrics` always includes `by_state` and an axis-appropriate counter (`topics` or `phases`); `validation:` block always present.
 - **workflow_type parametrization**: the 5 hardcode sites from §2 (L260 session file, L323 banner, L346/352 resume state.json, L108 grep, L75 fast-path scope) use the resolved `WORKFLOW_TYPE`.
 - **`## Invocation modes` contract note**: a new section near the top of roundtable.md documenting native vs delegated entry and the handoff-variable contract (§3.2 step 7).
 
