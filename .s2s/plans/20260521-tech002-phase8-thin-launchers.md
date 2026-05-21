@@ -222,6 +222,8 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 
 ### 8.4: convert brainstorm.md to thin launcher (~0.75h)
 
+**Status**: COMPLETED 2026-05-21. `commands/brainstorm.md` 482 → 78 lines (≤130). `--participants` flows through `$ARGUMENTS` (generic flag the master parses); no brainstorm-specific handoff variable needed.
+
 **Actions**:
 1. Keep: frontmatter; Context + Interpret; parse `--session`/`--new`; Validate environment; parse `topic`/`--participants`; the Disney intro display (optional, workflow-flavored UX, keep ~8 lines).
 2. Delete: same generic blocks; brainstorm has no prereq doc, no existing-output check, no skip-roundtable mode, so it is the cleanest conversion.
@@ -280,7 +282,7 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 - [ ] §8.1 native smoke check: `/s2s:roundtable --diagnostic` creates session folder + 3 snapshots; artifacts/agenda/rounds match `exp45` modulo additive fields. (runtime test, executed in §8.5)
 - [x] `commands/specs.md` is a thin launcher, `wc -l` = 172 (≤180); no inline Phase 1/2/3.
 - [x] `commands/design.md` is a thin launcher, `wc -l` = 114 (≤150); no inline Phase 1/2/3.
-- [ ] `commands/brainstorm.md` is a thin launcher, `wc -l` ≤ 130; no inline Phase 1/2/3.
+- [x] `commands/brainstorm.md` is a thin launcher, `wc -l` = 78 (≤130); no inline Phase 1/2/3.
 - [ ] All per-command flags preserved with current semantics (`--format`, `--focus`, `--skip-roundtable`, `--participants`, plus the generic set).
 - [ ] §8.5 regression: exp44 specs/design/brainstorm + exp45 roundtable-native baselines replay structurally identically (additive fields allowed).
 - [ ] §8.5: each thin-launcher session carries the correct `workflow_type`, a `{ts}-{workflow_type}-{slug}` id, and the session folder + snapshot files.
