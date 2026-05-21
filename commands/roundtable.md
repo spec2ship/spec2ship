@@ -577,6 +577,11 @@ timing:
 
 **Read** `${CLAUDE_PLUGIN_ROOT}/skills/output-generation/SKILL.md` and follow the dispatch instructions for the detected workflow_type. The skill routes to the appropriate reference template (`references/{specs-srs,design-arc42,brainstorm,roundtable-summary}.md`).
 
+**Honor the delegated-mode handoff variables** when set (a thin launcher pre-set them; see "Invocation modes"):
+- `OUTPUT_MERGE_MODE` (specs, design): `merge` appends new artifacts with incremented IDs to the existing `requirements.md` / `architecture.md`; `override` (or unset) replaces the file.
+- `OUTPUT_FORMAT` (specs): the document format passed to the output skill (`srs` | `volere` | `simple`); default `srs`.
+- `FOCUS_AREA` (design): if set, note the focus area in the generated architecture document.
+
 ## CRITICAL REMINDERS
 
 - **YOU MUST use the Task tool** for facilitator and participants (per phase-2-core.md); do NOT simulate responses.
