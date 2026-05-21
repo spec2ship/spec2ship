@@ -1770,7 +1770,7 @@ What would you like to configure?
 
 ### TECH-002: Roundtable command unification
 
-**Status**: in_progress | **Created**: 2026-01-20 | **Updated**: 2026-05-17 | **Origin**: IDEA-008
+**Status**: in_progress | **Created**: 2026-01-20 | **Updated**: 2026-05-21 | **Origin**: IDEA-008
 **ADRs**:
 - [0011-roundtable-command-unification](decisions/0011-roundtable-command-unification.md)
 - [0012-output-generation-skill](decisions/0012-output-generation-skill.md)
@@ -1828,8 +1828,8 @@ skills/
 | 3 | Phase 2 uniformization (approach A — drift elimination + canonical reference) | ✅ | Phase 2 |
 | 7B | Phase 2 deep extraction (approach B — was originally part of Phase 3 scope) | ✅ | Phase 3 |
 | 7-lite | Strategy doc hardening (rename 2.6d→2.10, SKILL.md dedup, §Strategy hooks formalization, disney cross-link) | ✅ (PR #15 merged 2026-05-18) | Phase 7B |
-| 4 | roundtable.md as master for **all 4 workflows** (specs/design/brainstorm/roundtable) + `profiles/roundtable.yaml` + Option B wiring (3-branch dispatch) + D3 hierarchy | in_progress (plan drafted 2026-05-18, revised 2026-05-19 reviews #2-#4, **revised 2026-05-20 Option ε pivot post smoke test**) | Phase 7-lite |
-| 8 | Thin launcher conversion (specs/design/brainstorm → ~150 lines each) | planned | Phase 4 |
+| 4 | roundtable.md as master for **all 4 workflows** (specs/design/brainstorm/roundtable) + `profiles/roundtable.yaml` + Option B wiring (3-branch dispatch) + D3 hierarchy | ✅ implementation+regression complete (PR pending; §4.5 8-run dogfood all PASS 2026-05-21) | Phase 7-lite |
+| 8 | Thin launcher conversion (specs/design/brainstorm → ~150 lines each) | in_progress (next session) | Phase 4 |
 
 **Phase 0: Test baseline** ✅
 - [x] Create `skills/dev-testing/references/roundtable-tests.md` with test cases
@@ -1931,12 +1931,19 @@ Make commands actually USE roundtable-strategies instead of duplicating.
 - [ ] Remove duplicated workflow defaults from commands
 - [ ] Test: strategy-specific behavior works correctly
 
-**Phase 4: roundtable.md as master** (revised)
-- [ ] Add full Phase 2 execution to roundtable.md (currently "follow skill")
-- [ ] Support `--workflow-type specs|design|brainstorm`
-- [ ] Verify all workflows produce correct output via roundtable.md
-- [ ] Add resume/validation/diagnostic (currently missing)
-- [ ] roundtable.md becomes ~600 lines with full capability
+**Phase 4: roundtable.md as master** ✅ (implementation + §4.5 regression complete; PR pending)
+- [x] Add full Phase 2 execution to roundtable.md (Round Execution Loop in PHASE 3 section, dispatches through `phase-2-core.md`)
+- [x] Support `--workflow-type specs|design|brainstorm|roundtable` via uniform dispatch + `profiles/roundtable.yaml` (Option ε pivot)
+- [x] Verify all workflows produce correct output via roundtable.md (§4.5 Steps 2/6/7-implicit/8 PASS: master path produces structurally-equivalent output for specs/design/brainstorm)
+- [x] Add resume/validation/diagnostic (Phase 0 resume check extended to all 4 workflow_types)
+- [x] roundtable.md = 479 lines (master, under 520 budget)
+- **Bonus deliverables (Option B + D3 + Option ε)**:
+  - `profiles/roundtable.yaml` created (per plugin runtime spec, artifact_types `[DEC, OQ, CONF]`)
+  - Strategy-hook 3-branch dispatch (`{skip}`, policy dict, absent for pre-Phase-4 sessions)
+  - D3 hierarchy codified (`config.yaml` → `profiles/*.yaml` → SKILL.md docs)
+  - `output-generation/references/roundtable-summary.md` created (Phase 3 dispatch for roundtable native)
+  - SKILL.md L178 commitment honored
+  - CI anchor drift check script at `skills/dev-testing/references/strategy-hook-anchor-check.md`
 
 **Phase 8: Thin launcher conversion** (NEW)
 - [ ] Convert specs.md to thin launcher (~150 lines):
@@ -1960,11 +1967,11 @@ Make commands actually USE roundtable-strategies instead of duplicating.
 
 **Acceptance criteria** (final):
 - [x] All 4 commands have token tracking and state.json (Phase 6)
-- [ ] roundtable.md can execute all workflows
-- [ ] specs/design/brainstorm are thin launchers (~150 lines each)
-- [ ] Skills actually used, not just declared
-- [ ] No behavioral regression (all tests pass)
-- [ ] Total command lines reduced from ~5000 to ~1050
+- [x] roundtable.md can execute all workflows (Phase 4: §4.5 8-run dogfood validates all 4 workflow_types via both direct and master paths)
+- [ ] specs/design/brainstorm are thin launchers (~150 lines each) [Phase 8]
+- [x] Skills actually used, not just declared (Phase 4: roundtable.md dispatches through `phase-2-core.md`, `output-generation`, `roundtable-strategies`; profiles/*.yaml consumed at runtime)
+- [x] No behavioral regression for the 4 workflow types (Phase 4 §4.5: 0 wiring regressions; 4 pre-existing diagnostic findings documented, all non-blocking, see plan §8)
+- [ ] Total command lines reduced from ~5000 to ~1050 [Phase 8] (Phase 4 added master capability without shrinking specs/design/brainstorm yet)
 
 **Current state** (2026-05-18, post PR #15 merge, Phase 4 plan draft):
 - Branch: `feature/TECH-002-phase4-roundtable-master` (forked from develop @ 3043c1a after Phase 7-lite PR #15 merge)
@@ -1999,6 +2006,18 @@ Make commands actually USE roundtable-strategies instead of duplicating.
 - **Phase 9**: ELIMINATED by Option ε pivot. Generic-mode roundtable hardening resolved in Phase 4 via `profiles/roundtable.yaml` creation.
 - **Six-hats wiring** (prerequisite-blocked): requires empirical baseline acquisition. Separate task; Option B parser in Phase 4 makes six-hats wiring a configuration change only.
 - **Next action**: execute §4.1 (D3 hierarchy + profiles/roundtable.yaml creation), then §4.2 → §4.6, then open PR `feature/TECH-002-phase4-roundtable-master` → develop, milestone v0.4.0. Until Phase 4 + 8 done, do NOT release v0.4.0 → main.
+
+**Current state** (2026-05-21, post §4.5 regression replay):
+- §4.1 → §4.5 all complete; §4.6 close-out in progress (BACKLOG ✓ [this update], ADR-0011 Phase 4 addendum pending, MEMORY.md pending, PR open pending).
+- **§4.5 8-run dogfood verdict**: all PASS. 7 worktrees exercised (Step 7 implicit via Step 2):
+  - exp45: `/s2s:roundtable` native (post-Phase-4 baseline captured at `.s2s/test-baselines/exp45-roundtable-native-post-phase4.md`)
+  - exp52: `/s2s:roundtable --workflow-type design` (master path, debate strategy, Branch 2 hook_overrides populated)
+  - exp46/47/48: direct `/s2s:specs`, `/s2s:design`, `/s2s:brainstorm` (no regression vs exp44-post-phase7b baselines)
+  - exp49/51: `/s2s:roundtable --workflow-type {specs, brainstorm}` (master path equivalence to direct path)
+- **4 cumulative diagnostic findings** (all non-blocking, pre-existing, plan §8): agent-resume gap, R1 observer false-positive on empty artifact maps, token-tracker.sh exit 1 quirk, session_id timestamp format divergence between direct vs master paths.
+- **Backward-compat resume probe deferred**: non-blocking; Branch 3 logic statically reviewed during §4.2 step 3 implementation. Tracked for post-Phase-4 hardening.
+- **Phase 9 status**: ELIMINATED by Option ε pivot — confirmed by exp45 post-Phase-4 baseline (clean Phase 2 + Phase 3 execution, no abort).
+- **Next action**: complete §4.6 (ADR + MEMORY + PR), then start Phase 8 planning. v0.4.0 → main release still gated on Phase 8.
 
 ---
 
