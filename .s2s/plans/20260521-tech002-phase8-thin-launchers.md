@@ -196,6 +196,8 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 
 ### 8.2: convert specs.md to thin launcher (~1.25h)
 
+**Status**: COMPLETED 2026-05-21. `commands/specs.md` 600 → 172 lines (≤180). Smart Source Detection kept inline per 8.0 §7.
+
 **Goal**: `commands/specs.md` ~150 lines, delegating to the master.
 
 **Actions**:
@@ -274,7 +276,7 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 - [x] 8.0 audit file produced (`.s2s/plans/20260521-tech002-phase8-8.0-audit.md`); canonical profile-driven session-file skeleton + snapshot spec frozen; snapshot-consumption mapped; per-command keep/delete classification complete; 5 hardcode sites confirmed empirically; handoff contract frozen; Smart Source Detection placement decided (inline).
 - [x] roundtable.md master PHASE 0+1 generalized: profile-driven folder + snapshot creation (all 4 workflows); profile-driven session-file skeleton (artifacts / agenda-or-phases / metrics+by_state / validation); `workflow_type` parametric at 5 sites; `## Invocation modes` contract note added. (roundtable.md 479 → 587 lines)
 - [ ] §8.1 native smoke check: `/s2s:roundtable --diagnostic` creates session folder + 3 snapshots; artifacts/agenda/rounds match `exp45` modulo additive fields. (runtime test, executed in §8.5)
-- [ ] `commands/specs.md` is a thin launcher, `wc -l` ≤ 180 (≤150 if source-detection extracted); no inline Phase 1/2/3.
+- [x] `commands/specs.md` is a thin launcher, `wc -l` = 172 (≤180); no inline Phase 1/2/3.
 - [ ] `commands/design.md` is a thin launcher, `wc -l` ≤ 150; no inline Phase 1/2/3.
 - [ ] `commands/brainstorm.md` is a thin launcher, `wc -l` ≤ 130; no inline Phase 1/2/3.
 - [ ] All per-command flags preserved with current semantics (`--format`, `--focus`, `--skip-roundtable`, `--participants`, plus the generic set).
