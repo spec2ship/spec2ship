@@ -10,6 +10,9 @@ topic:
 
 state_phase: "{current_phase}"  # variable: dreamer | realist | critic
 
+# Plugin fallback. NOTE: brainstorm has strategy_constraints.forced=true below, so this
+# value ALWAYS wins (CLI --strategy ignored for brainstorm). The "fallback" framing applies
+# only to non-forced workflows. Full hierarchy: references/strategy-resolution.md.
 default_strategy: "disney"
 strategy_constraints:
   allowed:

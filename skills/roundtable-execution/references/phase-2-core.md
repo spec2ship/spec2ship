@@ -268,6 +268,16 @@ cross_cutting_decisions: {from config-snapshot.cross_cutting_decisions}
 
 #### 2.2c Facilitator response
 
+**Hook overrides dispatch (TECH-002 Phase 4, Option B)**
+
+Before invoking the facilitator agent, read `session.yaml.agent_state.facilitator.hook_overrides` and dispatch via 3-branch logic:
+
+- **Branch 1** (`hook_overrides.skip == true`): include `hook_overrides: {skip: true}` in the facilitator agent input. Facilitator emits no per-round overrides (strategy declares no hooks: `standard`, `consensus-driven`, `disney`, `six-hats` pre-baseline).
+- **Branch 2** (`hook_overrides` has policy fields, e.g. `participant_response_field` + `round_summary_field` + `policy`): include the full dict in the facilitator agent input. Facilitator populates `participant_context.overrides.{participant-id}.{field}` per the policy (currently only `debate` with `policy: "facilitator_emergent"`).
+- **Branch 3** (`hook_overrides` field is absent from session.yaml): do NOT include `hook_overrides:` key in the facilitator agent input. Facilitator falls back to current LLM-emergent inference. Branch 3 triggers for pre-Phase-4 sessions resumed via `--session {id}` (backward-compat).
+
+See `references/strategy-hook-resolution.md` for the fixture defining which strategies map to which branches, and `agents/roundtable/facilitator.md` "Hook override consumption" section for the matching consumer logic.
+
 The facilitator returns:
 
 ```yaml

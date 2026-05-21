@@ -172,7 +172,10 @@ participant_context:
       # Include last 2-3 rounds max
 
   # Per-participant overrides (for strategies like debate)
-  # If empty or null, all participants receive identical context
+  # If empty or null, all participants receive identical context.
+  # Population is governed by "Hook override consumption" section below
+  # (TECH-002 Phase 4, Option B): 3-branch dispatch based on the
+  # hook_overrides input field passed by phase-2-core.md Step 2.2c.
   overrides: null
   # Example for debate strategy:
   # overrides:
@@ -185,6 +188,18 @@ participant_context:
   #       For this debate, argue AGAINST the proposed approach.
   #       Key points to address: [counterarguments to raise]
 ```
+
+### Hook override consumption (TECH-002 Phase 4, Option B)
+
+When invoked by `phase-2-core.md` Step 2.2c, you receive an optional `hook_overrides:` input field (per the 3-branch dispatch documented in `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/phase-2-core.md` §2.2c). Apply 3-branch consumption logic matching Step 2.2c:
+
+- **Branch 1** (input `hook_overrides.skip == true`): emit `overrides: null` (no per-round overrides). Strategy declares no hooks (`standard`, `consensus-driven`, `disney`, `six-hats` pre-baseline). This is the current behavior for those strategies, now codified as deterministic data path instead of LLM inference.
+- **Branch 2** (input `hook_overrides` has policy fields like `participant_response_field` + `round_summary_field` + `policy`): populate `overrides.{participant-id}.{field}` per the policy.
+  - For `policy: "facilitator_emergent"` (current default for `debate`): YOU still choose per-participant role assignment (Pro/Con) using your judgment, BUT emit it into the field name specified (e.g. `debate_role`). The hook_overrides input tells you WHICH field to populate; you decide the VALUE.
+  - For `policy: <coded_rule>` (future, post-empirical-baseline): the rule may specify deterministic assignment logic. Follow the rule.
+- **Branch 3** (input `hook_overrides` key is ABSENT from agent input): fall back to your current LLM-emergent inference based on the strategy name (pre-Phase-4 behavior). Branch 3 triggers for pre-Phase-4 sessions resumed via `--session {id}`; new Phase 4+ sessions always have `hook_overrides` populated (Branch 1 or 2).
+
+See `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/strategy-hook-resolution.md` for the fixture defining which strategies map to which branches.
 
 ### Focus Decision Rules
 
@@ -515,7 +530,7 @@ Adapt your facilitation based on `strategy`:
 
 ### Strategy: debate (MANDATORY RULES)
 
-> For additional details: `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/debate.md`
+> For additional details: `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/debate.md#strategy-hooks`
 
 **Debate follows a structured format from formal debate practice:**
 
@@ -576,7 +591,7 @@ overrides:
 
 ### Strategy: consensus-driven (MANDATORY RULES)
 
-> For additional details: `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/consensus-driven.md`
+> For additional details: `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/consensus-driven.md#strategy-hooks`
 
 **Based on Sociocracy consent-based decision making.**
 
@@ -604,7 +619,7 @@ If any participant expresses a **block**, the next round MUST address it:
 
 ### Strategy: disney (MANDATORY RULES)
 
-> For additional details: `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/disney.md`
+> For additional details: `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-strategies/references/disney.md#strategy-hooks`
 
 **Based on Walt Disney's creative strategy.**
 

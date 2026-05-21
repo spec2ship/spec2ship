@@ -250,3 +250,114 @@ This is a deliberate deviation from the original ADR-0011 §Decision text "round
 - **Six-hats wiring (prerequisite-blocked)**: requires empirical baseline acquisition first. Separate task, not a Phase 7-lite or Phase 4 follow-up.
 
 Until Phase 4 + 8 land, do NOT release v0.4.0 → main. TECH-002's architectural promise (thin launchers + skill-as-source-of-truth) is only ~⅔ delivered by 7B + 7-lite.
+
+---
+
+## Phase 4 addendum (2026-05-21)
+
+Phase 4 landed on branch `feature/TECH-002-phase4-roundtable-master` (forked from develop @ `3043c1a` post Phase 7-lite PR #15 merge). Plan at `.s2s/plans/20260518-tech002-phase4-roundtable-master.md`; audit at `.s2s/plans/20260518-tech002-phase4-4.0-audit.md`; pre/post baselines at `.s2s/test-baselines/exp45-roundtable-native-{pre,post}-phase4.md`.
+
+### Option B chosen for strategy-hook wiring
+
+Per plan §3.1 decision matrix (8 criteria), **Option B (command-side deterministic parser)** chosen over Option A (LLM-mediated facilitator Read) and Option C (structured YAML configs in `config.yaml`):
+
+- **A rejected**: does not eliminate LLM emergence (shifts from "interpret STRATEGY string" to "interpret STRATEGY string + Read doc + parse prose"); R1 fallback (Pro/Con assignment shift) remains likely. Same concerns that re-scoped Phase 7-full to 7-lite.
+- **C rejected**: pushes strategy mechanics into config.yaml, conflating user customization with strategy implementation. Violates D3 hierarchy where `config.yaml` is user-canonical and strategy docs are plugin-canonical.
+- **B chosen**: deterministic resolution in `commands/roundtable.md` Phase 1 via `strategy-hook-resolution.md` fixture (anchor-table of opening-line regexes → override dicts). Single point of resolution; output is structured dict written to `session.yaml.agent_state.facilitator.hook_overrides`. Backward-compat via Branch 3 (absent field → LLM-emergent fallback for pre-Phase-4 sessions).
+
+### D3 strategy resolution hierarchy codified
+
+Per plan §3.3:
+
+```
+CLI --strategy (user explicit)
+  ↓ if not set
+config.yaml.roundtable.strategy.by_workflow_type.{workflow}  (user canonical)
+  ↓ if not set
+profiles/{workflow}.yaml.default_strategy  (plugin fallback)
+  ↓ if missing entirely
+ERROR: report bug (plugin profile should always have default_strategy)
+```
+
+**Override that wins over all**: `profiles/{workflow}.yaml.strategy_constraints.forced == true` (only `brainstorm.yaml` currently uses this, forcing Disney). Codified in `skills/roundtable-execution/references/strategy-resolution.md` (4 worked examples) + `roundtable-strategies/SKILL.md` v1.3.0 (new "Strategy resolution hierarchy" section with ASCII diagram + roundtable row added to defaults table). `templates/project/config.yaml` and all 4 `profiles/*.yaml` carry comment headers cross-referencing the hierarchy.
+
+### Option ε pivot: generic-mode resolved in Phase 4
+
+Pre-Phase-4 plan assumed `profiles/roundtable.yaml` would be "semi-fictional" and required schema extension; generic-mode roundtable was deferred to a hypothetical Phase 9. The 2026-05-20 smoke test (`.s2s/plans/20260518-tech002-phase4-4.0-audit.md` §7, baseline `.s2s/test-baselines/exp45-roundtable-native-pre-phase4.md`) inverted this:
+
+1. **Outcome (c) graceful**: plugin runtime LLM detected the profile gap proactively and aborted cleanly (no silent broken behavior).
+2. **SKILL.md L178 pre-existing commitment**: `roundtable-execution/SKILL.md` line 178 already stated "(the latter still uses pre-7B inline pattern; Phase 4 will align it)".
+3. **Plugin provided concrete spec**: roundtable.yaml schema fits existing fields (no extension needed): `artifact_types: [OQ, CONF]` (review #5 A2 added DEC for backward-compat with current session.yaml init `decisions: {}` slot), `progress.axis: agenda` single `main` topic, `participants.default` from `config.yaml`.
+
+**Pivot**: Approach 4 (defer to Phase 9) abandoned; Approach 1 (Option ε) adopted with plugin's authoritative spec. Phase 4 creates `profiles/roundtable.yaml` (~70 lines, all existing schema fields) and `/s2s:roundtable` native becomes a first-class consumer of `phase-2-core.md` alongside specs/design/brainstorm. Phase 9 ELIMINATED.
+
+**Post-pivot validation** (§4.5 Step 1, exp45 post-Phase-4 baseline): `/s2s:roundtable "Generic discussion test..." --diagnostic` completes 3 rounds cleanly, emits 9 artifacts (4 DEC + 4 OQ + 1 CONF), session closes with `status: closed`, no `smoke_test:` block, no `close_reason: aborted_profile_gap`. Pre/post diff inventoried in `.s2s/test-baselines/exp45-roundtable-native-post-phase4.md`.
+
+### phase-2-core.md Step 2.2c modification: 3-branch dispatch
+
+Step 2.2c reads `session.yaml.agent_state.facilitator.hook_overrides` and dispatches:
+
+- **Branch 1** (`hook_overrides.skip == true`): pass `{skip: true}` to facilitator; no per-round overrides emitted. Triggered by strategies declaring no hooks (standard, consensus-driven, disney, six-hats).
+- **Branch 2** (policy dict present): pass full dict; facilitator populates `participant_context.overrides.{participant-id}.{field}` per policy. Triggered by debate (initial policy `facilitator_emergent` preserves current LLM behavior; can be promoted to deterministic rule once exp45+ samples accumulate, see plan §8).
+- **Branch 3** (field absent in session.yaml): do NOT include `hook_overrides:` key in agent input; facilitator falls back to LLM-emergent inference. **Backward-compat path only** for pre-Phase-4 sessions resumed via `--session {id}`. Any Phase 4+ session has the field populated by the parser.
+
+Anchor fixture frozen at `.s2s/plans/20260518-tech002-phase4-4.2-fixture.md` (5 assertions: 4 strategies → `{skip: true}`, debate → policy dict). Runtime parser exercised implicitly across 8 §4.5 dogfood runs with no parse-error abort.
+
+### `roundtable-strategies/` asymmetry note
+
+Per plan §4.1 and the Phase 7-lite addendum extension: `roundtable-execution/` is **executable via Read** (the executable-skill-reference pattern, where `phase-2-core.md` is consumed at runtime via Read by `commands/roundtable.md`). `roundtable-strategies/` is **parsed by the command, documentation-only at runtime** (Option B parser Reads the strategy doc, extracts `## Strategy hooks` opening line, matches against the fixture, then proceeds; facilitator does NOT Read strategy docs at runtime). This asymmetry is intentional: it keeps strategy docs human-authored markdown without forcing them into executable form, while still being deterministic.
+
+### CI anchor drift check
+
+`skills/dev-testing/references/strategy-hook-anchor-check.md` ships an executable bash drift detector that, for each of 5 strategy docs, asserts the opening line of `## Strategy hooks` matches one of the 5 fixture regexes. Verified clean against all 5 strategies at §4.2 ship time. Invocation documented in script header; future strategy doc edits run the script as a regression gate before any commit.
+
+### Drift fixes + pointer sharpening
+
+- `commands/roundtable.md` keyword auto-detect table gained a disclaimer ("hints only; profile YAML is the source of truth"); inline phase enumeration (previously line 194-199 area, with phase-name drift for `consensus-driven` and `six-hats`) removed in favor of a structured Round Execution Loop that dispatches through `phase-2-core.md`.
+- `agents/roundtable/facilitator.md`: 3 strategy-doc pointers sharpened from whole-file references to `#strategy-hooks` anchors (lines 533/594/622 area).
+- `roundtable-execution/SKILL.md:178` updated from "(the latter still uses pre-7B inline pattern; Phase 4 will align it)" to "(aligned in TECH-002 Phase 4 via uniform dispatch + profiles/roundtable.yaml)". **SKILL.md L178 commitment honored**.
+- `output-generation/SKILL.md` extended to v1.1.0: description + dispatch table support `workflow_type=roundtable` via new `skills/output-generation/references/roundtable-summary.md` (mirror of `brainstorm.md` pattern). Closes the analogous output-template gap that would have aborted Phase 3 for roundtable native post-Phase-4 (review #5 A1 fix).
+
+### Line count impact (Phase 4 actual)
+
+| File | After Phase 7B | After Phase 7-lite | After Phase 4 | Target (Phase 8) |
+|------|----------------|---------------------|---------------|------------------|
+| `commands/roundtable.md` | 437 | 437 | **479** (+42 master expansion) | ~600 |
+| `commands/specs.md` | 600 | 600 | 600 (unchanged) | ~150 |
+| `commands/design.md` | 536 | 536 | 536 (unchanged) | ~150 |
+| `commands/brainstorm.md` | 482 | 482 | 482 (unchanged) | ~150 |
+| New: `profiles/roundtable.yaml` | — | — | **+70** | — |
+| New: `output-generation/references/roundtable-summary.md` | — | — | **+140** | — |
+| New: `roundtable-execution/references/strategy-resolution.md` | — | — | **+91** | — |
+| New: `roundtable-execution/references/strategy-hook-resolution.md` | — | — | **+74** | — |
+| New: `dev-testing/references/strategy-hook-anchor-check.md` | — | — | **+85** | — |
+
+Phase 4 added master capability (roundtable.md +42 lines, well under 520 budget) and 5 new reference/profile/output files. Phase 8 will shrink specs/design/brainstorm to ~150 lines each.
+
+### Regression coverage (§4.5)
+
+8-run dogfood across 7 worktrees (`ElfGiftRush_s2s/exp45..exp52`); Step 7 implicit via Step 2. All PASS. Plan §4.5 carries the full scoreboard with strategy + branch + artifact counts per step. Post-Phase-4 baseline frozen at `.s2s/test-baselines/exp45-roundtable-native-post-phase4.md`.
+
+### Diagnostic findings (4, all pre-existing, non-blocking)
+
+Surfaced during §4.5 dogfood; documented in plan §8 for post-Phase-4 hardening:
+
+1. **agent-resume gap**: `phase-2-core.md` Step 2.2a/2.3a `Task.resume: "{agent_id}"` expectation doesn't match Claude Code's SendMessage-by-name harness. Workaround: cold-start each round via Agent spawn with full canonical YAML context (self-sufficient). Doc fix: phase-2-core.md should clarify resume is Task-tool optional optimization; cold-start is the fallback.
+2. **R1 observer false-positive on empty-by-design artifact maps**: round-1 session-observer raises a finding when an artifact_type (e.g. NFR) has 0 entries because the topic didn't surface them. Empty maps are valid per profile schema. Fix: observer should distinguish "empty by design" from "empty by failure".
+3. **token-tracker.sh exit 1 quirk**: init step returns exit 1 despite valid output. Cosmetic only.
+4. **session_id timestamp format divergence**: master path (Steps 6, 8) generates `{date}-{HHMMSS}-{workflow}-{slug}`; direct path (Steps 3-5) generates `{date}-{workflow}-{slug}`. Both correctly carry the workflow_type prefix per §4.3 (not a regression). Fix: unify to `{date}-{HHMMSS}` form in both paths (matches Plan ID convention; collision-safe).
+
+### Decisions resolved by Phase 4
+
+- **Option A/B/C wiring** (deferred from 7-lite to Phase 4 §242): Option B chosen, implemented, validated.
+- **D3 strategy resolution hierarchy** (flagged at 7-lite §242): codified across 4 surfaces (SKILL.md, profile-schema.md, config.yaml, strategy-resolution.md reference).
+- **roundtable.md master capability** (original ADR target architecture): delivered for all 4 workflow types via uniform dispatch through `phase-2-core.md`.
+- **`profiles/roundtable.yaml` existence** (smoke-test blocker): file created per plugin runtime spec; native `/s2s:roundtable` no longer aborts.
+
+### Remaining phases (after Phase 4)
+
+- **Phase 8 (next, ~2-3h)**: thin launcher conversion (specs/design/brainstorm → ~150 lines each). Mechanical work; Phase 4 made the master capable for all 4 workflows including roundtable native. Regression replay target: structurally-equivalent output vs exp45-post-phase4 baseline (for roundtable native) and exp44-post-phase7b baselines (for specs/design/brainstorm).
+- **Six-hats wiring (prerequisite-blocked)**: empirical baseline acquisition still required. Phase 4's Option B parser makes this a configuration change only (add a deterministic anchor policy to `strategy-hook-resolution.md`); no architectural work.
+- **Backward-compat resume probe** (deferred from §4.5): pre-Phase-4 session resume via Branch 3 should be verified visibly. Non-blocking for PR; Branch 3 logic statically reviewed during §4.2 step 3.
+
+v0.4.0 → main release remains gated on Phase 8. Phase 4 alone delivers user-visible master path (native `/s2s:roundtable` works; `/s2s:roundtable --workflow-type X` routes through master) but does not shrink the inline launchers yet.

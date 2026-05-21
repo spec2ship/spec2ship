@@ -10,6 +10,8 @@ topic:
 
 state_phase: "requirements"
 
+# Plugin fallback. Consumed only when .s2s/config.yaml omits roundtable.strategy.by_workflow_type[specs].
+# Full resolution hierarchy: references/strategy-resolution.md (TECH-002 Phase 4, ADR-0011 addendum).
 default_strategy: "consensus-driven"
 strategy_constraints:
   allowed:

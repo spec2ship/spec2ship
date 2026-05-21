@@ -1,8 +1,8 @@
 ---
 name: Output Generation
-description: "This skill generates output documents from roundtable session artifacts. Supports specs (SRS), design (arc42 + ADR), and brainstorm (summary + ideas). Use after roundtable completion.
-  Trigger: 'generate output', 'create requirements document', 'generate architecture', 'save brainstorm'."
-version: 1.0.0
+description: "This skill generates output documents from roundtable session artifacts. Supports specs (SRS), design (arc42 + ADR), brainstorm (summary + ideas), and roundtable (generic summary). Use after roundtable completion.
+  Trigger: 'generate output', 'create requirements document', 'generate architecture', 'save brainstorm', 'generate roundtable summary'."
+version: 1.1.0
 ---
 
 # Output Generation
@@ -15,11 +15,12 @@ Called by workflow commands at PHASE 3 completion:
 - `/s2s:specs` - generates requirements.md
 - `/s2s:design` - generates architecture.md + ADRs
 - `/s2s:brainstorm` - generates summary + updates ideas.md
+- `/s2s:roundtable` (native) - generates generic discussion summary
 
 ## Input Required
 
 From calling command:
-- `workflow_type`: specs | design | brainstorm
+- `workflow_type`: specs | design | brainstorm | roundtable
 - `session_id`: current session ID
 - `session_folder`: path to session folder
 - `mode`: merge | override (determined earlier by command)
@@ -31,6 +32,7 @@ From calling command:
 | specs | srs | `.s2s/requirements.md` |
 | design | arc42 | `.s2s/architecture.md` + `.s2s/decisions/ADR-*.md` |
 | brainstorm | summary | `.s2s/sessions/{id}-summary.md` + `.s2s/ideas.md` |
+| roundtable | summary | `.s2s/sessions/{id}-summary.md` (no persistent project-file update) |
 
 Future formats (not yet implemented):
 - specs: srs-lite, user-stories
@@ -70,6 +72,7 @@ Based on workflow_type, read the corresponding reference and follow its pseudo-c
 | specs | `references/specs-srs.md` |
 | design | `references/design-arc42.md` |
 | brainstorm | `references/brainstorm.md` |
+| roundtable | `references/roundtable-summary.md` |
 
 ## Step 5: Update CONTEXT.md
 
@@ -78,7 +81,7 @@ After document generation, update `.s2s/CONTEXT.md`:
 - Add reference to generated document
 - Update "Last updated" date
 
-**Note**: brainstorm does NOT update CONTEXT.md phase.
+**Note**: brainstorm + roundtable do NOT update CONTEXT.md phase (both are exploratory/discussion workflows, not phase-transition markers).
 
 ## Step 6: Display Output Summary
 
@@ -99,6 +102,7 @@ Common elements:
 | `references/specs-srs.md` | specs | SRS template pseudo-code |
 | `references/design-arc42.md` | design | Architecture + ADR pseudo-code |
 | `references/brainstorm.md` | brainstorm | Summary + ideas.md pseudo-code |
+| `references/roundtable-summary.md` | roundtable | Generic discussion summary pseudo-code (added TECH-002 Phase 4) |
 
 ---
-*Used by: specs.md, design.md, brainstorm.md, roundtable-execution*
+*Used by: specs.md, design.md, brainstorm.md, roundtable.md (Phase 4+), roundtable-execution*

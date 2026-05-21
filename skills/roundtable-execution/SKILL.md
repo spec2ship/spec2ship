@@ -175,4 +175,4 @@ Phase 3 stays inline because output generation is workflow-specific (different d
 
 ---
 
-*Referenced by: `commands/specs.md`, `commands/design.md`, `commands/brainstorm.md`, `commands/roundtable.md` (the latter still uses pre-7B inline pattern; Phase 4 will align it).*
+*Referenced by: `commands/specs.md`, `commands/design.md`, `commands/brainstorm.md`, `commands/roundtable.md` (aligned in TECH-002 Phase 4 via uniform dispatch + `profiles/roundtable.yaml`; see ADR-0011 Phase 4 addendum).*
