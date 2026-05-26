@@ -12,9 +12,9 @@ Spec2Ship is a Claude Code plugin that runs entirely locally within the Claude C
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 0.4.x   | :white_check_mark: |
 | 0.3.x   | :white_check_mark: |
-| 0.2.x   | :white_check_mark: |
-| < 0.2   | :x:                |
+| < 0.3   | :x:                |
 
 ## Reporting a Vulnerability
 

@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-05-05 (refresh Completed table + v0.4.0 release prep)
+**Updated**: 2026-05-26 (TECH-002 closed at Phase 8; v0.4.0 ready for develop -> main release)
 **Format**: Work items for active development
 
 ---
