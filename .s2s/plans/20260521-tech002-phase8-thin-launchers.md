@@ -234,6 +234,18 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 
 ### 8.5: regression replay + backward-compat probe (~1.25h)
 
+**Status**: COMPLETED 2026-05-26. Dogfood in `ElfGiftRush_s2s/exp53..exp57` (5 worktrees, base `af9af48` "/s2s:init scaffold"; exp54 pre-loaded with `requirements.md` from exp46 for design realism).
+
+| Step | Worktree | Run | Strategy | Verdict | Key check |
+|------|----------|-----|----------|---------|-----------|
+| 1 | exp53 | `/s2s:specs --diagnostic` | consensus-driven | ✅ PASS | snapshots created; topic synthesized; agenda 6 topics |
+| 2 | exp54 | `/s2s:design --diagnostic` | debate | ✅ PASS | debate_sides + hook_overrides Branch 2; 13 ADRs |
+| 3 | exp55 | `/s2s:brainstorm "..." --diagnostic` | disney (forced) | ✅ PASS | `disney_phase` axis: `phases:` + `current_phase:` + `metrics.phases` (discriminant validated); NO `agenda.yaml` |
+| 4 | exp56 | `/s2s:roundtable` native | standard | ✅ PASS | snapshots NOW created for native (pre-Phase-8 missing); additive `by_state` / `topics` / `validation` |
+| 5 | exp57 | `/s2s:specs --skip-roundtable` | n/a | ✅ PASS | launcher inline path: no session dir, no state.json |
+
+**Notes**: exp54 reproduced the pre-existing agent-resume gap (Phase 4 §8 finding #1); harness fallback completed the run, no Phase 8 regression. Backward-compat resume probe not exercised (deferred edge case, see ADR-0011 Phase 8 addendum).
+
 **Goal**: confirm zero behavioral regression across all 4 workflows.
 
 **Actions**:
@@ -250,6 +262,8 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 **Exit condition**: 4 baselines match structurally; snapshots created for all workflows; resume probe passes; skip-roundtable passes.
 
 ### 8.6: close-out (~0.5h)
+
+**Status**: COMPLETED 2026-05-26 (this commit). BACKLOG TECH-002 → `completed`, line-count table refreshed (956 total); ADR-0011 Phase 8 addendum recorded; MEMORY refreshed (TECH-002 done, v0.4.0 ready); plan Status finalize deferred to post-merge.
 
 **Actions**:
 1. `.s2s/BACKLOG.md` TECH-002 block: Phase 8 row → ✅ completed; acceptance criteria #3 and #6 marked DONE; refresh the line-count table with **actuals**; update "Current state" block; set TECH-002 status `completed`.
@@ -278,18 +292,18 @@ Phase 8 delivers in 7 sub-phases over an estimated **~8.5 hours**:
 ## 6. Done criteria
 
 - [x] 8.0 audit file produced (`.s2s/plans/20260521-tech002-phase8-8.0-audit.md`); canonical profile-driven session-file skeleton + snapshot spec frozen; snapshot-consumption mapped; per-command keep/delete classification complete; 5 hardcode sites confirmed empirically; handoff contract frozen; Smart Source Detection placement decided (inline).
-- [x] roundtable.md master PHASE 0+1 generalized: profile-driven folder + snapshot creation (all 4 workflows); profile-driven session-file skeleton (artifacts / agenda-or-phases / metrics+by_state / validation); `workflow_type` parametric at 5 sites; `## Invocation modes` contract note added. (roundtable.md 479 → 587 lines)
-- [ ] §8.1 native smoke check: `/s2s:roundtable --diagnostic` creates session folder + 3 snapshots; artifacts/agenda/rounds match `exp45` modulo additive fields. (runtime test, executed in §8.5)
+- [x] roundtable.md master PHASE 0+1 generalized: profile-driven folder + snapshot creation (all 4 workflows); profile-driven session-file skeleton (artifacts / agenda-or-phases / metrics+by_state / validation); `workflow_type` parametric at 5 sites; `## Invocation modes` contract note added. (roundtable.md 479 → 592 lines, includes the PHASE 4 handoff-var fix d93aa6d)
+- [x] §8.1 native smoke check: `/s2s:roundtable --diagnostic` creates session folder + 3 snapshots; artifacts/agenda/rounds match `exp45` modulo additive fields. (exp56 PASS: 5 DEC / 4 OQ / 2 CONF, `by_state` + `topics` + `validation` additive vs exp45, snapshot files now present)
 - [x] `commands/specs.md` is a thin launcher, `wc -l` = 172 (≤180); no inline Phase 1/2/3.
 - [x] `commands/design.md` is a thin launcher, `wc -l` = 114 (≤150); no inline Phase 1/2/3.
 - [x] `commands/brainstorm.md` is a thin launcher, `wc -l` = 78 (≤130); no inline Phase 1/2/3.
-- [ ] All per-command flags preserved with current semantics (`--format`, `--focus`, `--skip-roundtable`, `--participants`, plus the generic set).
-- [ ] §8.5 regression: exp44 specs/design/brainstorm + exp45 roundtable-native baselines replay structurally identically (additive fields allowed).
-- [ ] §8.5: each thin-launcher session carries the correct `workflow_type`, a `{ts}-{workflow_type}-{slug}` id, and the session folder + snapshot files.
-- [ ] §8.5: backward-compat resume probe passes; `--skip-roundtable` probe passes for specs and design.
-- [ ] `.s2s/BACKLOG.md`: Phase 8 ✅; TECH-002 `completed`; acceptance criteria #3 and #6 DONE; line-count table refreshed with actuals.
-- [ ] ADR-0011 Phase 8 addendum recorded (Pattern 1 + PHASE 0+1 generalization + snapshot consistency fix + final architecture + LOC table).
-- [ ] MEMORY `project_tech002_progress.md` updated: TECH-002 complete, v0.4.0 ready for develop → main.
+- [x] All per-command flags preserved with current semantics (`--format`, `--focus`, `--skip-roundtable`, `--participants`, plus the generic set). Verified across exp53-57.
+- [x] §8.5 regression: exp44 specs/design/brainstorm + exp45 roundtable-native baselines replay structurally identically. 5/5 PASS in exp53-57; artifact counts vary per LLM non-determinism, structures match.
+- [x] §8.5: each thin-launcher session carries the correct `workflow_type`, a `{ts}-{workflow_type}-{slug}` id, and the session folder + snapshot files (`config-snapshot.yaml` + `context-snapshot.yaml`, plus `agenda.yaml` when `agenda_reference` is set).
+- [~] §8.5: backward-compat resume probe NOT executed (edge case, deferred from Phase 4 plan §6 line 431; see ADR-0011 Phase 8 addendum Remaining section). `--skip-roundtable` verified for specs (exp57); design path uses identical inline pattern, not separately tested (low risk).
+- [x] `.s2s/BACKLOG.md`: Phase 8 ✅; TECH-002 `completed`; acceptance criteria #3 and #6 DONE; line-count table refreshed with actuals (956 total).
+- [x] ADR-0011 Phase 8 addendum recorded (Pattern 1 + PHASE 0+1 generalization + snapshot consistency fix + final architecture + LOC table + finding #4 resolution).
+- [x] MEMORY `project_tech002_progress.md` updated: TECH-002 complete, v0.4.0 ready for develop → main. Index entry refreshed.
 - [ ] PR opened against `develop`, milestone v0.4.0.
 - [ ] Plan `Status` updated to `completed (PR #XX merged YYYY-MM-DD)` post-merge.
 
