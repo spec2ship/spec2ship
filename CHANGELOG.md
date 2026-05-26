@@ -57,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Roundtable execution**: workflow shape is now data (`profiles/*.yaml`) rather than duplicated procedural code across 4 commands.
 - **Strategy hooks**: formalized contract with `skip` / policy / absent semantics; `Step 2.6d` renamed to `Step 2.10` across 18 sites in 6 files; strategy doc disclaimers point to `profiles/` as the authoritative source.
-- **`roundtable-strategies/SKILL.md`** v1.1.0 to v1.2.0: drift fixes D1/D2, "authoritative source: profiles/" disclaimers.
+- **`roundtable-strategies/SKILL.md`** v1.1.0 to v1.3.0: drift fixes D1/D2 + "authoritative source: profiles/" disclaimers (v1.2.0 in Phase 7-lite); strategy resolution hierarchy section added per D3 codification (v1.3.0 in Phase 4).
 - **`roundtable-execution/SKILL.md`** restructured 1002 to 178 lines (v2.7.0 to v3.0.0) following Phase 7B deep extraction.
 - **Token tracking always-active** (v2.3.0): no longer behind a flag, integrated by default.
 - **State.json fast-path** in all 4 roundtable commands' auto-detect.

@@ -193,13 +193,10 @@ Facilitator-driven, LLM-emergent. Phase 4 chose Option B; current policy is `fac
 | Pro/Con role assignment | Step 2.3c (participant response) | `debate_role: "pro" \| "con"` (top-level in participant dump's `response`) |
 | Debate phase tracking | Step 2.6a (round summary entry) | `debate_phase: "opening" \| "rebuttal" \| "closing" \| "synthesis"` (optional in `rounds[].` entry) |
 
-### Current state (post Phase 7-lite, pre Phase 4 wiring)
+### Current state (post Phase 4 wiring, 2026-05-21)
 
-Both `debate_role` and `debate_phase` are emitted by the facilitator agent through LLM interpretation of the strategy context. No deterministic policy is codified in this document. The "automatic" side assignment referenced in the §How It Works section above is realised by LLM choice at session start, not by a rule.
+Both `debate_role` and `debate_phase` are emitted by the facilitator agent through LLM interpretation of the strategy context. The wiring path runs through Option B: `commands/roundtable.md` PHASE 1 reads this doc's § Strategy hooks, populates `hook_overrides.participant_response.debate_role.policy = "facilitator_emergent"` in `session.yaml`, and the facilitator/participant agents consume the dict via the 3-branch dispatch in `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/strategy-hook-resolution.md`. The "automatic" Pro/Con side assignment referenced in §How It Works above is realised by LLM choice at session start under the `facilitator_emergent` policy, not by a fixed rule.
 
-Phase 4 will decide the resolution mechanism. Three options under consideration:
-- **Option A** (facilitator Reads this doc): if chosen, a policy table for Pro/Con assignment may be added below this section as data.
-- **Option B** (command-side parsing): a structured YAML config (likely separate from this prose doc) becomes authoritative; this doc remains human-facing.
-- **Option C** (full YAML profile per strategy): a `strategies/debate.yaml` file becomes the structured config; this doc remains human-facing.
+A future deterministic policy table for Pro/Con assignment (Option B refinement) may be added below this section as data once empirical baselines justify it.
 
-For full hook contract details (field types, source, behaviour), see `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/strategy-hooks.md` §3 (`participant_response.debate_role`) and §4 (`round_summary.debate_phase`).
+For full hook contract details (field types, source, behaviour), see `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/strategy-hooks.md` §3 (`participant_response.debate_role`) and §4 (`round_summary.debate_phase`). Architectural decision recorded in ADR-0011 Phase 4 addendum.

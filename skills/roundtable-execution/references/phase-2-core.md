@@ -856,7 +856,7 @@ If --skip-roundtable is NOT present:
 4. After phase-2-core.md returns control, proceed to Phase 3.
 ```
 
-Phase 1 (init, profile-aware Phase 1 setup) and Phase 3 (output generation) remain inline in each command. They are out of scope for 7B; cleanup deferred to Phase 8.
+Phase 1 (profile-aware setup) and Phase 3 (output generation) were moved out of each command into the master orchestrator `commands/roundtable.md` in TECH-002 Phase 8. The thin launchers (`specs.md`, `design.md`, `brainstorm.md`) Read-and-follow the master; the caller pattern documented above is the master's PHASE 3 invocation.
 
 ---
 
@@ -886,6 +886,6 @@ Breaking any of these is grounds for revert per the plan.
 - ✅ Disney phase machine extracted (`disney-phase-machine.md`).
 - ✅ `verbose-dump-format.md` documents `{NNN}-04-session-observer.yaml` (FIX-S1, BUG-013).
 - ✅ `roundtable-execution/SKILL.md` restructured to thin overview pointing here (7B.5).
-- ✅ Strategy hooks contract documented (`strategy-hooks.md` — TECH-002 Phase 7B.6). Hook points integrated in Step 2.2c (overrides), Step 2.3c (debate_role, hat_role), Step 2.6a (debate_phase, hat_phase). Wiring (strategy skill consolidation) deferred to Phase 4 (Option A/B/C decision).
+- ✅ Strategy hooks contract documented (`strategy-hooks.md`, TECH-002 Phase 7B.6) and wired via Option B (TECH-002 Phase 4). Hook points integrated in Step 2.2c (overrides 3-branch dispatch per `strategy-hook-resolution.md`), Step 2.3c (debate_role, hat_role), Step 2.6a (debate_phase, hat_phase). Strategy resolution follows the D3 hierarchy (`strategy-resolution.md`).
 
 This document is the authoritative execution source for Phase 2 across all three workflows.

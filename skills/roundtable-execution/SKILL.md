@@ -2,20 +2,21 @@
 name: Roundtable Execution
 description: "This skill provides instructions for executing multi-agent roundtable discussions.
   Use when a command needs to run discussion rounds with facilitator and participants.
-  Referenced by: specs.md, design.md, brainstorm.md.
+  Referenced by: roundtable.md (master orchestrator); specs.md, design.md, brainstorm.md (thin launchers that Read-and-follow roundtable.md).
   Trigger: 'execute roundtable', 'run discussion rounds', 'multi-agent discussion'."
-version: 3.0.0
+version: 3.1.0
 ---
 
 # Roundtable Execution Skill
 
-This skill provides the canonical, profile-aware reference for executing multi-agent roundtable discussions in spec2ship. After TECH-002 Phase 7B (2026-05), the Phase 2 Round Execution Loop is extracted to `references/phase-2-core.md` as a single executable source consumed by `/s2s:specs`, `/s2s:design`, and `/s2s:brainstorm`.
+This skill provides the canonical, profile-aware reference for executing multi-agent roundtable discussions in spec2ship. After TECH-002 Phase 7B (2026-05), the Phase 2 Round Execution Loop is extracted to `references/phase-2-core.md` as a single executable source. After TECH-002 Phase 8 (2026-05), `commands/roundtable.md` is the master orchestrator for all 4 workflow types (specs, design, brainstorm, roundtable); `specs.md`, `design.md`, `brainstorm.md` are thin launchers that Read-and-follow the master.
 
 ## When to Use This Skill
 
-- Executing `/s2s:specs` requirements gathering
-- Executing `/s2s:design` architecture design
-- Executing `/s2s:brainstorm` ideation sessions
+- Executing `/s2s:specs` requirements gathering (thin launcher delegates to master)
+- Executing `/s2s:design` architecture design (thin launcher delegates to master)
+- Executing `/s2s:brainstorm` ideation sessions (thin launcher delegates to master)
+- Executing `/s2s:roundtable` (master, native or with `--workflow-type`)
 
 ---
 
@@ -85,17 +86,24 @@ Each workflow has specific goals, participants, artifacts, and outputs. **Author
 
 ## Phase structure
 
-Each `/s2s:{workflow}` command runs three phases. Phase 1 (init) and Phase 3 (close) remain inline in each command; Phase 2 (Round Execution Loop) is the canonical extracted algorithm in `phase-2-core.md`.
+All 4 workflows (`specs`, `design`, `brainstorm`, native `roundtable`) execute the same 4 phases inside `commands/roundtable.md` (the master). Thin launchers (`specs.md`, `design.md`, `brainstorm.md`) perform workflow-specific prep (prerequisite checks, smart source detection, argument parsing) and then Read-and-follow the master. The master is profile-driven via `profiles/{workflow}.yaml`.
 
-### Phase 1: Session Setup (inline in each command)
+| Phase | Where it runs | Source of truth |
+|-------|---------------|-----------------|
+| 0: Auto-detect / parse args | `roundtable.md` PHASE 0 | scoped to `workflow_type` |
+| 1: Session setup (folder + 3 snapshots + skeleton) | `roundtable.md` PHASE 1 | `profiles/{workflow}.yaml` |
+| 2: Round Execution Loop | `phase-2-core.md` via `roundtable.md` PHASE 3 caller | `phase-2-core.md` §2 + `PROFILE` |
+| 3: Completion (close, summary, output) | `roundtable.md` PHASE 4 + `output-generation/references/{workflow}.md` | per-workflow output reference |
 
-Steps 1.1–1.4 (or 1.5 for workspace projects):
-1. **Generate session ID** — `{YYYYMMDD}-{workflow_type}-{project-slug}`.
-2. **Create session folder structure** — `.s2s/sessions/{session-id}/[rounds/]`.
-3. **Create snapshot files** — `context-snapshot.yaml`, `config-snapshot.yaml`, `agenda.yaml` (specs/design only).
-4. **Create session index file** — `.s2s/sessions/{session-id}.yaml` with initial state, empty rounds, empty artifacts.
+### Phase 1: Session Setup (master, profile-driven)
 
-Phase 1 is inline because it's command-specific (different snapshots, different prerequisites). The thin-launcher conversion is deferred to Phase 8 in the TECH-002 roadmap.
+Driven by `PROFILE` loaded from `profiles/{workflow}.yaml` in `roundtable.md` PHASE 1:
+1. **Generate session ID**: `{YYYYMMDD}-{workflow_type}-{topic-slug}`.
+2. **Create session folder**: `.s2s/sessions/{session-id}/[rounds/]`.
+3. **Create snapshot files**: `config-snapshot.yaml`, `context-snapshot.yaml`, and `agenda.yaml` if `PROFILE.progress.axis == agenda`.
+4. **Create session index file**: `.s2s/sessions/{session-id}.yaml` with skeleton derived from `PROFILE` (`artifact_types` populate `artifacts.by_state`, `topics`, `validation`; `progress.axis` discriminates `agenda` vs `disney_phase`).
+
+Topic resolution per `PROFILE.topic.source` (cli-arg vs synthesized from project context vs none).
 
 ### Phase 2: Round Execution Loop (canonical, profile-aware)
 
@@ -121,16 +129,16 @@ Steps (per `phase-2-core.md`):
 
 All step details are in `phase-2-core.md`. **Do not duplicate Phase 2 logic in commands** — commands invoke phase-2-core.md via the caller pattern documented there (§3).
 
-### Phase 3: Completion (inline in each command)
+### Phase 3: Completion (master, output workflow-specific)
 
-Steps 3.0–3.5:
-1. **3.0 — Final Diagnostic Report** (`IF --diagnostic`): invoke `session-observer` in `end-session` mode, display final report.
-2. **3.1 — Update Session Status**: set `status: "closed"`, clear `state.json.active_session`. Execute "Session Complete" token tracking.
-3. **3.2 — Read Session for Summary**: extract artifacts from session file.
-4. **3.4 — User Review**: AskUserQuestion to approve / refine / add more.
-5. **3.5+ — Generate Output**: invoke `output-generation` skill for `.s2s/requirements.md` (specs), `.s2s/architecture.md` + `.s2s/decisions/` (design), or `.s2s/ideas.md` + summary (brainstorm).
+`roundtable.md` PHASE 4 runs the common close-out then dispatches to the workflow-specific output reference:
+1. **Final Diagnostic Report** (`IF --diagnostic`): invoke `session-observer` in `end-session` mode, display final report.
+2. **Update Session Status**: set `status: "closed"`, clear `state.json.active_session`. Execute "Session Complete" token tracking.
+3. **Read Session for Summary**: extract artifacts from session file.
+4. **User Review**: AskUserQuestion to approve / refine / add more.
+5. **Generate Output**: invoke `output-generation` skill with the workflow-specific reference (`references/specs-srs.md`, `references/design-arc42.md`, `references/brainstorm.md`, or `references/roundtable-summary.md`). Handoff variables (`OUTPUT_MERGE_MODE`, `OUTPUT_FORMAT`, `FOCUS_AREA`) wired by the master per launcher context.
 
-Phase 3 stays inline because output generation is workflow-specific (different documents). Deferred to Phase 8 for consolidation if useful.
+Output stays workflow-specific (different documents), but Phase 3 orchestration is now centralized in the master rather than duplicated per command.
 
 ---
 
@@ -148,7 +156,7 @@ Phase 3 stays inline because output generation is workflow-specific (different d
 | `references/artifact-schemas/README.md` | Index of 12 per-type artifact schemas |
 | `references/artifact-schemas/{type}.md` | Canonical schema per artifact type (req, br, nfr, ex, arch, comp, int, idea, risk, mit, oq, conf) |
 | `references/disney-phase-machine.md` | Disney phase state machine (brainstorm Step 2.10) |
-| `references/strategy-hooks.md` | Strategy-specific Phase 2 variation hooks (debate_role, debate_phase, future hat_role) — contract documented, Phase 4 wires (Option A/B/C decision) |
+| `references/strategy-hooks.md` | Strategy-specific Phase 2 variation hooks (debate_role, debate_phase, future hat_role): contract documented and wired via Option B (Phase 4). See `references/strategy-hook-resolution.md` for the 3-branch dispatch and `references/strategy-resolution.md` for the D3 hierarchy |
 
 ### Supporting references
 
@@ -171,8 +179,9 @@ Phase 3 stays inline because output generation is workflow-specific (different d
 ## Migration history
 
 - **v1.x–v2.x**: SKILL.md inlined Phase 1/2/3 algorithms (1000+ lines), duplicating logic also present in each workflow command. Drift between SKILL.md and commands led to BUG-013 and others.
-- **v3.0 (2026-05, TECH-002 Phase 7B.5)**: SKILL.md restructured to thin overview pointing to `phase-2-core.md` (executable Phase 2 single-source) and per-type artifact schemas. Phase 1/3 stay inline in commands until Phase 8 (thin launchers).
+- **v3.0 (2026-05, TECH-002 Phase 7B.5)**: SKILL.md restructured to thin overview pointing to `phase-2-core.md` (executable Phase 2 single-source) and per-type artifact schemas.
+- **v3.1 (2026-05, TECH-002 Phase 8)**: Phase structure section rewritten. Phase 1 (session setup) and Phase 3 (close-out + output dispatch) moved out of each workflow command into the master orchestrator `commands/roundtable.md`. Thin launchers (`specs.md`, `design.md`, `brainstorm.md`) Read-and-follow the master.
 
 ---
 
-*Referenced by: `commands/specs.md`, `commands/design.md`, `commands/brainstorm.md`, `commands/roundtable.md` (aligned in TECH-002 Phase 4 via uniform dispatch + `profiles/roundtable.yaml`; see ADR-0011 Phase 4 addendum).*
+*Referenced by: `commands/roundtable.md` (master orchestrator, runs PHASE 0+1+3+4 and delegates PHASE 2 to `phase-2-core.md`); `commands/specs.md`, `commands/design.md`, `commands/brainstorm.md` (thin launchers, Read-and-follow the master per Pattern 1, see ADR-0011 Phase 8 addendum).*
