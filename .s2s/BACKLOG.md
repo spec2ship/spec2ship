@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-05-05 (refresh Completed table + v0.4.0 release prep)
+**Updated**: 2026-05-26 (TECH-002 closed at Phase 8; v0.4.0 ready for develop -> main release)
 **Format**: Work items for active development
 
 ---
@@ -1770,7 +1770,7 @@ What would you like to configure?
 
 ### TECH-002: Roundtable command unification
 
-**Status**: in_progress | **Created**: 2026-01-20 | **Updated**: 2026-05-21 | **Origin**: IDEA-008
+**Status**: completed | **Created**: 2026-01-20 | **Updated**: 2026-05-26 | **Origin**: IDEA-008
 **ADRs**:
 - [0011-roundtable-command-unification](decisions/0011-roundtable-command-unification.md)
 - [0012-output-generation-skill](decisions/0012-output-generation-skill.md)
@@ -1829,7 +1829,7 @@ skills/
 | 7B | Phase 2 deep extraction (approach B — was originally part of Phase 3 scope) | ✅ | Phase 3 |
 | 7-lite | Strategy doc hardening (rename 2.6d→2.10, SKILL.md dedup, §Strategy hooks formalization, disney cross-link) | ✅ (PR #15 merged 2026-05-18) | Phase 7B |
 | 4 | roundtable.md as master for **all 4 workflows** (specs/design/brainstorm/roundtable) + `profiles/roundtable.yaml` + Option B wiring (3-branch dispatch) + D3 hierarchy | ✅ implementation+regression complete (PR pending; §4.5 8-run dogfood all PASS 2026-05-21) | Phase 7-lite |
-| 8 | Thin launcher conversion (specs/design/brainstorm → ~150 lines each) | in_progress (next session) | Phase 4 |
+| 8 | Thin launcher conversion (specs/design/brainstorm → ~150 lines each) + master PHASE 0+1 generalization | ✅ implementation+regression complete (PR pending; §8.5 5-run dogfood all PASS 2026-05-26) | Phase 4 |
 
 **Phase 0: Test baseline** ✅
 - [x] Create `skills/dev-testing/references/roundtable-tests.md` with test cases
@@ -1945,33 +1945,33 @@ Make commands actually USE roundtable-strategies instead of duplicating.
   - SKILL.md L178 commitment honored
   - CI anchor drift check script at `skills/dev-testing/references/strategy-hook-anchor-check.md`
 
-**Phase 8: Thin launcher conversion** (NEW)
-- [ ] Convert specs.md to thin launcher (~150 lines):
-  - Validate environment
-  - Check prerequisites (CONTEXT.md)
-  - Set workflow defaults
-  - Invoke roundtable.md execution
-- [ ] Convert design.md to thin launcher
-- [ ] Convert brainstorm.md to thin launcher
-- [ ] Test: identical behavior via thin launchers
-- [ ] Document pattern in s2s-development.md
+**Phase 8: Thin launcher conversion + master generalization** ✅ (implementation + §8.5 regression complete; PR pending)
+- [x] Generalize roundtable.md master PHASE 0+1 as profile-driven (folder + 3 snapshots + profile-driven skeleton + 5 workflow_type literals parametrized + `## Invocation modes` contract). 479 → 592 lines.
+- [x] Convert specs.md to thin launcher (600 → 172 lines, ≤180). Smart Source Detection kept inline.
+- [x] Convert design.md to thin launcher (536 → 114 lines, ≤150).
+- [x] Convert brainstorm.md to thin launcher (482 → 78 lines, ≤130).
+- [x] §8.5 regression: 5/5 PASS in `ElfGiftRush_s2s/exp53..exp57` (specs/design/brainstorm direct + roundtable native + specs `--skip-roundtable`). All Phase 8 invariants verified empirically.
+- **Bonus deliverables**:
+  - Pattern 1 handoff codified (thin launcher Read-and-follows the master)
+  - PHASE 4 Step 4.3 wires `OUTPUT_MERGE_MODE` / `OUTPUT_FORMAT` / `FOCUS_AREA` handoff vars
+  - Phase 4 §8 finding #4 (session_id divergence) auto-resolved (no direct path remains)
 
-**Line count targets**:
-| File | Before Phase 6 | After Phase 6 (complete) | After Phase 8 |
-|------|----------------|--------------------------|---------------|
-| specs.md | 1631 | 1717 (+86) | ~150 |
-| design.md | 1504 | 1590 (+86) | ~150 |
-| brainstorm.md | 1485 | 1571 (+86) | ~150 |
-| roundtable.md | 360 | 402 (+42) | ~600 (master) |
-| **Total** | 4980 | 5280 (+300) | ~1050 |
+**Line count: actual results (post Phase 8, 2026-05-26)**:
+| File | Pre-Phase-4 | Post-Phase-4 | **Post-Phase-8 (actual)** |
+|------|-------------|--------------|---------------------------|
+| specs.md | 1717 | 600 | **172** |
+| design.md | 1607 | 536 | **114** |
+| brainstorm.md | 1575 | 482 | **78** |
+| roundtable.md | 402 | 479 | **592** (master) |
+| **Total** | **5301** | **2097** | **956** (beats ~1050 target) |
 
 **Acceptance criteria** (final):
 - [x] All 4 commands have token tracking and state.json (Phase 6)
 - [x] roundtable.md can execute all workflows (Phase 4: §4.5 8-run dogfood validates all 4 workflow_types via both direct and master paths)
-- [ ] specs/design/brainstorm are thin launchers (~150 lines each) [Phase 8]
-- [x] Skills actually used, not just declared (Phase 4: roundtable.md dispatches through `phase-2-core.md`, `output-generation`, `roundtable-strategies`; profiles/*.yaml consumed at runtime)
-- [x] No behavioral regression for the 4 workflow types (Phase 4 §4.5: 0 wiring regressions; 4 pre-existing diagnostic findings documented, all non-blocking, see plan §8)
-- [ ] Total command lines reduced from ~5000 to ~1050 [Phase 8] (Phase 4 added master capability without shrinking specs/design/brainstorm yet)
+- [x] specs/design/brainstorm are thin launchers (Phase 8: 172 / 114 / 78 lines, all within budget)
+- [x] Skills actually used, not just declared (Phase 4 + 8: master dispatches through `phase-2-core.md`, `output-generation`, `roundtable-strategies`; profiles/*.yaml consumed at runtime for both PHASE 1 setup and PHASE 2 round loop)
+- [x] No behavioral regression for the 4 workflow types (Phase 4 §4.5 + Phase 8 §8.5: 0 wiring regressions)
+- [x] Total command lines reduced from ~5000 to ~1050 (Phase 8 actual: 956)
 
 **Current state** (2026-05-18, post PR #15 merge, Phase 4 plan draft):
 - Branch: `feature/TECH-002-phase4-roundtable-master` (forked from develop @ 3043c1a after Phase 7-lite PR #15 merge)
@@ -2007,7 +2007,13 @@ Make commands actually USE roundtable-strategies instead of duplicating.
 - **Six-hats wiring** (prerequisite-blocked): requires empirical baseline acquisition. Separate task; Option B parser in Phase 4 makes six-hats wiring a configuration change only.
 - **Next action**: execute §4.1 (D3 hierarchy + profiles/roundtable.yaml creation), then §4.2 → §4.6, then open PR `feature/TECH-002-phase4-roundtable-master` → develop, milestone v0.4.0. Until Phase 4 + 8 done, do NOT release v0.4.0 → main.
 
-**Current state** (2026-05-21, post §4.5 regression replay):
+**Current state** (2026-05-26, post Phase 8 §8.5 regression replay):
+- All 6 acceptance criteria met. TECH-002 status = completed.
+- Phase 8 §8.0-§8.4 implementation on branch `feature/TECH-002-phase8-thin-launchers`; §8.5 dogfood 5/5 PASS in `ElfGiftRush_s2s/exp53..exp57`; §8.6 close-out in this commit.
+- Plan: `.s2s/plans/20260521-tech002-phase8-thin-launchers.md`. Audit: `.s2s/plans/20260521-tech002-phase8-8.0-audit.md`. ADR-0011 has Phase 8 addendum.
+- **v0.4.0 is now ready for the `develop → main` release PR**. Phase 8 was the 6th and final item in milestone v0.4.0.
+
+**Earlier state** (2026-05-21, post §4.5 regression replay):
 - §4.1 → §4.5 all complete; §4.6 close-out in progress (BACKLOG ✓ [this update], ADR-0011 Phase 4 addendum pending, MEMORY.md pending, PR open pending).
 - **§4.5 8-run dogfood verdict**: all PASS. 7 worktrees exercised (Step 7 implicit via Step 2):
   - exp45: `/s2s:roundtable` native (post-Phase-4 baseline captured at `.s2s/test-baselines/exp45-roundtable-native-post-phase4.md`)

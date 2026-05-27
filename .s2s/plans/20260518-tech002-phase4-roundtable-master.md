@@ -4,7 +4,7 @@
 **Branch**: `feature/TECH-002-phase4-roundtable-master`
 **Forked from**: `develop` @ `3043c1a` (post Phase 7-lite PR #15 merge)
 **Author**: Claude (Opus 4.7) + Francesco
-**Status**: in close-out (§4.0-§4.5 complete, §4.6 in progress; awaiting BACKLOG + ADR-0011 addendum + PR open. Will be `completed (PR #XX merged YYYY-MM-DD)` post-merge.)
+**Status**: completed (PR #16 merged 2026-05-21)
 **Created**: 2026-05-18
 **Revised**: 2026-05-20 (Option ε pivot: smoke test outcome (c) graceful + SKILL.md L178 commitment + plugin's concrete spec invalidated Approach 4 deferral; Phase 4 now creates `profiles/roundtable.yaml` and fully resolves generic-mode, no Phase 9 needed); 2026-05-21 (§4.5 regression replay completed: 8 dogfood runs all PASS; post-Phase-4 baseline captured)
 **Predecessor plan**: `.s2s/plans/20260517-tech002-phase7-strategy-consolidation.md` (Phase 7-lite)
@@ -430,10 +430,10 @@ This plan went through 4 review rounds and two architectural pivots:
 - [x] 5 anchor parse fixture assertions pass (verified statically during §4.2 implementation; runtime parser exercised implicitly across 8 §4.5 dogfood runs without parse-error abort).
 - [ ] Backward-compat resume probe: pre-Phase-4 session file resumes without error on missing `hook_overrides` field; facilitator falls back to LLM-emergent inference via Branch 3 (NOT via Branch 1's skip path); behavior verified visible. **Deferred to §8 follow-up; non-blocking given Branch 3 logic statically reviewed in §4.2 step 3.**
 - [x] Light smoke probe (`/s2s:roundtable "test" --workflow-type design --strategy debate`) populates `agent_state.facilitator.hook_overrides` with `debate_role` and `debate_phase` fields (Branch 2 working). (exp52 Step 2 evidence)
-- [ ] `.s2s/BACKLOG.md` TECH-002 block: Phase 4 ✅; Phase 8 `in_progress (next session)`; **Phase 9 row REMOVED**; TECH-002 acceptance criteria #2 and #4 marked **FULLY DONE** (no partial caveat).
-- [ ] ADR-0011 Phase 4 addendum: Option B + D3 + **Option ε pivot rationale** + profiles/roundtable.yaml content + phase-2-core.md Step 2.2c modification (3-branch) + drift fixes + pointer sharpening + SKILL.md L178 commitment honored + roundtable-strategies/ asymmetry note + CI anchor drift check existence all recorded.
-- [ ] PR opened against `develop`, milestone v0.4.0.
-- [ ] Plan `Status` field updated from `in close-out` to `completed (PR #XX merged YYYY-MM-DD)` post-merge.
+- [x] `.s2s/BACKLOG.md` TECH-002 block: Phase 4 ✅; Phase 8 `in_progress (next session)`; **Phase 9 row REMOVED**; TECH-002 acceptance criteria #2 and #4 marked **FULLY DONE** (no partial caveat). (committed fddcbf1)
+- [x] ADR-0011 Phase 4 addendum: Option B + D3 + **Option ε pivot rationale** + profiles/roundtable.yaml content + phase-2-core.md Step 2.2c modification (3-branch) + drift fixes + pointer sharpening + SKILL.md L178 commitment honored + roundtable-strategies/ asymmetry note + CI anchor drift check existence all recorded. (committed fddcbf1)
+- [x] PR opened against `develop`, milestone v0.4.0. (PR #16, merged 2026-05-21 as 773fb75)
+- [x] Plan `Status` field updated from `in close-out` to `completed (PR #16 merged 2026-05-21)` post-merge. (TECH-002 Phase 8 first commit, per close-out option B)
 
 ## 7. PR strategy
 

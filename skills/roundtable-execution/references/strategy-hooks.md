@@ -1,10 +1,10 @@
 # Strategy Hooks Contract
 
-> **Status**: contract documentation hardened (TECH-002 Phase 7-lite, 2026-05-18). Strategy reference docs now have uniform `## Strategy hooks` sections per strategy; runtime wiring deferred to Phase 4 (Option A/B/C decision).
-> **Scope**: defines WHERE strategy-specific variation injects into the Phase 2 algorithm. Documents the contract; runtime wiring (Option A/B/C) deferred to Phase 4 architectural decision.
-> **Behavior contract**: preserve current behavior. Strategies still produce the same observable fields (`debate_role`, `debate_phase`, Disney phase machine, etc.) as before Phase 7-lite.
+> **Status**: contract documented (TECH-002 Phase 7-lite, 2026-05-18) and wired via **Option B** (TECH-002 Phase 4, 2026-05-21). See `strategy-hook-resolution.md` for the 3-branch dispatch and `strategy-resolution.md` for the D3 resolution hierarchy. ADR-0011 Phase 4 addendum records the architectural decision.
+> **Scope**: defines WHERE strategy-specific variation injects into the Phase 2 algorithm. The contract is stable; runtime wiring uses Option B (command-side parsing in `commands/roundtable.md` PHASE 1, hook_overrides populated and passed via session.yaml and agent input).
+> **Behavior contract**: preserve baseline behavior. Strategies still produce the same observable fields (`debate_role`, `debate_phase`, Disney phase machine, etc.); Option B makes the population path explicit instead of LLM-emergent.
 
-Phase 2 (`phase-2-core.md`) is workflow-aware via `PROFILE` (from `profiles/{workflow}.yaml`). Some workflows additionally support **strategy-specific variations** that inject fields into facilitator/participant/synthesis output. This document inventories those variations and defines the hook contract; Phase 4 will wire it (subject to Option A/B/C choice).
+Phase 2 (`phase-2-core.md`) is workflow-aware via `PROFILE` (from `profiles/{workflow}.yaml`). Some workflows additionally support **strategy-specific variations** that inject fields into facilitator/participant/synthesis output. This document inventories those variations and defines the hook contract; the wiring is implemented via Option B (per-session `hook_overrides` populated at PHASE 1 in `roundtable.md`).
 
 ---
 
@@ -14,13 +14,13 @@ Strategies are defined in `skills/roundtable-strategies/references/{strategy}.md
 
 | Strategy | Workflows | Effect on Phase 2 | Hook points | Strategy doc § Strategy hooks |
 |----------|-----------|-------------------|-------------|-------------------------------|
-| `standard` | specs / design (allowed) | none beyond defaults | — | `standard.md` § Strategy hooks ("No per-round hooks") |
-| `consensus-driven` | specs (default) / design (allowed) | none beyond defaults (participation: parallel, weighted_majority threshold) | — | `consensus-driven.md` § Strategy hooks ("No per-round hooks") |
-| `debate` | specs (allowed) / design (default) | per-participant Pro/Con assignment + per-round debate phase tracking | §3 debate_role, §4 debate_phase | `debate.md` § Strategy hooks (Facilitator-driven, LLM-emergent; no fixed policy codified) |
+| `standard` | specs / design (allowed) | none beyond defaults | (none, `skip`) | `standard.md` § Strategy hooks ("No per-round hooks") |
+| `consensus-driven` | specs (default) / design (allowed) | none beyond defaults (participation: parallel, weighted_majority threshold) | (none, `skip`) | `consensus-driven.md` § Strategy hooks ("No per-round hooks") |
+| `debate` | specs (allowed) / design (default) | per-participant Pro/Con assignment + per-round debate phase tracking | §3 debate_role, §4 debate_phase | `debate.md` § Strategy hooks (facilitator_emergent policy, fields populated via hook_overrides) |
 | `disney` | brainstorm (forced) | three sequential phases (dreamer/realist/critic) with phase transitions | already extracted to `disney-phase-machine.md` | `disney.md` § Strategy hooks (phase machine via Step 2.10; no Step 2.2c overrides) |
-| `six-hats` | specs / design (allowed) | six sequential hats (white/red/black/yellow/green/blue), each with focused mindset | §5 hat_role, §6 hat_phase (deferred) | `six-hats.md` § Strategy hooks (No per-round overrides; wiring deferred, no baseline) |
+| `six-hats` | specs / design (allowed) | six sequential hats (white/red/black/yellow/green/blue), each with focused mindset | §5 hat_role, §6 hat_phase (untested baseline) | `six-hats.md` § Strategy hooks (No per-round overrides; baseline acquisition pending) |
 
-Disney is a complete machine, not a per-round hook — extracted to its own doc. The remaining hooks (§3-§6) are per-round inject points.
+Disney is a complete machine, not a per-round hook (extracted to its own doc). The remaining hooks (§3-§6) are per-round inject points.
 
 ---
 
@@ -32,10 +32,10 @@ Each hook is a **named, optional injection point** in the Phase 2 algorithm. The
 - **Phase 2 step**: where the hook applies (e.g., Step 2.3c).
 - **Condition**: when the hook activates (e.g., `STRATEGY == "debate"`).
 - **Field added**: what gets added to the canonical schema (e.g., `debate_role` in participant response).
-- **Source**: where the value comes from (e.g., facilitator's `participant_context.overrides.{id}.debate_role`).
+- **Source**: where the value comes from (`hook_overrides` field in session.yaml, populated by `roundtable.md` PHASE 1 per strategy doc § Strategy hooks).
 - **Behavior contract**: what the LLM/agent does when the hook fires.
 
-Hooks are **additive**: they extend canonical schemas with extra fields without breaking baseline behavior. Pre-7B.6 commands produced these fields via inline LLM-emergent behavior; post-7B.6 (and post Phase 7-lite, pre-Phase 4) the contract is documented in both `strategy-hooks.md` and each `{strategy}.md` § Strategy hooks section, but the wiring is unchanged (LLM still emergent).
+Hooks are **additive**: they extend canonical schemas with extra fields without breaking baseline behavior. Population path: `roundtable.md` PHASE 1 reads `roundtable-strategies/references/{strategy}.md` § Strategy hooks, computes the `hook_overrides` dict, and writes it to `session.yaml`. Step 2.2c dispatches on the dict via the 3-branch logic in `strategy-hook-resolution.md` (skip / policy / absent).
 
 ---
 
@@ -46,10 +46,10 @@ Hooks are **additive**: they extend canonical schemas with extra fields without 
 | **Phase 2 step** | Step 2.3c (participant response) |
 | **Condition** | `STRATEGY == "debate"` |
 | **Field added** | `debate_role: "pro" \| "con"` (top-level in participant dump's `response`) |
-| **Source** | Facilitator's Step 2.2c response includes `participant_context.overrides.{participant-id}.debate_role`. Participant receives and echoes it. |
+| **Source** | `hook_overrides.participant_response.debate_role` from session.yaml; facilitator emits per-participant assignment in Step 2.2c via `participant_context.overrides.{participant-id}.debate_role`. |
 | **Behavior** | Each participant is assigned to either the "pro" or "con" side at session start (or per round). The role drives the participant's argumentation stance. Without this hook, the participant gives a neutral response. |
 
-**Phase 4 wiring direction**: facilitator agent should consult `roundtable-strategies/references/debate.md` § Strategy hooks to determine Pro/Con assignment policy and emit `overrides`. Currently LLM-emergent. Phase 4 Option A would Read the doc at runtime; Option B/C would parse a structured config. Phase 7-lite added the § Strategy hooks section as the documentation substrate for the future wiring.
+**Wiring**: Option B (Phase 4). `roundtable.md` PHASE 1 populates `hook_overrides.participant_response.debate_role.policy = "facilitator_emergent"` per `debate.md` § Strategy hooks. Facilitator agent consumes the policy at Step 2.2c via the dispatch in `strategy-hook-resolution.md`. Promote to a deterministic rule once empirical baseline justifies.
 
 ---
 
@@ -63,25 +63,25 @@ Hooks are **additive**: they extend canonical schemas with extra fields without 
 | **Source** | Facilitator's Step 2.4c synthesis response: `next_focus.debate_phase` or inferred from facilitator's current debate progression. |
 | **Behavior** | The round summary records which debate phase was active. Enables audit ("round 3 was the rebuttal") and informs Step 2.7 round recap display. |
 
-**Phase 4 wiring direction**: debate strategy's phases (`opening → rebuttal → closing → synthesis`) form a state machine similar to Disney's, but currently informally tracked. Phase 4 (or later) may extract a `debate-phase-machine.md` mirroring `disney-phase-machine.md`. For Phase 7-lite the field remains optional and LLM-driven.
+**Wiring**: Option B (Phase 4) leaves debate phase progression as facilitator-emergent (still LLM-driven); the field remains optional. A future enhancement may extract a `debate-phase-machine.md` mirroring `disney-phase-machine.md`, but the Option B parser does not block that work.
 
 ---
 
-## 5. Hook: `participant_response.hat_role` (six-hats — deferred)
+## 5. Hook: `participant_response.hat_role` (six-hats, untested baseline)
 
 | Property | Value |
 |----------|-------|
 | **Phase 2 step** | Step 2.3c (participant response) |
 | **Condition** | `STRATEGY == "six-hats"` |
 | **Field added** | `hat_role: "white" \| "red" \| "black" \| "yellow" \| "green" \| "blue"` |
-| **Source** | Facilitator's `participant_context.overrides.{participant-id}.hat_role`. |
+| **Source** | `hook_overrides.participant_response.hat_role` per `six-hats.md` § Strategy hooks. |
 | **Behavior** | Each participant is assigned a thinking hat that drives their mindset (facts, emotions, criticism, positive, creative, process). |
 
-**Status**: NOT observed in current dogfood baselines (six-hats has never been used). Hook is documented for completeness but unverified empirically. Phase 4 (when wired) will exercise; baseline acquisition is a prerequisite (capture `/s2s:design --strategy six-hats --verbose --diagnostic` structural summary first). Phase 7-lite added `six-hats.md` § Strategy hooks documenting the deferred contract.
+**Status**: NOT observed in current dogfood baselines (six-hats has never been used). Hook is documented for completeness but unverified empirically. Wiring via Option B is a configuration-only change once a baseline is captured (`/s2s:design --strategy six-hats --verbose --diagnostic` structural summary first).
 
 ---
 
-## 6. Hook: `round_summary.hat_phase` (six-hats — deferred)
+## 6. Hook: `round_summary.hat_phase` (six-hats, untested baseline)
 
 | Property | Value |
 |----------|-------|
@@ -91,27 +91,27 @@ Hooks are **additive**: they extend canonical schemas with extra fields without 
 | **Source** | Facilitator's synthesis decision. |
 | **Behavior** | Records which hat was active. |
 
-**Status**: same as §5 — deferred to Phase 4 (Option A/B/C decision); prerequisite-blocked on six-hats baseline acquisition.
+**Status**: same as §5. Baseline acquisition is the prerequisite; the Option B parser handles six-hats hook_overrides identically to debate.
 
 ---
 
-## 7. Where strategy data CURRENTLY comes from vs. WILL come from
+## 7. Wiring history
 
-### Current state (post Phase 7-lite, pre Phase 4 wiring)
+### Current state (post Phase 4, 2026-05-21)
 
-- **debate_role / debate_phase**: emerge from the LLM (facilitator agent and participant agents) interpreting `STRATEGY == "debate"` from input. Phase 7-lite added `debate.md` § Strategy hooks documenting this LLM-emergent state and noting that no fixed policy is codified. No runtime change at Step 2.2c.
-- **disney phases**: machine fully extracted to `disney-phase-machine.md`. Phase transitions deterministic via `phase-2-core.md` Step 2.10. Phase 7-lite added `disney.md` § Strategy hooks + bidirectional cross-link banners between strategy doc and machine doc.
-- **hat_role / hat_phase**: untested. Phase 7-lite added `six-hats.md` § Strategy hooks documenting the deferred contract; baseline acquisition required before wiring.
+- **debate_role / debate_phase**: `roundtable.md` PHASE 1 populates `hook_overrides` per `debate.md` § Strategy hooks; facilitator and participant agents consume via the 3-branch dispatch in `strategy-hook-resolution.md`. Current policy is `facilitator_emergent` (LLM picks the role/phase values; field names provided via hook_overrides). Branch 3 (`hook_overrides` absent) is the backward-compat fallback for pre-Phase-4 resumed sessions.
+- **disney phases**: machine fully extracted to `disney-phase-machine.md`. Phase transitions deterministic via `phase-2-core.md` Step 2.10. Bidirectional cross-link with `disney.md` § Strategy hooks.
+- **hat_role / hat_phase**: contract documented; wiring path identical to debate. Empirical baseline required before regression coverage.
 
-### Phase 4 target state (Option A/B/C decision)
+### Pre-Phase-4 history
 
-Phase 4 will make the architectural choice for how strategy hook policy is consumed at runtime. Three options on the table:
+Pre-7B.6 commands produced these fields via inline LLM-emergent behavior with no explicit contract. Phase 7B.6 introduced this document. Phase 7-lite added uniform `## Strategy hooks` sections in each `{strategy}.md`. Phase 4 added Option B parser + `strategy-hook-resolution.md` + ADR-0011 Phase 4 addendum.
 
-- **Option A** (LLM-mediated): facilitator at Step 2.2c Reads `{strategy}.md` § Strategy hooks and interprets the policy. Opening lines of Phase 7-lite's § Strategy hooks sections are designed to be skip-trigger compatible (`"No per-round hooks"`, `"No per-round overrides"`, `"Facilitator-driven, LLM-emergent"`).
-- **Option B** (command-side parsing): commands parse strategy doc (or a structured config) and populate `STRATEGY_CONFIG` deterministically; facilitator consumes that without re-reading.
-- **Option C** (full YAML profile per strategy): per-strategy YAML configs (`strategies/{strategy}.yaml`) become the structured source; strategy `.md` files remain human-facing.
+**Option B vs. alternatives considered in Phase 4** (recorded in ADR-0011 Phase 4 addendum):
 
-Phase 4 decision will be informed by: complexity/blast-radius tradeoff, ability to eliminate LLM emergence for hook population, alignment with roundtable.md-as-master architecture, and the consensus from macro review #4 of the original Phase 7 plan (recorded in ADR-0011 Phase 7-lite addendum).
+- **Option A** (LLM-mediated): facilitator Reads `{strategy}.md` at Step 2.2c. Rejected: doesn't eliminate LLM emergence; cache cost.
+- **Option B** (command-side parsing): selected. Master parses `{strategy}.md` § Strategy hooks at PHASE 1 and emits `hook_overrides` deterministically.
+- **Option C** (full YAML profile per strategy): not adopted now; an additive future migration if structured config becomes load-bearing.
 
 ---
 
@@ -123,7 +123,7 @@ Phase 4 decision will be informed by: complexity/blast-radius tradeoff, ability 
 2. **Step 2.6a** (Round summary entry): adds optional `debate_phase` field when `STRATEGY == "debate"`. See §4.
 3. **Step 2.2c** (Facilitator response): `participant_context.overrides` may include strategy-specific directives. See §3 source.
 
-Hook points are added as conditional sections in `phase-2-core.md` matching the `IF STRATEGY == "X"` pattern. Runtime wiring (Option A/B/C) deferred to Phase 4 — see §7 for the target-state options. Deferral rationale (LLM emergence not eliminated by Option A; R1 fallback likely; regression cannot differentiate working from silently-broken wiring; Phase 4 has the right architectural seam) is recorded in ADR-0011 Phase 7-lite addendum (`.s2s/decisions/0011-roundtable-command-unification.md`).
+Hook points are conditional sections in `phase-2-core.md` matching the `IF STRATEGY == "X"` pattern. Runtime wiring (Option B) is documented in `strategy-hook-resolution.md` (3-branch dispatch: skip, policy dict, absent).
 
 ---
 
@@ -131,8 +131,7 @@ Hook points are added as conditional sections in `phase-2-core.md` matching the 
 
 Per the plan §10 contract invariants, these MUST hold:
 
-- **Existing baseline behavior preserved**: design+debate sessions produce `debate_role` in participants and `debate_phase` in round summaries, as observed in exp43-design baseline (commit `50b1de2` in `ElfGiftRush_s2s`).
+- **Existing baseline behavior preserved**: design+debate sessions produce `debate_role` in participants and `debate_phase` in round summaries, as observed in exp43-design baseline and re-verified in exp44 (post-7B) and exp52 (post-Phase-4 master path with Branch 2 hook_overrides populated).
 - **Optional fields stay optional**: hooks add fields but don't remove or rename existing ones.
 - **No schema validation break**: dump readers/diagnostic tools tolerate the presence or absence of hook-injected fields.
-
-The exp44 regression replay in 7B.7 will verify the design+debate path still produces the expected fields.
+- **Backward compatibility**: Branch 3 (absent `hook_overrides`) restores pre-Phase-4 LLM-emergent behavior for resumed sessions.

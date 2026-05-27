@@ -361,3 +361,85 @@ Surfaced during §4.5 dogfood; documented in plan §8 for post-Phase-4 hardening
 - **Backward-compat resume probe** (deferred from §4.5): pre-Phase-4 session resume via Branch 3 should be verified visibly. Non-blocking for PR; Branch 3 logic statically reviewed during §4.2 step 3.
 
 v0.4.0 → main release remains gated on Phase 8. Phase 4 alone delivers user-visible master path (native `/s2s:roundtable` works; `/s2s:roundtable --workflow-type X` routes through master) but does not shrink the inline launchers yet.
+
+---
+
+## Phase 8 addendum (2026-05-26)
+
+**Plan**: `.s2s/plans/20260521-tech002-phase8-thin-launchers.md` (drafted 2026-05-21, self-review rounds 1-2 applied same day).
+**8.0 audit**: `.s2s/plans/20260521-tech002-phase8-8.0-audit.md`.
+**Branch**: `feature/TECH-002-phase8-thin-launchers`.
+
+Phase 8 is the final step of the TECH-002 command-unification arc. It collapses `commands/{specs,design,brainstorm}.md` into thin launchers and finishes the master generalization Phase 4 started.
+
+### Substantive finding (round-1 self-review)
+
+Phase 4 made the master's PHASE 2 (round loop) profile-driven but left PHASE 0+1 (auto-detect + session setup) roundtable-shaped. Static + empirical audit (3 Phase 4 master-path sessions: exp49/exp51/exp52) showed:
+- master created NO snapshot files (`config-snapshot.yaml`, `context-snapshot.yaml`), although `phase-2-core.md` §2.0/§3 documents them as canonical inputs (flags, limits, escalation, project context)
+- session-file skeleton was roundtable-shaped (artifacts `{decisions, open_questions, conflicts}`, `agenda` single `main`, missing `metrics.by_state` / `metrics.topics` / `validation:`)
+- `workflow_type` literal was "soft-broken" at 5 sites (the LLM substituted by inference)
+
+`phase-2-core.md` L859 anticipated this: *"Phase 1 (init, profile-aware Phase 1 setup) and Phase 3 (output generation) remain inline in each command. They are out of scope for 7B; cleanup deferred to Phase 8."* Phase 8 owns that cleanup.
+
+### Pattern 1 (decision)
+
+Handoff mechanism: the thin launcher Read-and-follows `commands/roundtable.md`. Architecturally identical to the way commands Read `phase-2-core.md`. Matches the BACKLOG target architecture (roundtable.md = fat master ~600; others = thin launchers). Pattern 2 (extract the master's orchestration into a shared skill reference) was rejected: re-opens the master 2 weeks after Phase 4 stabilized it for no behavioral gain; recorded as the documented escalation if Pattern 1 proves brittle in practice.
+
+### Deliverables
+
+**8.1 master generalization** (the keystone, `roundtable.md` 479 → 592 lines, ≤600):
+- profile-driven PHASE 0+1 (folder + 3 snapshots + skeleton from `PROFILE`)
+- `progress.axis` discriminant: `agenda` produces `agenda:` + `metrics.topics`; `disney_phase` produces `phases:`/`current_phase:` + `metrics.phases`
+- `topic` resolved per `PROFILE.topic.source` (cli-arg vs `pattern`-synthesized); "Validate topic" prompts only when `source == cli-arg.topic`
+- 5 workflow_type literal sites parametrized (L260 session file, L323 banner, L346/352 resume state.json, L108 grep, L75 fast-path scope)
+- `## Invocation modes` contract note: native vs delegated entry + handoff variables
+- PHASE 3 caller block aligned to read flags from `config-snapshot.yaml` per `phase-2-core.md` §3 (removes the undocumented in-context shortcut)
+- PHASE 4 Step 4.3 wired to consume `OUTPUT_MERGE_MODE` / `OUTPUT_FORMAT` / `FOCUS_AREA`
+
+**8.2-8.4 thin launchers**:
+- `commands/specs.md` 600 → 172 (≤180); Smart Source Detection kept inline
+- `commands/design.md` 536 → 114 (≤150)
+- `commands/brainstorm.md` 482 → 78 (≤130)
+- Each launcher keeps only workflow-specific prep (prereq gate, source detection, existing-output, `--skip-roundtable` mode) and delegates with a minimal handoff: `WORKFLOW_TYPE` + the values the master cannot derive (`INPUT_SOURCES`, `OUTPUT_MERGE_MODE`, `OUTPUT_FORMAT`, `FOCUS_AREA`)
+- Resume (`--session`) delegates to the master immediately; the launcher's prerequisite gate runs only on the new-session path
+
+**8.5 regression replay** (dogfood `ElfGiftRush_s2s/exp53..exp57`, **5/5 PASS**):
+
+| Step | Worktree | Run | Strategy | Key Phase 8 check |
+|------|----------|-----|----------|--------------------|
+| 1 | exp53 | `/s2s:specs --diagnostic` | consensus-driven | snapshots created; topic synthesized `"Requirements definition for ElfGiftRush"`; agenda 6 topics; 12 REQ / 10 BR / 7 NFR / 11 EX / 12 OQ |
+| 2 | exp54 | `/s2s:design --diagnostic` | debate | snapshots created; topic `"Architecture design for ElfGiftRush"`; debate_sides + hook_overrides Branch 2; 13 ARCH / 9 COMP / 1 INT / 1 OQ / 1 CONF + 13 ADR |
+| 3 | exp55 | `/s2s:brainstorm "..." --diagnostic` | disney (forced) | NO `agenda.yaml`; `progress.axis: disney_phase` produces `current_phase:` + `phases:` + `metrics.phases` (discriminant validated); 17 IDEA / 18 RISK / 18 MIT / 3 OQ |
+| 4 | exp56 | `/s2s:roundtable "..." --diagnostic` (native) | standard | snapshots NOW created for native too (pre-Phase-8 they were missing); additive `by_state` / `topics` / `validation`; 5 DEC / 4 OQ / 2 CONF |
+| 5 | exp57 | `/s2s:specs --skip-roundtable` | n/a | launcher inline path: no session dir, no state.json; `requirements.md` generated directly |
+
+**Final LOC table**:
+
+| File | Pre-Phase-4 | Post-Phase-4 | Post-Phase-8 |
+|------|-------------|--------------|--------------|
+| `commands/specs.md` | 1717 | 600 | **172** |
+| `commands/design.md` | 1607 | 536 | **114** |
+| `commands/brainstorm.md` | 1575 | 482 | **78** |
+| `commands/roundtable.md` | 402 | 479 | **592** |
+| **Total** | **5301** | **2097** | **956** |
+
+Beats BACKLOG target (~1050).
+
+### Phase 4 finding #4 resolved
+
+Phase 4 §8 finding #4 (session_id timestamp format divergence between master and direct paths) is **resolved** by Phase 8: there is no direct path anymore. All four workflows generate session ids through the master's `{YYYYMMDD}-{HHMMSS}-{workflow_type}-{slug}` format.
+
+### Architecture, end state
+
+- `commands/roundtable.md` (592 lines): master orchestrator. PHASE 0 (auto-detect, scoped to workflow_type) + PHASE 1 (profile-driven session setup) + PHASE 3 (`phase-2-core.md` delegation) + PHASE 4 (completion). Runs natively (`/s2s:roundtable`) or delegated (Read-and-followed by a thin launcher).
+- `commands/{specs,design,brainstorm}.md` (172 / 114 / 78 lines): thin launchers. Workflow-specific prep + `--skip-roundtable` inline path + handoff to master.
+- `skills/roundtable-execution/profiles/{workflow}.yaml` (4 files): single source of truth for workflow shape. Drives PHASE 0+1 session setup and PHASE 2 round loop.
+- `skills/roundtable-execution/references/phase-2-core.md` (881 lines): canonical round-loop algorithm, untouched by Phase 8.
+
+### Remaining
+
+- **Backward-compat resume probe** (deferred from Phase 4 plan §6 line 431 + Phase 8 plan §8.5 step 3): not exercised in §8.5 dogfood. Edge case (pre-Phase-8 native roundtable sessions are rare; pre-Phase-8 specs/design/brainstorm sessions already had snapshots, so resume works). Tracked as non-blocking follow-up.
+- **3 unrelated Phase 4 diagnostic findings** still open: agent-resume gap (reproduced in exp54; harness fallback works), R1 observer false-positive on empty artifact maps, token-tracker.sh exit 1 quirk. Post-v0.4.0 hardening.
+- **Six-hats wiring**: still prerequisite-blocked on baseline acquisition.
+
+v0.4.0 is now ready for `develop → main` release. Phase 8 was the 6th and final item in milestone v0.4.0.
