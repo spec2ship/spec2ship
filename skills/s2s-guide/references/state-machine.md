@@ -19,39 +19,76 @@ State transitions in Spec2Ship.
 
 ---
 
-## Artifact Lifecycle
+## Artifact Lifecycle (ADR-0010)
+
+All artifacts use a single `state` field with transitions tracked for audit.
+
+### State Transition Diagram
 
 ```
-     ┌────────┐
-     │ create │
-     └───┬────┘
-         │
-         ▼
-     ┌────────┐
-     │ active │◄───────────┐
-     └───┬────┘            │
-         │                 │
-    ┌────┴────┬───────┐    │
-    │         │       │    │
-    ▼         ▼       ▼    │
-┌───────┐┌──────────┐┌─────────┐
-│amended││superseded││withdrawn│
-└───┬───┘└──────────┘└─────────┘
-    │ (revert)
-    └──────────────────────┘
+                    ┌─────────────────────────────────────────┐
+                    │                                         │
+                    ▼                                         │
+┌───────┐    ┌─────────────────┐    ┌─────────────┐    ┌──────────┐
+│ draft │───▶│ needs_discussion│───▶│ in_progress │───▶│ TERMINAL │
+└───────┘    └─────────────────┘    └─────────────┘    └──────────┘
+                                          │                  ▲
+                                          ▼                  │
+                                    ┌─────────┐              │
+                                    │ blocked │──────────────┘
+                                    └─────────┘
+
+Side states (any → these):
+    ┌──────────┐     ┌──────────┐
+    │ deferred │     │ rejected │
+    └──────────┘     └──────────┘
 ```
+
+### Terminal States
+
+| Artifact Types | Terminal States |
+|----------------|-----------------|
+| REQ, BR, NFR, EX | `approved`, `implemented` |
+| ARCH, DEC, COMP, INT | `accepted` |
+| IDEA | `promoted`, `parked` |
+| OQ, CONF | `resolved` |
+
+### Transition Conditions
 
 | From | To | Trigger |
 |------|-----|---------|
-| - | active | Artifact created |
-| active | amended | Modification in later round |
-| active | superseded | Replaced by new artifact |
-| active | withdrawn | Removed from scope |
-| amended | active | Revert to previous version |
+| draft | needs_discussion | Artifact ready for group discussion |
+| needs_discussion | in_progress | Facilitator selects for current round |
+| in_progress | *terminal* | Consensus reached (no blocks) |
+| in_progress | blocked | At least one participant signals block |
+| in_progress | deferred | Explicit decision to postpone |
+| blocked | in_progress | Blocking concern addressed |
+| *any* | rejected | Explicit decision to abandon |
 
-**Rules**:
-- `superseded` and `withdrawn` are terminal states
-- `amended` preserves full history in amendments array
+### Audit Trail
+
+State transitions are tracked in `rounds[].artifacts_transitioned`:
+
+```yaml
+artifacts_transitioned:
+  - id: "REQ-001"
+    from: "draft"
+    to: "approved"
+    reason: "consensus reached"
+  - id: "CONF-001"
+    from: "in_progress"
+    to: "resolved"
+    reason: "facilitator decision"
+```
+
+### Resolution Tracking
+
+| Field | Structure | Description |
+|-------|-----------|-------------|
+| resolved_conflicts | `{conflict_id, resolution, method}` | How conflicts were resolved |
+| resolved_questions | `{question_id, answer}` | How questions were answered |
+
+Resolution methods: `consensus`, `facilitator`, `user_decision`
 
 ---
 
@@ -154,5 +191,5 @@ After synthesis, facilitator decides:
 
 When resuming, agent receives:
 1. `context_reconciliation` block
-2. Lists of artifacts_updated, artifacts_resolved
+2. Lists of artifacts_created, resolved_conflicts, resolved_questions
 3. Instruction to treat current context as authoritative

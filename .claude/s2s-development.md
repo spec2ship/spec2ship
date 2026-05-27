@@ -373,6 +373,263 @@ Commands write to `.s2s/` ONLY. Public documentation in `docs/` is created ONLY 
 
 See also: `skills/madr-decisions/SKILL.md` for ADR-specific rules.
 
+### Plugin File Locations (CRITICAL)
+
+The above rules apply to **user project** files. For **plugin internal** files, different rules apply:
+
+| Location | Purpose | Accessed by | Example |
+|----------|---------|-------------|---------|
+| `docs/` | Human documentation (GitHub readers) | Humans only | Architecture docs, README |
+| `skills/*/references/` | LLM reference material | LLM during skill execution | Detailed guides, patterns |
+| `templates/` | Files to copy to user project | LLM via `${CLAUDE_PLUGIN_ROOT}` | CONTEXT.md, config.yaml |
+| `commands/` | Slash command instructions | LLM when command invoked | specs.md, plan.md |
+| `agents/` | Agent system prompts | LLM when agent spawned | facilitator.md |
+
+**Key Rule**: Documentation that the LLM needs to READ during skill/command execution goes in `skills/*/references/` or inline, **NOT** in `docs/`.
+
+| Anti-Pattern | Problem | Correct Approach |
+|--------------|---------|------------------|
+| Skill references `docs/workflow.md` | User can't access plugin files; LLM path unclear | Put in `skills/*/references/workflow.md` |
+| Telling user "see docs/X.md" | User can't browse plugin internals | LLM reads reference, synthesizes answer |
+| Creating new docs/ files for LLM | Wrong location; docs/ is for humans | Use skill references or inline content |
+
+**When to use each:**
+- **docs/**: Only for humans reading GitHub (architecture decisions, contributing guide)
+- **skills/references/**: LLM needs to read it to answer user questions or execute skill
+- **templates/**: Content that gets COPIED to user's project
+
+### Path References in Commands/Agents (CRITICAL)
+
+When a command or agent needs to READ a file from the plugin (skill, reference, template), it MUST use `${CLAUDE_PLUGIN_ROOT}`:
+
+| Context | Wrong | Correct |
+|---------|-------|---------|
+| Command reads skill reference | `Read skills/roundtable-execution/references/diagnostic.md` | `Read the file at ${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/diagnostic.md` |
+| Command reads template | `Read templates/project/config.yaml` | `Read the file at ${CLAUDE_PLUGIN_ROOT}/templates/project/config.yaml` |
+| Agent reads check definitions | `Read skills/dev-testing/references/check-registry.md` | `Read the file at ${CLAUDE_PLUGIN_ROOT}/skills/dev-testing/references/check-registry.md` |
+
+**Why this matters**:
+1. Commands/agents execute in the **user's project directory**, not the plugin directory
+2. Relative paths like `skills/...` resolve to the user's project, where those files don't exist
+3. `${CLAUDE_PLUGIN_ROOT}` is expanded at runtime to the plugin's installation path
+4. Without it, Claude will search and fail to find the file, then improvise behavior
+
+**Exception**: Skill internal references (within SKILL.md referring to its own `references/` folder) can use relative paths because skills are loaded as a unit with their references.
+
+### Skill Reference Triggers (IMPORTANT)
+
+Reference files listed in a skill's reference table are **NOT automatically loaded**. Claude knows they exist but doesn't read them until triggered.
+
+**Wrong** - just listing in reference table:
+```markdown
+## Reference Files
+| File | Content |
+| `references/verbose-dump-format.md` | Dump file format |
+```
+
+**Correct** - explicit trigger in SKILL.md body:
+```markdown
+**IF --verbose**: Write dump file (see `references/verbose-dump-format.md` for format)
+```
+
+**Key insight**: Reference files need explicit "when to read" triggers where the functionality is described, not just a table at the end.
+
+**Verified**: 2026-01-21 - Fixed roundtable.md, specs.md, design.md diagnostic/agenda references
+
+### Skill Structure: Core Inline + Reference Extensions (CRITICAL)
+
+Skills should separate **always-executed** instructions from **optional** functionality using the Anchor + Reference pattern.
+
+**Why this matters for LLMs**:
+
+| Problem | Impact | Mitigation |
+|---------|--------|------------|
+| Context dilution | More files = instructions "dilute" | Keep core inline |
+| Instruction forgetting | LLM may skip distributed instructions | Critical steps near execution point |
+| Reference overhead | Each Read adds latency + context | Only load when needed |
+| Anchor mismatch | Reference may not align with skill | Explicit anchor IDs |
+
+**Pattern: Core inline, extensions via reference**
+
+```markdown
+# SKILL.md
+
+## Step 2.1: Round Start {#anchor-round-start}
+
+**Core actions** (ALWAYS executed):
+1. Read session file
+2. Prepare context
+3. **IMMEDIATELY** update `.s2s/state.json` with active_session  ← Core, inline
+
+**Always-active features**:
+- **Token tracking**: Read `references/token-tracking.md` → Execute (every round)
+
+**Extensions** (loaded on demand):
+- **IF `--verbose`**: Read `references/verbose-dump-format.md` → Write dump
+```
+
+**Decision criteria: inline vs reference**
+
+| Criterion | Inline | Reference |
+|-----------|--------|-----------|
+| Always needed | ✅ | |
+| Optional (flag-dependent) | | ✅ |
+| Simple (< 10 lines) | ✅ | |
+| Complex (> 10 lines) | | ✅ |
+| Must not be forgotten | ✅ | |
+| Detailed format spec | | ✅ |
+
+**Anchor conventions**:
+
+```markdown
+# In SKILL.md
+## Step 2.1: Round Start {#round-start}
+
+# In references/token-tracking.md
+## Round Init {#round-start}
+<!-- Anchor matches SKILL.md for alignment -->
+```
+
+**Anti-patterns**:
+
+| Anti-Pattern | Problem | Correct |
+|--------------|---------|---------|
+| Core functionality in reference | May not be loaded | Inline critical steps |
+| Everything inline | Token bloat | Extract optional to references |
+| Reference chain (A → B → C) | Gets lost | Flat structure (Skill → Reference) |
+| No anchor alignment | Confusion | Match anchor IDs |
+| Optional without explicit trigger | Never loaded | "IF flag: Read reference" |
+
+**Example: state.json management (TECH-007)**
+
+State management is **always needed** (for resume suggestion, statusline), so it goes **inline**:
+
+```markdown
+## Step 2.1: Round Start
+
+**IMMEDIATELY** update `.s2s/state.json`:
+```json
+{
+  "active_session": {
+    "id": "{session-id}",
+    "workflow_type": "{workflow_type}",
+    "round": {round_number}
+  }
+}
+```⁣
+
+Token tracking is **always-active** (v2.3.0), so it executes unconditionally at Step 2.1.
+
+---
+
+### Optional Feature Hooks Pattern
+
+Optional features (like `--diagnostic`, `--verbose`) should be activated via **hooks in the skill**, not in commands.
+
+**Why hooks in SKILL.md (not in commands):**
+- Single source of truth for execution flow
+- Reusable across all commands that include the skill
+- Hooks are placed at exact execution points (after synthesis, before completion, etc.)
+
+**Pattern:**
+```markdown
+**IF {flag}**: Read `${CLAUDE_PLUGIN_ROOT}/skills/.../references/{feature}.md` → Execute "{section}" section
+```
+
+**Command responsibility:**
+- Parse the flag (e.g., `--diagnostic`)
+- Pass it to skill via parameters (e.g., `diagnostic: {diagnostic_flag}`)
+- Do NOT duplicate activation logic
+
+**Example** (roundtable-execution SKILL.md):
+```markdown
+### Step 2.4: Facilitator Synthesis
+...
+→ **Token checkpoint T3**: Execute "Capture T3" section from token-tracking.md  ← Always-active
+**IF diagnostic_flag**: Read `${CLAUDE_PLUGIN_ROOT}/.../diagnostic.md` → Execute "Per-Round Diagnostic" section  ← Optional
+```
+
+**Verified**: 2026-01-25 - Token tracking always-active, diagnostic still optional
+
+---
+
+### Always-Active Features vs Optional Features
+
+Features fall into two categories:
+
+| Category | Execution | Resume Behavior | Examples |
+|----------|-----------|-----------------|----------|
+| **Always-active** | Unconditional, every round | Works automatically | Token tracking |
+| **Optional** | Conditional on flag | Must re-check flag | `--verbose`, `--diagnostic` |
+
+**Token tracking** (v2.3.0): Now always active. No `--tokens` flag. Eliminates resume gap where Feature Activation might be skipped.
+
+**Optional features**: Still use the "Optional Feature Hooks Pattern" above with `IF flag:` conditionals.
+
+---
+
+### Per-Round Activation Pattern (for Always-Active Features)
+
+For features that must work on resume, activate at the START of each round (Step 2.1), not once before the first round.
+
+**Pattern**:
+
+```markdown
+### Step 2.1: Display Round Start
+
+[... display round info ...]
+
+**TOKEN TRACKING** (always active - executes every round, including resume):
+
+1. Read `references/token-tracking.md`
+2. Execute "Script Location" section (first round or after resume)
+3. Execute "Context Capacity Check" section (every round, checks SHOULD_STOP/SHOULD_WARN)
+
+[... rest of step ...]
+
+→ **Token checkpoint T1**: Execute "Capture T1" section from token-tracking.md
+→ **Step 2.7**: Token info displayed in round recap (no separate box)
+```
+
+**Key insight**: Token display is now integrated into the round recap (Step 2.7), not shown in separate boxes at round start. This simplifies the output and reduces visual clutter.
+
+**Verified**: 2026-01-26 - Token display simplified to single section in round recap
+
+---
+
+### Validation Strategy: Post-Hoc Evidence-Based
+
+**Principle**: Don't verify DURING execution (adds skippable instructions), verify AFTER by checking artifacts.
+
+**Why NOT inline validation**:
+- Validation instructions compete with execution instructions for LLM attention
+- The problem (LLM skipping instructions) applies to validation instructions too
+- Pollutes the clean instruction flow
+- Increases cognitive load
+
+**Correct approach**:
+
+| Feature | Evidence to Check |
+|---------|-------------------|
+| Token tracking | `.s2s/sessions/{id}.cache` has entries per round |
+| `--verbose` | `rounds/*.yaml` dump files exist |
+| `--diagnostic` | session-observer findings in session file |
+
+**Tool assignment**:
+- **session-qa**: Execution compliance checks (EXEC-*) - comprehensive, evidence files
+- **session-observer**: Real-time anomaly hints - lightweight, per-round
+
+**Workflow**:
+```
+Normal use:     /s2s:specs
+Development:    /s2s:specs --diagnostic
+Verification:   /s2s:session:validate {session-id}
+```
+
+Token tracking is always active (no flag needed).
+
+**See also**: BACKLOG.md → QUAL-002 for EXEC-* check implementation status, TECH-008 for future config toggles.
+
 ---
 
 ## Session File Management
@@ -396,6 +653,21 @@ Session file MUST be written after EACH round, not batched at the end:
 - Only APPEND new round at end of array
 - If conflict resolved, add to new round's `resolved[]`
 - Previous round data is READ-ONLY
+
+### Authoritative Format References
+
+When modifying session/dump formats, consult these authoritative sources:
+
+| Format | Authoritative Source | Notes |
+|--------|---------------------|-------|
+| Session file schema | `skills/roundtable-execution/references/session-schema.md` | Full session.yaml structure |
+| rounds[] array | `skills/roundtable-execution/SKILL.md` Step 2.6 | Per-round fields |
+| Verbose dump files | `skills/roundtable-execution/references/verbose-dump-format.md` | Structured YAML format |
+| Artifact schemas (specs) | `skills/roundtable-execution/references/session-schema.md` | REQ-*, BR-*, NFR-*, etc. |
+| Artifact schemas (design/brainstorm) | Inline in `commands/design.md`, `commands/brainstorm.md` | ARCH-*, IDEA-*, etc. (see TECH-003) |
+| Output documents | `skills/output-generation/references/*.md` | requirements.md, architecture.md, etc. |
+
+**Key principle**: Commands are authoritative for EXECUTION, skills/references are authoritative for FORMAT DEFINITIONS.
 
 ---
 
@@ -541,6 +813,183 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/project/config.yaml`
 - Nested braces `{{...}}` - harder to parse
 
 **Verified in**: TEMPL-001 test (2026-01-17), updated 2026-01-17 for simplified placeholders
+
+---
+
+## Output Generation Skill Pattern
+
+### Templates vs Pseudo-Code (ADR-0012)
+
+Two different patterns for generating files:
+
+| Aspect | Templates (`templates/`) | Output Generation (`skills/output-generation/`) |
+|--------|-------------------------|------------------------------------------------|
+| **Content** | Static structure | Dynamic pseudo-code |
+| **Placeholders** | Simple: `{name}` | Loops: `{for each artifact...}` |
+| **Process** | Read → Replace → Write | Read → Interpret → Generate |
+| **Used by** | `/s2s:init` | `/s2s:specs`, `/s2s:design`, `/s2s:brainstorm` |
+
+### Output Generation Structure
+
+```
+skills/output-generation/
+  ├── SKILL.md                   # Common logic (dispatch, merge, CONTEXT.md)
+  └── references/
+      ├── specs-srs.md           # SRS format pseudo-code
+      ├── design-arc42.md        # Architecture + ADR pseudo-code
+      └── brainstorm.md          # Summary + ideas pseudo-code
+```
+
+### How Commands Use It
+
+```markdown
+Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/output-generation/SKILL.md`
+and follow the instructions for workflow_type="specs"
+```
+
+The SKILL.md handles:
+1. Format selection (based on workflow_type)
+2. Merge vs override mode
+3. CONTEXT.md update (specs/design only)
+4. Dispatches to correct reference for format-specific pseudo-code
+
+### Adding New Formats
+
+1. Create `references/{workflow}-{format}.md` with pseudo-code template
+2. Update SKILL.md format table
+3. No changes to commands needed
+
+**Example**: To add `specs-user-stories.md`:
+- Add reference file with user story format
+- Add to SKILL.md format table
+- Commands can use `--format user-stories` (future)
+
+### Why This Pattern
+
+1. **DRY**: Common logic in SKILL.md, not duplicated across commands
+2. **Progressive disclosure**: SKILL.md (~200 words) + reference (~150 words) loaded on-demand
+3. **Extensibility**: New formats without touching commands
+4. **Consistency**: Same pattern as `roundtable-strategies`
+
+---
+
+## Development Tools (/s2s:dev:*)
+
+Development-only tools for verifying s2s plugin quality. These are in `commands/dev/` and `agents/dev/` and are **NOT shipped** with the plugin.
+
+### Available Commands
+
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| `/s2s:dev:check` | Verify instructions follow patterns | After modifying commands/agents |
+| `/s2s:dev:test` | Run integration tests | After significant refactoring |
+
+### Check Categories
+
+**INST-* (Instruction Quality)**:
+- Imperative voice in commands
+- Explicit tool usage ("YOU MUST use X tool NOW")
+- No ambiguity in steps
+- Template/inline alignment
+- Config from config.yaml, no hardcoded values
+- ADR compliance (state field usage per ADR-0010)
+
+**CONS-* (Consistency)**:
+- Session ID format consistency across commands
+- Snapshot file structure consistency
+- Resume logic equivalence
+- Verbose dump format consistency
+- Error handling patterns
+- Diagnostic mode consistency
+
+**RES-* (Resume Capability)**:
+- agent_id persistence
+- last_round tracking
+- context reconstruction for facilitator
+- participant context propagation
+
+**EDGE-* (Edge Cases)**:
+- Empty session resume
+- Mid-round interruption
+- Partial participant failure
+- Max rounds reached
+- YAML special characters
+
+### When to Run
+
+| Scenario | Command |
+|----------|---------|
+| Modified a command file | `/s2s:dev:check --instructions` |
+| Modified multiple commands | `/s2s:dev:check --consistency` |
+| Changed resume logic | `/s2s:dev:test --resume` |
+| Major refactoring | `/s2s:dev:test --all` |
+| Pre-release validation | `/s2s:dev:check && /s2s:dev:test` |
+
+### Structure
+
+```
+skills/dev-testing/
+├── SKILL.md                    # Entry point, skill metadata
+└── references/
+    ├── check-registry.md       # Master list of all checks
+    ├── inst-checks.md          # INST-* definitions
+    ├── cons-checks.md          # CONS-* definitions
+    ├── res-checks.md           # RES-* definitions
+    └── edge-scenarios.md       # EDGE-* scenarios
+
+agents/dev/
+└── dev-validator.md            # Unified agent (reads from skill)
+
+commands/dev/
+├── check.md                    # /s2s:dev:check - INST-*, CONS-*
+└── test.md                     # /s2s:dev:test - RES-*, EDGE-*
+```
+
+### Architecture
+
+Check/test definitions are in **skill references** (easy to extend), while the **agent** handles execution logic. Commands orchestrate and display results.
+
+```
+/s2s:dev:check
+    └── dev-validator agent
+            └── reads skills/dev-testing/references/inst-checks.md
+            └── reads skills/dev-testing/references/cons-checks.md
+            └── executes checks, returns results
+
+/s2s:dev:test
+    └── dev-validator agent
+            └── reads skills/dev-testing/references/res-checks.md
+            └── reads skills/dev-testing/references/edge-scenarios.md
+            └── executes tests, returns results
+```
+
+### Adding New Checks
+
+**Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/dev-testing/references/extension-guide.md`** for complete instructions.
+
+The guide includes:
+- Category selection criteria
+- Template for each check type (INST, CONS, RES, EDGE)
+- Step-by-step process with examples
+- Evidence schema patterns
+
+Quick process:
+1. Add entry to `check-registry.md`
+2. Add full definition using template from `extension-guide.md`
+3. Update count in `SKILL.md`
+4. Test with `/s2s:dev:check --all` or `/s2s:dev:test --all`
+
+### Release Exclusion
+
+These folders are excluded from the shipped plugin via `.github/release.yml`:
+- `commands/dev/`
+- `agents/dev/`
+
+**Future**: When v1.0 is released, these will move to a separate `spec2ship-devkit` repository (see DEBT-002).
+
+### Specification
+
+Full details: `.s2s/plans/20260118-session-resilience-verification.md`
 
 ---
 

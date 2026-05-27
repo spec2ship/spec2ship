@@ -113,7 +113,7 @@ missing_fields: []
 
 ---
 
-### STR-002: Artifact States Valid
+### STR-002: Artifact States Valid (ADR-0010)
 
 | Property | Value |
 |----------|-------|
@@ -121,37 +121,73 @@ missing_fields: []
 | **Type** | Structural (script) |
 | **Severity** | high |
 
-**Purpose**: Verify all artifacts have valid status values.
+**Purpose**: Verify all artifacts have valid `state` field values per ADR-0010.
 
-**Valid States**:
-- Requirements/BR/NFR/EX: `active`, `amended`, `superseded`, `withdrawn`
-- Open Questions/Conflicts: `open`, `resolved`
+**Valid States** (single `state` field):
+
+Universal states (all artifact types):
+- `draft`, `needs_discussion`, `in_progress`, `blocked`, `deferred`, `rejected`
+
+Terminal states by artifact type:
+- REQ, BR, NFR, EX: `approved`, `implemented`
+- ARCH, COMP, INT: `accepted`
+- IDEA: `promoted`, `parked`
+- OQ, CONF: `resolved`
 
 **Verification Steps**:
 
 ```bash
 SESSION_FILE=".s2s/sessions/SESSION_ID.yaml"
 
-# Check lifecycle artifacts (requirements, business_rules, nfr, exclusions)
-echo "=== Lifecycle Artifacts ==="
+# Universal states valid for all artifact types
+UNIVERSAL_STATES="draft|needs_discussion|in_progress|blocked|deferred|rejected"
+
+# Check requirements, business_rules, nfr, exclusions (terminal: approved|implemented)
+echo "=== Requirements-like Artifacts ==="
 for TYPE in requirements business_rules nfr exclusions; do
   yq ".artifacts.$TYPE | keys | .[]" "$SESSION_FILE" 2>/dev/null | while read ID; do
-    STATUS=$(yq ".artifacts.$TYPE[\"$ID\"].status" "$SESSION_FILE" 2>/dev/null)
-    case "$STATUS" in
-      active|amended|superseded|withdrawn) echo "OK: $ID = $STATUS" ;;
-      *) echo "INVALID: $ID = $STATUS (expected: active|amended|superseded|withdrawn)" ;;
+    STATE=$(yq ".artifacts.$TYPE[\"$ID\"].state" "$SESSION_FILE" 2>/dev/null)
+    case "$STATE" in
+      draft|needs_discussion|in_progress|blocked|deferred|rejected|approved|implemented)
+        echo "OK: $ID = $STATE" ;;
+      *) echo "INVALID: $ID = $STATE (expected: universal or approved|implemented)" ;;
     esac
   done
 done
 
-# Check issue artifacts (open_questions, conflicts)
-echo "=== Issue Artifacts ==="
+# Check architecture_decisions, components, interfaces (terminal: accepted)
+echo "=== Architecture Artifacts ==="
+for TYPE in architecture_decisions components interfaces; do
+  yq ".artifacts.$TYPE | keys | .[]" "$SESSION_FILE" 2>/dev/null | while read ID; do
+    STATE=$(yq ".artifacts.$TYPE[\"$ID\"].state" "$SESSION_FILE" 2>/dev/null)
+    case "$STATE" in
+      draft|needs_discussion|in_progress|blocked|deferred|rejected|accepted)
+        echo "OK: $ID = $STATE" ;;
+      *) echo "INVALID: $ID = $STATE (expected: universal or accepted)" ;;
+    esac
+  done
+done
+
+# Check ideas (terminal: promoted|parked)
+echo "=== Ideas ==="
+yq ".artifacts.ideas | keys | .[]" "$SESSION_FILE" 2>/dev/null | while read ID; do
+  STATE=$(yq ".artifacts.ideas[\"$ID\"].state" "$SESSION_FILE" 2>/dev/null)
+  case "$STATE" in
+    draft|needs_discussion|in_progress|blocked|deferred|rejected|promoted|parked)
+      echo "OK: $ID = $STATE" ;;
+    *) echo "INVALID: $ID = $STATE (expected: universal or promoted|parked)" ;;
+  esac
+done
+
+# Check open_questions and conflicts (terminal: resolved)
+echo "=== Resolution Artifacts ==="
 for TYPE in open_questions conflicts; do
   yq ".artifacts.$TYPE | keys | .[]" "$SESSION_FILE" 2>/dev/null | while read ID; do
-    STATUS=$(yq ".artifacts.$TYPE[\"$ID\"].status" "$SESSION_FILE" 2>/dev/null)
-    case "$STATUS" in
-      open|resolved) echo "OK: $ID = $STATUS" ;;
-      *) echo "INVALID: $ID = $STATUS (expected: open|resolved)" ;;
+    STATE=$(yq ".artifacts.$TYPE[\"$ID\"].state" "$SESSION_FILE" 2>/dev/null)
+    case "$STATE" in
+      draft|needs_discussion|in_progress|blocked|deferred|rejected|resolved)
+        echo "OK: $ID = $STATE" ;;
+      *) echo "INVALID: $ID = $STATE (expected: universal or resolved)" ;;
     esac
   done
 done
@@ -163,8 +199,8 @@ check: STR-002
 status: pass|fail
 invalid_artifacts:
   - id: "REQ-001"
-    status: "invalid_value"
-    expected: "active|amended|superseded|withdrawn"
+    state: "invalid_value"
+    expected: "universal or approved|implemented"
 ```
 
 ---
@@ -535,7 +571,7 @@ results:
     missing: ["started_at", "input", "tokens"]
 ```
 
-**What This Detects**: Commands may write incomplete dumps when resuming agents. Fix location: Step 2.3 in specs.md and design.md.
+**What This Detects**: Commands may write incomplete dumps when resuming agents. Fix location: Step 2.3 in `skills/roundtable-execution/references/phase-2-core.md` (post-TECH-002 Phase 7B; was inline in specs.md/design.md/brainstorm.md before 7B.4b).
 
 ---
 
@@ -608,7 +644,7 @@ results:
     missing_keys: ["project_summary", "relevant_artifacts"]
 ```
 
-**What This Detects**: Commands may not save participant_context.shared to facilitator dumps. Fix location: Step 2.2 in specs.md and design.md.
+**What This Detects**: Commands may not save participant_context.shared to facilitator dumps. Fix location: Step 2.2 in `skills/roundtable-execution/references/phase-2-core.md` (post-7B.4b).
 
 ---
 
@@ -658,7 +694,7 @@ session_rounds:
     synthesis_next_phase: "rebuttal"
 ```
 
-**What This Detects**: debate_phase may not be included in round summary. Fix location: Step 2.6 in design.md.
+**What This Detects**: debate_phase may not be included in round summary. Fix location: Step 2.6 in `skills/roundtable-execution/references/phase-2-core.md` (strategy hook wiring deferred to Phase 4 — Option A/B/C decision).
 
 ---
 
@@ -796,7 +832,7 @@ warnings:
 evidence_file: ".s2s/qa/evidence/{session_id}.yaml"
 
 recommendations:
-  - "Check metrics calculation in Step 2.6 of specs.md"
+  - "Check metrics calculation in Step 2.6 of skills/roundtable-execution/references/phase-2-core.md"
 ```
 
 **Status determination:**
@@ -814,3 +850,31 @@ recommendations:
 4. **Evidence is write-only** - Don't modify existing evidence files
 5. **Report findings, don't fix** - Your job is to detect issues, not correct data
 6. **Provide actionable recommendations** - Help identify which command/step needs attention
+
+---
+
+## Future: Execution Compliance Checks (EXEC-*)
+
+> **Status**: Planned (QUAL-002 in BACKLOG.md)
+
+These checks validate that feature instructions were executed correctly.
+
+**Rationale**: Token tracking is always active (v2.3.0). Optional features (`--verbose`, `--diagnostic`) require LLM to follow conditional instructions. Post-hoc evidence-based validation catches skipped instructions.
+
+**Proposed checks**:
+
+| Check | Applies When | Evidence to Check |
+|-------|--------------|-------------------|
+| EXEC-001 | always (token tracking) | `.s2s/sessions/{id}.cache` has T1, T2, T3 entries per round |
+| EXEC-002 | `verbose_flag` was used | `rounds/*.yaml` dump files exist for each round |
+| EXEC-003 | `diagnostic_flag` was used | session-observer findings present in session file |
+
+**Evidence principle**: If the instruction was followed, the artifact exists. No artifact = instruction was skipped.
+
+**Implementation notes**:
+- EXEC-001 runs unconditionally (token tracking is always active)
+- EXEC-002/003 require `verbose_flag`, `diagnostic_flag` in input YAML
+- Optional checks are skipped if flag was not used (not a failure)
+- Include in evidence file under `execution_compliance` section
+
+**See also**: `.claude/s2s-development.md` → "Always-Active Features vs Optional Features"

@@ -26,6 +26,30 @@ roundtable:
       design: "debate"             # Best for evaluating architectural options
       brainstorm: "disney"         # Best for creative ideation
 
+    # Consensus rules per strategy (ADR-0010)
+    consensus:
+      standard:
+        threshold: 0.67            # 2/3 majority
+        mechanism: "majority"      # majority | consent | facilitator_decides | none
+        block_prevents_terminal: true
+      consensus-driven:
+        threshold: 1.0             # Unanimous consent
+        mechanism: "consent"       # Stand-aside allowed, block triggers discussion
+        block_prevents_terminal: true
+        stand_aside_allowed: true
+      debate:
+        threshold: null            # No voting
+        mechanism: "facilitator_decides"  # Facilitator weighs arguments
+        block_prevents_terminal: false
+      disney:
+        threshold: null            # No voting per phase
+        mechanism: "none"          # Ideas collected, not voted
+        block_prevents_terminal: false
+      six-hats:
+        threshold: 0.67            # 2/3 after all perspectives
+        mechanism: "majority"
+        block_prevents_terminal: true
+
   # === PARTICIPANTS ===
   participants:
     default:

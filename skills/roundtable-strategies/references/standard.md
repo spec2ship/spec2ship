@@ -98,3 +98,13 @@ Provide your perspective. Include:
 - May not converge on complex topics
 - Doesn't separate creative from critical thinking
 - All participants speak on every round (could be noisy)
+
+## Strategy hooks
+
+No per-round hooks. Algorithm runs with workflow defaults from PROFILE.
+
+This strategy emits no strategy-specific fields at the Phase 2 hook points:
+- Step 2.3c (participant response): no `*_role` field added to participant dumps.
+- Step 2.6a (round summary): no `*_phase` field added to `rounds[]` entries.
+
+Facilitator instructions at Step 2.2c skip override population for this strategy (per `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/strategy-hooks.md` §8 future-wiring contract).

@@ -28,6 +28,11 @@
 
 **Context**: Description of the feature or task.
 
+**Traceability** (optional):
+- **Originated from**: IDEA-001 | brainstorm:{session-id}
+- **Implements**: REQ-001, REQ-002
+- **Plan**: {plan-id}
+
 **Acceptance Criteria**:
 - [ ] Criterion 1
 - [ ] Criterion 2

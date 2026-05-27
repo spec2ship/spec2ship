@@ -6,6 +6,13 @@
 **Created**: {created-timestamp}
 **Updated**: {updated-timestamp}
 
+## Traceability
+
+<!-- Source of this plan - what item triggered its creation -->
+**Source**: {source-id}
+**Source Type**: {source-type}
+<!-- Source types: backlog (FEAT-*, BUG-*, TECH-*, DEBT-*), requirement (REQ-*, NFR-*), idea (IDEA-*), architecture (COMP-*, ARCH-*), topic (free text) -->
+
 ## References
 
 ### Requirements

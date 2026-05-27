@@ -181,3 +181,22 @@ As facilitator, synthesize this debate:
 ## Research Basis
 
 Structured debate is a proven technique for evaluating options. In LLM contexts, adversarial setups help mitigate sycophancy by forcing agents into opposing roles.
+
+## Strategy hooks
+
+Facilitator-driven, LLM-emergent. Phase 4 chose Option B; current policy is `facilitator_emergent` (LLM picks Pro/Con role values; field names provided via hook_overrides). Promote to deterministic rule once empirical baseline sample size justifies.
+
+### Hook fields emitted
+
+| Hook | Phase 2 step | Field added |
+|------|--------------|-------------|
+| Pro/Con role assignment | Step 2.3c (participant response) | `debate_role: "pro" \| "con"` (top-level in participant dump's `response`) |
+| Debate phase tracking | Step 2.6a (round summary entry) | `debate_phase: "opening" \| "rebuttal" \| "closing" \| "synthesis"` (optional in `rounds[].` entry) |
+
+### Current state (post Phase 4 wiring, 2026-05-21)
+
+Both `debate_role` and `debate_phase` are emitted by the facilitator agent through LLM interpretation of the strategy context. The wiring path runs through Option B: `commands/roundtable.md` PHASE 1 reads this doc's § Strategy hooks, populates `hook_overrides.participant_response.debate_role.policy = "facilitator_emergent"` in `session.yaml`, and the facilitator/participant agents consume the dict via the 3-branch dispatch in `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/strategy-hook-resolution.md`. The "automatic" Pro/Con side assignment referenced in §How It Works above is realised by LLM choice at session start under the `facilitator_emergent` policy, not by a fixed rule.
+
+A future deterministic policy table for Pro/Con assignment (Option B refinement) may be added below this section as data once empirical baselines justify it.
+
+For full hook contract details (field types, source, behaviour), see `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/strategy-hooks.md` §3 (`participant_response.debate_role`) and §4 (`round_summary.debate_phase`). Architectural decision recorded in ADR-0011 Phase 4 addendum.

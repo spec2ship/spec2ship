@@ -76,23 +76,42 @@ Knowledge bases loaded on demand.
 
 ## Roundtable Architecture
 
+Since TECH-002 Phase 8 (v0.4.0, 2026-05), all 4 workflow commands route through a single master orchestrator. The 3 workflow-specific commands are thin launchers; the master holds the round loop, profile-driven session setup, and output dispatch.
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    WORKFLOW COMMAND                         │
-│              (specs.md, design.md, brainstorm.md)           │
+│              THIN LAUNCHER (workflow-specific)              │
+│           (specs.md, design.md, brainstorm.md)              │
 │                                                             │
-│  • Validates prerequisites                                  │
-│  • Creates session file                                     │
-│  • Executes roundtable loop                                 │
-│  • Writes output documents                                  │
+│  • Parses arguments (--session, --skip-roundtable, ...)     │
+│  • Validates workflow-specific prerequisites                │
+│  • Smart source detection (specs only)                      │
+│  • Read-and-follow handoff to the master                    │
+└─────────────────────────────────────────────────────────────┘
+                           │ handoff variables
+                           │ (WORKFLOW_TYPE, INPUT_SOURCES,
+                           │  OUTPUT_MERGE_MODE, OUTPUT_FORMAT,
+                           │  FOCUS_AREA)
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│             MASTER ORCHESTRATOR (roundtable.md)             │
+│                                                             │
+│  PHASE 0  Auto-detect / parse args (scoped to workflow)     │
+│  PHASE 1  Profile-driven session setup                      │
+│           (folder + 3 snapshots + skeleton from PROFILE)    │
+│  PHASE 3  Delegate to phase-2-core.md round loop            │
+│  PHASE 4  Close-out + output dispatch                       │
+│                                                             │
+│  Profile source: skills/roundtable-execution/profiles/      │
+│                  {specs,design,brainstorm,roundtable}.yaml  │
 └─────────────────────────────────────────────────────────────┘
                            │
-              For each round:
+              For each round (phase-2-core.md §2):
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 1. FACILITATOR (question)                                   │
 │    • Generates discussion question                          │
-│    • Prepares participant context                           │
+│    • Prepares participant context (+ hook_overrides)        │
 │    • Uses: Task(roundtable-facilitator)                     │
 └─────────────────────────────────────────────────────────────┘
                            │
@@ -114,19 +133,33 @@ Knowledge bases loaded on demand.
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 4. COMMAND (update session)                                 │
+│ 4. MASTER (update session, evaluate next)                   │
 │    • Writes round to session file                           │
-│    • Updates metrics                                        │
-│    • Displays recap to user                                 │
+│    • Updates metrics + state.json                           │
+│    • Displays recap; loops or exits round loop              │
+└─────────────────────────────────────────────────────────────┘
+                           │
+              After last round:
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│ PHASE 4 (master): Close-out + Output                        │
+│  • Diagnostic report (if --diagnostic)                      │
+│  • Update session status = closed                           │
+│  • Dispatch to output-generation/references/{workflow}.md   │
+│    (specs-srs, design-arc42, brainstorm, roundtable-summary)│
 └─────────────────────────────────────────────────────────────┘
 ```
+
+The master can also be invoked directly via `/s2s:roundtable` (native mode, generic workflow_type). See ADR-0011 (Phase 4 + Phase 8 addenda) for the architectural decision and ADR-0012 for output-generation skill rationale.
 
 ## Key Design Principles
 
 | Principle | Description |
 |-----------|-------------|
 | **Component Separation** | Commands orchestrate, Agents provide expertise, Skills provide knowledge |
-| **Inline Orchestration** | Roundtable loop runs in commands (subagents can't spawn subagents) |
+| **Master Orchestrator + Thin Launchers** | One round-loop implementation in `commands/roundtable.md`; workflow-specific commands are thin launchers that Read-and-follow the master (Pattern 1) |
+| **Profile-Driven** | Workflow shape is data (`skills/roundtable-execution/profiles/*.yaml`), not duplicated procedural code |
+| **Inline Orchestration** | Round loop runs in command land, not subagents (subagents can't spawn subagents) |
 | **Model Tiers** | Critical tasks use opus, most use inherited model, simple tasks use haiku |
 | **Context Passing** | Participants receive inline context (no file access, enables blind voting) |
 | **Session as Truth** | Single session file contains all state and artifacts |

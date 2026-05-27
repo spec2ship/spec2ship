@@ -1,0 +1,18 @@
+{
+  "statusLine": {
+    "type": "command",
+    "command": ".claude/statusline.sh"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/context-reset.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

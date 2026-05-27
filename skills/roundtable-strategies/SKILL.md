@@ -7,7 +7,7 @@ description: "This skill should be used when starting a roundtable session, faci
   When topic mentions 'vs', 'compare', 'evaluate', 'choose' → debate.
   When topic mentions 'urgent', 'fast', 'quick', 'asap' → consensus-driven.
   When topic mentions 'comprehensive', 'thorough', 'all angles', 'deep analysis' → six-hats."
-version: 1.1.0
+version: 1.3.0
 ---
 
 # Roundtable Strategies
@@ -57,7 +57,34 @@ Topic: "Creative approach for new authentication feature"
 
 ---
 
+## Strategy resolution hierarchy
+
+> Added in v1.3.0 (TECH-002 Phase 4). Full worked examples + D3 hierarchy decision rationale: `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/strategy-resolution.md` + ADR-0011 Phase 4 addendum.
+
+`commands/roundtable.md` Phase 1 resolves the active strategy in this fixed order. First source that yields a value wins; subsequent sources are NOT consulted.
+
+```
+CLI --strategy <value>                                 (highest priority)
+  ├─ if set → use it
+  └─ else → .s2s/config.yaml.roundtable.strategy.by_workflow_type[{workflow_type}]
+            ├─ if set → use it
+            └─ else → profiles/{workflow_type}.yaml.default_strategy
+                      ├─ if set → use it
+                      └─ else → error "no strategy resolvable"   (defensive; should not trigger in normal use)
+```
+
+**Forced override** (wins over all): `profiles/{workflow_type}.yaml.strategy_constraints.forced == true`. Only `brainstorm.yaml` sets `forced: true` (forces `disney` regardless of CLI/config).
+
+**D3 source roles**:
+- `.s2s/config.yaml`: **user canonical** (runtime authoritative, project-level overrides)
+- `profiles/{workflow}.yaml`: **plugin fallback** (consulted only when config.yaml lacks the key)
+- this `SKILL.md` (table below): **human-facing documentation only**, NOT consumed at runtime
+
+---
+
 ## Workflow-Specific Defaults
+
+> **Authoritative source**: profile YAMLs in `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/profiles/{workflow}.yaml` (fields `default_strategy`, `participants.default`, `strategy_constraints`). The table below is a human-readable summary; if it drifts, the YAML is correct.
 
 Each workflow has a recommended default strategy and participant set:
 
@@ -66,14 +93,17 @@ Each workflow has a recommended default strategy and participant set:
 | **specs** | consensus-driven | PM, UX-Researcher, BA, QA | Requirements need broad agreement, not debate |
 | **design** | debate | Architect, Security, TechLead, DevOps | Architecture trade-offs benefit from Pro/Con analysis |
 | **brainstorm** | disney (forced) | Variable (--participants) | Creative exploration requires Dreamer→Realist→Critic |
+| **roundtable** | standard | Architect, TechLead (configurable) | Generic discussion, single topic, no opinionated default |
 
 ### Artifact Types by Workflow
 
-| Workflow | Primary Artifacts | Secondary Artifacts |
-|----------|-------------------|---------------------|
-| **specs** | REQ-*, BR-*, NFR-* | OQ-*, CONF-*, EX-* |
-| **design** | ARCH-*, COMP-*, INT-* | ADR-*, OQ-*, CONF-* |
-| **brainstorm** | IDEA-*, RISK-*, MIT-* | OQ-* |
+> **Authoritative source**: profile YAMLs `artifact_types[]` (fields `prefix`, `session_key`, `is_primary`). In-session artifacts are listed here. `ADR-*` (design) is a Phase 3 output artifact written to `.s2s/decisions/`, not an in-session entry in `session.yaml.artifacts`.
+
+| Workflow | Primary Artifacts (in-session) | Secondary Artifacts (in-session) | Phase 3 output artifacts |
+|----------|-------------------------------|---------------------------------|--------------------------|
+| **specs** | REQ-*, BR-*, NFR-* | OQ-*, CONF-*, EX-* | (none beyond session summary) |
+| **design** | ARCH-*, COMP-*, INT-* | OQ-*, CONF-* | ADR-* (written to `.s2s/decisions/`) |
+| **brainstorm** | IDEA-*, RISK-*, MIT-* | OQ-*, CONF-* | (none beyond session summary; ideas promoted to `.s2s/ideas.md`) |
 
 ### Strategy-Workflow Compatibility
 

@@ -85,6 +85,116 @@ Extract from $ARGUMENTS:
 - **--new**: Force create new plan (skip auto-detect)
 - **--session**: Resume specific plan by ID
 
+**Also check for positional argument** (topic or ID):
+- Extract any non-flag argument as `plan_target`
+- Examples: `plan "user authentication"`, `plan FEAT-001`, `plan IDEA-003`
+
+---
+
+## Smart Source Detection (no flags needed)
+
+**IF `plan_target` is provided**:
+
+### ID Pattern Detection
+
+Check if `plan_target` matches a known ID pattern:
+
+| Pattern | Source | Action |
+|---------|--------|--------|
+| `FEAT-*`, `BUG-*`, `TECH-*`, `DEBT-*` | `.s2s/BACKLOG.md` | Read item, use as plan input |
+| `REQ-*`, `NFR-*` | `.s2s/requirements.md` or `docs/specifications/requirements.md` | Read requirement, use as plan input |
+| `COMP-*`, `INT-*` | architecture docs | Read component/interface, use as plan input |
+| `ARCH-*` | `.s2s/decisions/` | Read ADR, use as plan input |
+| `IDEA-*` | `.s2s/ideas.md` | **WARNING** + confirmation required |
+
+**IF IDEA-* pattern detected**:
+
+```
+⚠️  WARNING: Planning from unvalidated idea
+═══════════════════════════════════════════
+
+You're trying to create a plan from IDEA-{NNN}: "{title}"
+
+Ideas should typically go through requirements validation first:
+  1. /s2s:specs - Define and validate requirements
+  2. /s2s:plan  - Then create implementation plan
+
+Planning directly from ideas may result in:
+- Missing edge cases not caught by requirements analysis
+- Incomplete acceptance criteria
+- Scope creep during implementation
+```
+
+Ask using AskUserQuestion:
+- "How would you like to proceed?"
+  - Options:
+    - "Run /s2s:specs first (recommended)" - stop and suggest specs command
+    - "Proceed anyway" - create plan from idea (explicit confirmation)
+    - "Cancel" - abort
+
+**IF user selects "Proceed anyway"**:
+- Display: "Proceeding with plan from IDEA-{NNN}. Note: Consider running /s2s:specs after implementation for validation."
+- Continue with idea as plan input
+
+**IF user selects "Run /s2s:specs first"**:
+- Display: "Run: /s2s:specs IDEA-{NNN}"
+- Stop execution
+
+### Text Search (if not an ID pattern)
+
+If `plan_target` does not match an ID pattern, search for it:
+
+1. **Search BACKLOG.md** first:
+   - Look for items with matching title or description
+   - Prioritize `status: planned` items
+
+2. **Search requirements.md**:
+   - Look for REQ-* with matching title or description
+
+3. **Search architecture docs**:
+   - Look for components or interfaces with matching name
+
+4. **Search ideas.md** last:
+   - Look for ideas with matching title or problem
+   - **IF found in ideas.md only**: Apply same IDEA-* warning as above
+
+**IF match found**:
+- Display: "Found: {ID} - {title} in {source}"
+- Use as plan input
+
+**IF no match found**:
+- Display: "No existing item found for '{plan_target}'"
+- Ask: "Would you like to create a new plan for this topic?"
+
+### No Target Provided (show planned items)
+
+**IF no `plan_target` and no --all and no --component**:
+
+Read `.s2s/BACKLOG.md` and list items with `status: planned`:
+
+```
+Planned Items Ready for Implementation
+══════════════════════════════════════
+
+From BACKLOG.md:
+1. FEAT-001: {title}
+   Status: planned | Priority: {priority}
+   {brief description}
+
+2. FEAT-002: {title}
+   Status: planned | Priority: {priority}
+   {brief description}
+
+{IF no planned items}
+No planned items found in BACKLOG.md.
+Run /s2s:specs to define requirements, or specify a topic directly.
+{/IF}
+```
+
+Ask using AskUserQuestion:
+- "Which item would you like to plan?"
+  - Options: list each planned item, plus "Enter custom topic"
+
 ---
 
 ## Auto-detect Active Plans
@@ -317,6 +427,8 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/plan.md`
 - `{branch-name}` → `{branch-name if --with-branches, else "N/A"}`
 - `{created-timestamp}` → `{ISO timestamp}`
 - `{updated-timestamp}` → `{ISO timestamp}`
+- `{source-id}` → `{FEAT-001, REQ-001, IDEA-001, etc. - the source item this plan was created from}`
+- `{source-type}` → `{backlog | requirement | idea | architecture | topic}`
 - `{requirements-list}` → `{list of REQ-xxx covered, or "N/A"}`
 - `{architecture-list}` → `{list of ARCH-xxx or component references, or "N/A"}`
 - `{decisions-list}` → `{relevant ADRs, or "N/A"}`
@@ -326,6 +438,12 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/plan.md`
 - `{criterion-1}`, `{criterion-2}` → `{generated acceptance criteria}`
 - `{testing-description}` → `{how to verify this implementation}`
 - `{integration-description}` → `{how this connects to other components}`
+
+**Add traceability note** if source is IDEA-*:
+```markdown
+> ⚠️ **Note**: This plan was created directly from an idea (IDEA-{NNN}) without formal requirements validation.
+> Consider running `/s2s:specs` after implementation to validate against user needs.
+```
 
 **Write**: Save the modified content to `.s2s/plans/{timestamp}-{slug}.md`
 

@@ -6,20 +6,32 @@ This project uses [Spec2Ship](https://github.com/spec2ship/spec2ship) for specif
 
 ## Structure
 
-| Path | Purpose |
-|------|---------|
-| `CONTEXT.md` | Project context (loaded by Claude via CLAUDE.md) |
-| `config.yaml` | Project configuration |
-| `decisions/` | Architecture Decision Records (MADR format) |
-| `sessions/` | Roundtable session artifacts |
-| `plans/` | Implementation plans |
-| `BACKLOG.md` | Work items, ideas, technical debt |
+| Path | Purpose | Content |
+|------|---------|---------|
+| `CONTEXT.md` | Project context | Business domain, objectives, constraints |
+| `config.yaml` | Configuration | Roundtable settings, participants |
+| `requirements.md` | Requirements | REQ-*, NFR-*, BR-* from specs sessions |
+| `architecture.md` | Architecture | Components, interfaces, data flow |
+| `BACKLOG.md` | Work items | Active tasks (planned, in_progress) |
+| `ideas.md` | Ideas | Proposals and concepts for evaluation |
+| `decisions/` | ADRs | Architecture Decision Records (MADR format) |
+| `sessions/` | Sessions | Roundtable session artifacts |
+| `plans/` | Plans | Implementation plans |
 
-## Project Tracking
+## Artifact flow
 
-**Backlog**: `BACKLOG.md` - Single source of truth for all planned work, ideas, and technical debt. Uses category-based IDs (ARCH-*, EXT-*, QUAL-*, etc.) with status tracking.
-
-**Decisions**: `decisions/` - Architecture Decision Records (ADRs) in MADR format.
+```
+brainstorm → ideas.md (IDEA-*)
+                 ↓ promote
+specs ←──── BACKLOG.md (FEAT-*)
+    ↓
+requirements.md (REQ-*, NFR-*)
+    ↓
+design → architecture.md (COMP-*, INT-*)
+       + decisions/ (ADR-*)
+    ↓
+plan → plans/
+```
 
 ## Commands
 
@@ -30,7 +42,7 @@ This project uses [Spec2Ship](https://github.com/spec2ship/spec2ship) for specif
 | `/s2s:brainstorm "topic"` | Creative exploration |
 | `/s2s:plan "feature"` | Generate implementation plan |
 
-### Session Management
+### Session management
 
 | Command | Description |
 |---------|-------------|
@@ -38,7 +50,7 @@ This project uses [Spec2Ship](https://github.com/spec2ship/spec2ship) for specif
 | `/s2s:session:status` | Current session status |
 | `/s2s:session:close` | Close active session |
 
-## More Information
+## More information
 
 - [Spec2Ship Documentation](https://github.com/spec2ship/spec2ship)
 - Project context: `CONTEXT.md`

@@ -34,24 +34,52 @@ Terminology used throughout Spec2Ship.
 
 ---
 
-## Artifact States
+## Artifact States (ADR-0010)
 
-| State | Description |
-|-------|-------------|
-| **active** | Current, valid artifact |
-| **amended** | Modified by subsequent round |
-| **superseded** | Replaced by newer artifact |
-| **withdrawn** | Removed from scope |
+All artifacts use a single `state` field (not separate status + agreement).
 
----
+### Universal States
 
-## Agreement Levels
+All artifact types can use these states:
 
-| Level | Description |
-|-------|-------------|
-| **consensus** | All participants agreed |
-| **draft** | Tentative, needs further discussion |
-| **conflict** | Disagreement exists |
+| State | Description | Facilitator Action |
+|-------|-------------|-------------------|
+| **draft** | Initial state after creation | Passive (log) |
+| **needs_discussion** | Queued for discussion | Passive (queue) |
+| **in_progress** | Currently being discussed | Active (drive resolution) |
+| **blocked** | Has blocking concern | Active (address block) |
+| **deferred** | Postponed for later | Passive (review at close) |
+| **rejected** | Explicitly rejected | Passive (archive) |
+
+### Terminal States (by artifact type)
+
+| Artifact Types | Terminal States |
+|----------------|-----------------|
+| REQ, BR, NFR, EX | `approved`, `implemented` |
+| ARCH, DEC, COMP, INT | `accepted` |
+| IDEA | `promoted`, `parked` |
+| OQ, CONF | `resolved` |
+
+### State Transitions
+
+Tracked in `rounds[].artifacts_transitioned` for audit:
+
+```yaml
+artifacts_transitioned:
+  - id: "REQ-001"
+    from: "draft"
+    to: "approved"
+    reason: "consensus reached"
+```
+
+### Resolution Tracking
+
+| Field | Structure | Description |
+|-------|-----------|-------------|
+| **resolved_conflicts** | `{conflict_id, resolution, method}` | How conflicts were resolved |
+| **resolved_questions** | `{question_id, answer}` | How questions were answered |
+
+Resolution methods: `consensus`, `facilitator`, `user_decision`
 
 ---
 

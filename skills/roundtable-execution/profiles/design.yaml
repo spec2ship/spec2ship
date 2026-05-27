@@ -1,0 +1,71 @@
+# Workflow profile: design
+# Schema: skills/roundtable-execution/references/profile-schema.md
+# Consumed by: phase-2-core.md (Phase 2 Round Loop), commands/design.md (Phase 1/3 inline)
+
+workflow_type: "design"
+
+topic:
+  pattern: "Architecture design for {project_name}"
+  source: "context-snapshot.project_name"
+
+state_phase: "design"
+
+# Plugin fallback. Consumed only when .s2s/config.yaml omits roundtable.strategy.by_workflow_type[design].
+# Full resolution hierarchy: references/strategy-resolution.md (TECH-002 Phase 4, ADR-0011 addendum).
+default_strategy: "debate"
+strategy_constraints:
+  allowed:
+    - "standard"
+    - "consensus-driven"
+    - "debate"
+    - "six-hats"
+  forced: false
+
+participants:
+  default:
+    - "software-architect"
+    - "security-champion"
+    - "technical-lead"
+    - "devops-engineer"
+  configurable: false
+
+artifact_types:
+  - prefix: "ARCH"
+    session_key: "architecture_decisions"
+    is_primary: true
+  - prefix: "COMP"
+    session_key: "components"
+    is_primary: true
+  - prefix: "INT"
+    session_key: "interfaces"
+    is_primary: true
+  - prefix: "OQ"
+    session_key: "open_questions"
+    is_primary: false
+  - prefix: "CONF"
+    session_key: "conflicts"
+    is_primary: false
+
+progress:
+  axis: "agenda"
+  agenda_count: 5
+  agenda_reference: "references/agenda-design.md"
+  changes_field: "agenda_changes"
+  synthesis_input_fields:
+    - "full_agenda"
+    - "focus_topic"
+  synthesis_output_field: "agenda_update"
+
+round_summary:
+  tag_field: "topic_id"
+  # NOTE: when strategy == "debate", an additional optional field "debate_phase" is appended.
+  # Hook defined in phase-2-core.md §strategy-hooks; wired in TECH-002 Phase 4 via Option B (see strategy-hook-resolution.md).
+
+next_values:
+  - "continue"
+  - "conclude"
+  - "escalate"
+
+has_phase_transition: false
+
+display_block_style: "minimal"

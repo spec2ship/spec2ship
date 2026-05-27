@@ -47,15 +47,21 @@ temp/
 # NOTE: Use .s2s/* (not .s2s/) to ignore contents but allow exceptions
 .s2s/*
 
-# But track development artifacts for s2s itself
+# But track development artifacts for s2s itself (dogfooding)
 !.s2s/BACKLOG.md
 !.s2s/CONTEXT.md
 !.s2s/README.md
 !.s2s/config.yaml
+!.s2s/requirements.md
+!.s2s/architecture.md
+!.s2s/ideas.md
 !.s2s/decisions/
 !.s2s/decisions/**
-!.s2s/specs/
-!.s2s/specs/**
+!.s2s/plans/
+!.s2s/plans/**
+!.s2s/test-baselines/
+!.s2s/test-baselines/**
+# Note: sessions/ intentionally NOT tracked - they are temporary working artifacts
 
 # All docs/ content is public - no exclusions
 

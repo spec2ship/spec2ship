@@ -1,6 +1,6 @@
 ---
 description: Initialize or update a Spec2Ship project. Analyzes existing structure, creates .s2s/ configuration, and gathers project context.
-allowed-tools: Bash(mkdir:*), Bash(git:*), Bash(ls:*), Read, Write, Edit, Task, AskUserQuestion
+allowed-tools: Bash(mkdir:*), Bash(git:*), Bash(ls:*), Bash(chmod:*), Read, Write, Edit, Task, AskUserQuestion
 argument-hint: [--workspace [--components "a,b,c"]] [--detect]
 ---
 
@@ -630,6 +630,67 @@ Write `.claude/CLAUDE.md` with project-specific content:
 
 **Note**: The `@../.s2s/CONTEXT.md` directive automatically includes CONTEXT.md content in Claude's memory. User can add custom directives (code style, testing requirements, etc.) after the generated content.
 
+### 5.5b Setup Statusline for Token Tracking
+
+> **Purpose**: Configure per-project statusline to enable accurate token tracking during roundtable sessions.
+> The statusline saves context_window data to `.s2s/context-window.json` (project-local).
+> It also reads active session state from `.s2s/state.json` to display roundtable info in statusline.
+> If user has a global statusline, the project script chains to it to preserve their customizations.
+
+**Check if .claude/settings.json exists**:
+
+If `.claude/settings.json` already exists:
+- Read the file and check if it has a `statusLine` configuration
+- If statusLine is already configured: Skip this step (don't overwrite user's config)
+- If no statusLine: Merge our statusLine config into existing file
+
+If `.claude/settings.json` does NOT exist:
+
+**Read template from plugin**:
+
+Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/statusline/settings.json`
+
+**Write**: Save to `.claude/settings.json`
+
+**Create statusline script**:
+
+If `.claude/statusline.sh` does NOT exist:
+
+**Read template from plugin**:
+
+Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/statusline/statusline.sh`
+
+**Write**: Save to `.claude/statusline.sh`
+
+**Make executable**:
+```bash
+chmod +x .claude/statusline.sh
+```
+
+**Note**: The statusline script:
+1. Saves session-specific context_window data to temp directory for s2s token tracking
+2. Reads user's global statusline command from `~/.claude/settings.json` and chains to it if configured
+3. Falls back to a minimal display showing model, directory, branch, and context %
+
+**Create context hook script**:
+
+If `.claude/context-reset.sh` does NOT exist:
+
+**Read template from plugin**:
+
+Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/hooks/context-reset.sh`
+
+**Write**: Save to `.claude/context-reset.sh`
+
+**Make executable**:
+```bash
+chmod +x .claude/context-reset.sh
+```
+
+**Note**: The context hook handles `/clear` and `/compact` events:
+1. Updates `.s2s/state.json` with context event (last_activity)
+2. Shows resume command if roundtable was interrupted
+
 ### 5.6 Generate BACKLOG.md
 
 **Read template from plugin**:
@@ -641,6 +702,20 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/project/BACKLOG.md`
 - `{date}` → `{current ISO date}`
 
 **Write**: Save the modified content to `.s2s/BACKLOG.md`
+
+### 5.6b Generate ideas.md
+
+**Read template from plugin**:
+
+Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/project/ideas.md`
+
+**Replace placeholders**:
+- `{project-name}` → `{Detected.project.name or Context.name}`
+- `{date}` → `{current ISO date}`
+
+**Write**: Save the modified content to `.s2s/ideas.md`
+
+**Note**: ideas.md starts empty but will be populated by `/s2s:brainstorm` sessions or manual entry.
 
 ### 5.7 Generate README.md
 
@@ -727,11 +802,18 @@ Created:
 - .s2s/config.yaml
 - .s2s/CONTEXT.md (semantic context, loaded in Claude's memory)
 - .s2s/README.md (documentation for humans, NOT loaded in memory)
-- .s2s/BACKLOG.md
+- .s2s/BACKLOG.md (work items tracking)
+- .s2s/ideas.md (brainstorm ideas)
 - .s2s/sessions/
 - .s2s/plans/
 - .s2s/decisions/
 - .claude/CLAUDE.md (with @../.s2s/CONTEXT.md reference)
+- .claude/settings.json (statusline + hooks for token tracking)
+- .claude/statusline.sh (context tracking + chain to global)
+- .claude/context-reset.sh (handles /clear and /compact events)
+
+Note: To enable token tracking, restart Claude Code in this directory.
+      The statusline configuration is loaded at session start.
 
 What's next?
 
