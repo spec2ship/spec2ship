@@ -930,7 +930,7 @@ Fix: Replace placeholder with explicit template matching verbose-dump-format.md.
 
 ### BUG-009: Facilitator concludes despite unmet criteria
 
-**Status**: planned | **Created**: 2026-01-30 | **Priority**: high
+**Status**: in_progress | **Created**: 2026-01-30 | **Updated**: 2026-05-28 | **Priority**: high | **Target**: v0.5.0
 
 **Context**: During a roundtable session (round 4), the facilitator returned `next: "conclude"` despite the agenda showing:
 
@@ -975,18 +975,22 @@ Criteria 2 and 3 are NOT met, yet the facilitator decided to conclude.
 
 **Impact**: Sessions may close prematurely with incomplete coverage, requiring manual session continuation or new session creation.
 
+**Location correction (2026-05-28)**: validation lives in `phase-2-core.md` Step 2.9, new sub-step **2.9b** (post-v0.4.0 the round loop is in phase-2-core.md, not SKILL.md). It joins the `agenda.yaml` snapshot (`topics[].critical`) with the live `session.agenda` (`topic_id` → `status`).
+
+**Fix applied (2026-05-28)**: phase-2-core.md Step 2.9b — applies when `next == "conclude"` AND agenda axis (specs/design). Overrides conclude→continue if any `critical` topic is not `closed`, or if <50% of non-critical topics are `closed`; records `validation_override` on the current round entry and displays the reason. Facilitator instructions untouched (independent gate). Brainstorm exempt (gated by `current_phase == "critic"`).
+
 **Tasks**:
-- [ ] Add command-side conclude validation in SKILL.md Step 2.9
-- [ ] Check critical topic closure before accepting conclude
-- [ ] Check 50% non-critical closure before accepting conclude
-- [ ] Log override reason when conclude is rejected
-- [ ] Consider adding `validation_override` field to round record for audit
+- [x] Add command-side conclude validation in phase-2-core.md Step 2.9b
+- [x] Check critical topic closure before accepting conclude
+- [x] Check 50% non-critical closure before accepting conclude
+- [x] Log override reason when conclude is rejected (`validation_override` on round entry)
+- [ ] Dogfood-verify: force a premature conclude with an open critical topic, confirm override + continue
 
 **Acceptance criteria**:
-- [ ] Command rejects premature conclude when critical topics are not closed
-- [ ] Command rejects premature conclude when <50% of other topics closed
-- [ ] Override is logged in session file for debugging
-- [ ] Facilitator instructions remain unchanged (defense in depth)
+- [x] Command rejects premature conclude when critical topics are not closed
+- [x] Command rejects premature conclude when <50% of other topics closed
+- [x] Override is logged in session file for debugging
+- [x] Facilitator instructions remain unchanged (defense in depth)
 
 **Related**: BUG-010 (user confirmation), TECH-002 Phase 3
 
@@ -994,7 +998,7 @@ Criteria 2 and 3 are NOT met, yet the facilitator decided to conclude.
 
 ### BUG-010: No user confirmation when facilitator decides to conclude
 
-**Status**: planned | **Created**: 2026-01-30 | **Priority**: medium
+**Status**: in_progress | **Created**: 2026-01-30 | **Updated**: 2026-05-28 | **Priority**: medium | **Target**: v0.5.0
 
 **Context**: When the facilitator returns `next: "conclude"`, the command exits the round loop and proceeds directly to Phase 3 without any user interaction. The user has no opportunity to say "no, keep going - there are still open topics."
 
@@ -1089,24 +1093,25 @@ Phase 3: Completion
 - Single mechanism solves multiple issues
 - Summary file already exists in current design, just generated at better time
 
+**Location + scope correction (2026-05-28)**: implemented in `phase-2-core.md` Step 2.9 as new sub-step **2.9c** (the conclude decision lives in the round loop, not in a separate Phase 3 SKILL.md step). Scoped to the **confirmation + inline summary display** (roadmap Option 1). The broader Phase 3 restructure — generating a `summary.md` early and feeding it to output generation instead of re-reading the session file — is the BUG-011 optimization and stays **out of v0.5.0 scope**.
+
+**Fix applied (2026-05-28)**: phase-2-core.md Step 2.9c — when `next == "conclude"` survives 2.9b AND `INTERACTIVE_FLAG == false`, compile and display a short summary (decisions / coverage / open items), then `AskUserQuestion` (accept vs continue); "Continue" overrides `next = "continue"`. In interactive mode the user already chose at Step 2.8, so no double prompt.
+
 **Tasks**:
-- [ ] Add Step 3.0: Generate Session Summary in SKILL.md
-- [ ] Define summary format (decisions, coverage, open items, trade-offs)
-- [ ] Add Step 3.1: Display summary + AskUserQuestion
-- [ ] Update automatic continuation rules to exclude conclude from "no stop" conditions
-- [ ] Modify Step 3.3 to use summary as context for output generation
-- [ ] Update commands (specs, design, brainstorm) with new steps
-- [ ] Move summary.md generation from current location to Step 3.0
+- [x] Add conclude confirmation in phase-2-core.md Step 2.9c (non-interactive path)
+- [x] Define inline summary content (decisions, coverage, open items)
+- [x] AskUserQuestion (accept conclusion vs continue discussion); "Continue" overrides next
+- [ ] Dogfood-verify: non-interactive run reaching conclude shows summary + prompt; "Continue" adds a round
+- [~] (deferred to BUG-011) move summary.md generation earlier + use it as output-generation context
 
 **Acceptance criteria**:
-- [ ] User sees session summary before confirming conclude
-- [ ] Summary includes: approved artifacts, agenda coverage, open items
-- [ ] User can choose to continue discussion instead of concluding
-- [ ] Output generator uses summary as context (not full session re-read)
-- [ ] Summary file written at Step 3.0 (before confirmation)
-- [ ] Works in both interactive and non-interactive modes
+- [x] User sees session summary before confirming conclude
+- [x] Summary includes: approved artifacts, agenda coverage, open items
+- [x] User can choose to continue discussion instead of concluding
+- [~] Output generator uses summary as context (deferred — BUG-011)
+- [x] Confirmation runs on the non-interactive conclude path (interactive handled at Step 2.8)
 
-**Related**: BUG-009 (facilitator criteria), BUG-011 (session file size), TECH-002 Phase 3
+**Related**: BUG-009 (facilitator criteria), BUG-011 (session file size + summary-as-context), TECH-002 Phase 3
 
 ---
 

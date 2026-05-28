@@ -799,7 +799,39 @@ IF ROUND_NUMBER + 1 < min_rounds (from config-snapshot.limits.min_rounds) AND ne
 
 This applies uniformly across workflows. Added in TECH-002 Phase 3; preserve verbatim.
 
-#### 2.9b Dispatch
+#### 2.9b Conclude validation — command-side, defense-in-depth (BUG-009)
+
+**Applies only when** `next == "conclude"` AND `PROFILE.progress.axis == "agenda"` AND an `agenda.yaml` snapshot exists (specs/design). The facilitator's `constraints_check.can_conclude` is self-reported and MUST NOT be trusted blindly — validate it here before accepting.
+
+1. Read `.s2s/sessions/{{SESSION_ID}}/agenda.yaml` and map each `topics[].id` to its `critical` flag.
+2. Read the live `session.agenda` and map each `topic_id` to its `status`.
+3. **Critical coverage**: IF any topic with `critical == true` has live `status != "closed"`:
+   - OVERRIDE `next = "continue"`.
+   - Add a `validation_override` field to the current round's entry in `session.rounds[]`: `"conclude rejected: critical topic '{id}' is '{status}', not closed"`.
+   - Display that line to the user.
+4. **Non-critical coverage** (only if step 3 passed): IF `(# non-critical topics with status == "closed") / (# non-critical topics) < 0.5`:
+   - OVERRIDE `next = "continue"`.
+   - Add `validation_override: "conclude rejected: only {closed}/{total} non-critical topics closed (<50%)"` to the current round's entry.
+   - Display that line to the user.
+
+Facilitator instructions are unchanged (this is a second, independent gate). Brainstorm (disney_phase axis) is exempt: its conclude is already gated by `current_phase == "critic"` in Step 2.10.
+
+#### 2.9c Conclude confirmation (non-interactive only) — BUG-010
+
+**Applies when** `next == "conclude"` survives 2.9b AND `INTERACTIVE_FLAG == false`. (In interactive mode the user already chose at Step 2.8, so do not ask twice.)
+
+1. Compile a short session summary from the session file:
+   - **Decisions**: accepted/approved artifacts grouped by type (counts + titles).
+   - **Coverage**: agenda `{closed}/{total}` (agenda axis) or Disney phase reached (disney_phase axis).
+   - **Open items**: artifacts still `draft` / `in_progress` / `blocked`, plus unresolved open questions and conflicts.
+2. Display the summary, then `AskUserQuestion`:
+   - "Accept conclusion — proceed to output generation"
+   - "Continue discussion — more rounds needed"
+3. **IF** the user chooses "Continue": OVERRIDE `next = "continue"`.
+
+The conclude moment is significant (the session closes and outputs are generated), so this one confirmation runs even when `INTERACTIVE_FLAG == false`.
+
+#### 2.9d Dispatch
 
 Dispatch on `next` (validated against `PROFILE.next_values`):
 
