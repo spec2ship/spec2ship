@@ -165,6 +165,18 @@ cd /tmp && mkdir s2s-test && cd s2s-test
 > [!WARNING]
 > **Recommended for testing:** Run `claude --dangerously-skip-permissions` to prevent permission prompts that disrupt roundtable execution.
 
+### Regression testing (dogfood)
+
+Spec2Ship has no automated test suite (it is a markdown/YAML plugin). Regression confidence comes from **dogfooding**: running the real `/s2s:*` workflows against a stable sample project and comparing outputs across code states.
+
+Recommended pattern:
+
+- Keep a dedicated **dogfood project** separate from this repo, with a small, well-bounded `CONTEXT.md` (a realistic but tiny domain exercises the full workflows without noise).
+- Use a **bare repo + one worktree per experiment** (`exp1`, `exp2`, ...). Each worktree hosts one run and is then frozen as a reference, so the same workflow can run under different plugin states (e.g. pre-refactor vs post-refactor) and the outputs diffed.
+- For a refactor, capture a **pre-change baseline** run, land the change, then **replay** and compare. Compare against schema/metric invariants, not artifact prose (LLM output varies run-to-run).
+
+See [`.s2s/test-baselines/README.md`](.s2s/test-baselines/README.md) for how baseline summaries are stored in this repo and why raw session data stays in the dogfood repo.
+
 ## 🐛 Debugging
 
 ### Enable Verbose Mode
@@ -219,7 +231,24 @@ Runs structural and strategy-specific consistency checks.
 
 - `main`: stable releases
 - `develop`: development branch
-- `feature/*`: feature branches
+- `feature/*`, `fix/*`, `chore/*`, `docs/*`: work branches (branch from `develop`)
+
+### Versioning and tags
+
+Spec2Ship uses a 3-tier flow with strict tag discipline:
+
+- **Flow**: `feature/*` (or `fix/*`, `chore/*`, ...) → `develop` → `main`.
+- **Version source of truth**: `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` (kept in sync) plus the matching `## [X.Y.Z] - YYYY-MM-DD` section in `CHANGELOG.md`.
+- **`develop` carries the next version**: the manifest on `develop` reflects the upcoming release so anyone installing from `develop` knows what they got. No git tag is created on `develop`.
+- **Tags live only on `main`**: a `vX.Y.Z` git tag is created only when `develop` is merged to `main`. The tag marks a fully validated release.
+- **SemVer**: minor bumps (`0.x.0`) for feature releases until 1.0. The `1.0.0` major is reserved for the "API/contract stable" milestone, not mere feature accumulation. The "API" surface = command names, flags, `.s2s/` file/session schemas, and config schema.
+
+Release sequence (no direct commits to `develop` or `main`):
+
+1. Land work via PRs into `develop`.
+2. When cutting a release, set the `CHANGELOG.md` date for the version in a small prep PR into `develop`.
+3. Open a `release: vX.Y.Z` PR from `develop` to `main`. Merge with a merge commit, **without** `--delete-branch` (never delete `develop`).
+4. Tag `vX.Y.Z` on `main` and push the tag. Optionally publish a GitHub Release from the tag.
 
 ### Commit Messages
 

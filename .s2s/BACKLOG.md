@@ -1190,6 +1190,60 @@ The session YAML file was likely 400-600+ lines.
 
 ---
 
+### BUG-014: Agent resume gap during master-delegated runs
+
+**Status**: planned | **Created**: 2026-05-28 | **Priority**: medium | **Origin**: TECH-002 Phase 4 diagnostic finding (plan §8); reproduced in exp54 | **Target**: v0.5.0
+
+**Context**: During a master-delegated run (`/s2s:design` through the roundtable.md master), an agent resume produced the error `summary is required when message is a string`. The harness fallback completed the run, so it was non-blocking, but the resume path is not clean.
+
+**Reproduced**: exp54 (`/s2s:design --diagnostic`, 2026-05-22). The run never actually interrupted; the error surfaced and execution continued via harness fallback.
+
+**Note**: this is distinct from BUG-001 (agent resume fails across Claude restarts). BUG-014 is within a single session, on the delegated master path.
+
+**Tasks**:
+- [ ] Reproduce deterministically and capture the exact failing agent input
+- [ ] Identify whether the missing `summary` is on facilitator or participant resume input
+- [ ] Fix the resume input construction so no harness fallback is needed
+
+**Acceptance criteria**:
+- [ ] Master-delegated runs resume without the `summary is required` error
+- [ ] No reliance on harness fallback for normal resume
+
+---
+
+### BUG-015: R1 observer false-positive on empty artifact maps
+
+**Status**: planned | **Created**: 2026-05-28 | **Priority**: low | **Origin**: TECH-002 Phase 4 diagnostic finding (plan §8) | **Target**: v0.5.0
+
+**Context**: On round 1, the session-observer (diagnostic mode) flags an anomaly when artifact maps are still empty, but an empty artifact map at R1 is expected (artifacts accrue from R1 synthesis onward). The false-positive adds noise to the diagnostic report.
+
+**Tasks**:
+- [ ] Suppress the empty-artifact-map anomaly on round 1 (or until first synthesis)
+- [ ] Verify the observer still flags genuinely-stuck rounds later
+
+**Acceptance criteria**:
+- [ ] No empty-artifact-map anomaly reported at R1
+- [ ] Genuine stalls (empty artifacts past R1) still flagged
+
+---
+
+### BUG-016: token-tracker.sh exits 1 and breaks && chains
+
+**Status**: planned | **Created**: 2026-05-28 | **Priority**: low | **Origin**: TECH-002 Phase 4 diagnostic finding (plan §8) | **Target**: v0.5.0
+
+**Context**: `token-tracker.sh` returns exit code 1 in a path that is not actually an error (observed during Phase 4 dogfood), which breaks `&&` command chains that invoke it. Callers must split the chain to avoid aborting subsequent steps.
+
+**Tasks**:
+- [ ] Locate the exit-1 path that is not a real failure
+- [ ] Return 0 on the non-error path (reserve non-zero for genuine failures)
+- [ ] Verify token tracking still surfaces real errors with a non-zero code
+
+**Acceptance criteria**:
+- [ ] `token-tracker.sh` returns 0 on success paths
+- [ ] `&&` chains invoking it do not abort spuriously
+
+---
+
 ### FEAT-004: Enhanced hybrid workspace support
 
 **Status**: planned | **Created**: 2026-01-29 | **Priority**: medium | **Origin**: Vektra project feedback
@@ -2048,7 +2102,9 @@ Make commands actually USE roundtable-strategies instead of duplicating.
 
 ### TECH-005: Token tracking auto-setup via per-project statusline
 
-**Status**: in_progress | **Created**: 2026-01-24 | **Priority**: high
+**Status**: completed | **Created**: 2026-01-24 | **Completed**: 2026-05-28 | **Priority**: high
+
+**Re-triage (2026-05-28)**: Closed as completed. The implementation shipped with v0.4.0: `templates/statusline/{statusline.sh,settings.json}`, `templates/hooks/context-reset.sh`, and `commands/init.md` Phase 5.5b (statusline setup with chain-to-global) all exist in the repo. The two remaining unchecked boxes are not blockers: "test session isolation (requires restart)" is a manual verification, and "config toggle for token tracking" is tracked separately as TECH-008. FEAT-003 (`/s2s:config`), which depended on this, is now unblocked but stays out of v0.5.0 scope.
 
 **Context**: Token tracking requires statusline configuration to save `context-window.json`. Previously this required manual user setup. Now using per-project statusline with chain to global.
 
