@@ -2102,7 +2102,9 @@ Make commands actually USE roundtable-strategies instead of duplicating.
 
 ### TECH-005: Token tracking auto-setup via per-project statusline
 
-**Status**: in_progress | **Created**: 2026-01-24 | **Priority**: high
+**Status**: completed | **Created**: 2026-01-24 | **Completed**: 2026-05-28 | **Priority**: high
+
+**Re-triage (2026-05-28)**: Closed as completed. The implementation shipped with v0.4.0: `templates/statusline/{statusline.sh,settings.json}`, `templates/hooks/context-reset.sh`, and `commands/init.md` Phase 5.5b (statusline setup with chain-to-global) all exist in the repo. The two remaining unchecked boxes are not blockers: "test session isolation (requires restart)" is a manual verification, and "config toggle for token tracking" is tracked separately as TECH-008. FEAT-003 (`/s2s:config`), which depended on this, is now unblocked but stays out of v0.5.0 scope.
 
 **Context**: Token tracking requires statusline configuration to save `context-window.json`. Previously this required manual user setup. Now using per-project statusline with chain to global.
 
