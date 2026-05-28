@@ -318,7 +318,7 @@ agent_state:
 
 #### 2.2e Verbose dump (IF VERBOSE_FLAG)
 
-**IF** `VERBOSE_FLAG == true`: write `rounds/{NNN}-01-facilitator-question.yaml`. **NNN** is the zero-padded round number `(ROUND_NUMBER + 1)`. See `verbose-dump-format.md` for the canonical schema. Save FULL `participant_context.shared` content (no summarization, no placeholders).
+**IF** `VERBOSE_FLAG == true`: **YOU MUST use the Write tool NOW** to write `rounds/{NNN}-01-facilitator-question.yaml` before proceeding to the next step. Do NOT defer this write: in `--interactive` mode a later `AskUserQuestion` ends the turn and any deferred write is lost (BUG-004). **NNN** is the zero-padded round number `(ROUND_NUMBER + 1)`. See `verbose-dump-format.md` for the canonical schema. Save FULL `participant_context.shared` content (no summarization, no placeholders).
 
 #### 2.2f Token checkpoint T1
 
@@ -428,7 +428,7 @@ agent_state:
 
 #### 2.3e Verbose dump (IF VERBOSE_FLAG)
 
-**IF** `VERBOSE_FLAG == true`: for EACH participant, write `rounds/{NNN}-02-{participant-id}.yaml`. Header comment is `# Round {N} - {Role} Response` (specs/design) or `# Round {N} - {Role} Response ({disney_phase} phase)` (brainstorm). Capture ALL response fields including `rationale`, `concerns`, `suggestions`. See `verbose-dump-format.md` for full schema.
+**IF** `VERBOSE_FLAG == true`: for EACH participant, **YOU MUST use the Write tool NOW** to write `rounds/{NNN}-02-{participant-id}.yaml` before proceeding to the next step. Do NOT defer this write: in `--interactive` mode a later `AskUserQuestion` ends the turn and any deferred write is lost (BUG-004). Header comment is `# Round {N} - {Role} Response` (specs/design) or `# Round {N} - {Role} Response ({disney_phase} phase)` (brainstorm). The dump MUST include the full `input.context` block (`project_summary`, `relevant_artifacts`, `open_conflicts`, `open_questions`, `recent_rounds`) copied VERBATIM from what was sent to the participant in Step 2.3b — not only `input.question` (BUG-005) — AND ALL response fields including `rationale`, `concerns`, `suggestions`. See `verbose-dump-format.md` for full schema.
 
 #### 2.3f Token checkpoint T2
 
@@ -559,7 +559,7 @@ agent_state:
 
 #### 2.4e Verbose dump (IF VERBOSE_FLAG)
 
-**IF** `VERBOSE_FLAG == true`: write `rounds/{NNN}-03-facilitator-synthesis.yaml` per `verbose-dump-format.md`. The dump MUST include:
+**IF** `VERBOSE_FLAG == true`: **YOU MUST use the Write tool NOW** to write `rounds/{NNN}-03-facilitator-synthesis.yaml` before proceeding to the next step. Do NOT defer this write: in `--interactive` mode a later `AskUserQuestion` ends the turn and any deferred write is lost (BUG-004). Write it per `verbose-dump-format.md`. The dump MUST include:
 
 ```yaml
 result:

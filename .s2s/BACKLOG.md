@@ -580,7 +580,7 @@ Error: No transcript found for agent ID: aaf0f99
 
 ### BUG-004: Verbose dumps not written incrementally during round
 
-**Status**: planned | **Created**: 2026-01-22 | **Priority**: high
+**Status**: in_progress | **Created**: 2026-01-22 | **Updated**: 2026-05-28 | **Priority**: high | **Target**: v0.5.0
 
 **Context**: Verbose dump files (`rounds/{NNN}-01-*.yaml`, `rounds/{NNN}-02-*.yaml`, `rounds/{NNN}-03-*.yaml`) are not written immediately after each phase. The command waits until the round completes before writing to disk.
 
@@ -615,19 +615,18 @@ Without `--interactive`, all rounds execute in one LLM turn, so deferred writes 
 - Resume cannot recover partial round data from disk
 - EXEC-002 validation fails for interactive sessions with verbose flag
 
-**Affected files**:
-- `commands/specs.md` (lines 703, 957, 1212)
-- `commands/design.md` (lines 595, 845, 1094)
-- `commands/brainstorm.md` (lines 588, 841, 1082)
-- `skills/roundtable-execution/SKILL.md` (lines 504, 587, 692)
+**Affected files** (corrected 2026-05-28 — original refs were pre-v0.4.0 thin-launcher refactor; the round-loop logic is now consolidated in a single file):
+- `skills/roundtable-execution/references/phase-2-core.md` — §2.2e (dump 01 facilitator-question), §2.3e (dump 02 participant), §2.4e (dump 03 synthesis). The §2.6c observer dump (04) already persists via FIX-S1.
 
-**Fix**: Add "YOU MUST use Write tool NOW" to verbose dump instructions for each phase.
+The pre-refactor commands (`specs.md` / `design.md` / `brainstorm.md`) and `SKILL.md` no longer carry per-phase dump write instructions — they delegate to `phase-2-core.md`. Original line numbers (specs.md:703 etc.) no longer exist (files are now 78–172-line thin launchers).
+
+**Fix applied (2026-05-28)**: Added "**YOU MUST use the Write tool NOW** ... before proceeding to the next step. Do NOT defer this write: in `--interactive` mode a later `AskUserQuestion` ends the turn and any deferred write is lost (BUG-004)." to dumps 01/02/03 in phase-2-core.md.
 
 **Tasks**:
-- [ ] Update specs.md verbose write instructions with "YOU MUST use Write tool NOW"
-- [ ] Update design.md verbose write instructions with "YOU MUST use Write tool NOW"
-- [ ] Update brainstorm.md verbose write instructions with "YOU MUST use Write tool NOW"
-- [ ] Update roundtable-execution/SKILL.md verbose write instructions with "YOU MUST use Write tool NOW"
+- [x] Add "YOU MUST use Write tool NOW" to dump 01 (facilitator question) — phase-2-core.md §2.2e
+- [x] Add "YOU MUST use Write tool NOW" to dump 02 (participant) — phase-2-core.md §2.3e
+- [x] Add "YOU MUST use Write tool NOW" to dump 03 (synthesis) — phase-2-core.md §2.4e
+- [ ] Dogfood-verify in ElfGiftRush_s2s/exp*: `/s2s:specs --verbose --interactive`, 2+ rounds, confirm `rounds/` has 3 files per round
 
 **Acceptance criteria**:
 - [ ] Verbose dumps written immediately after each phase (2.2, 2.3, 2.4)
@@ -799,7 +798,7 @@ are lost and must be re-initialized.
 
 ### BUG-005: Participant verbose dumps missing full context
 
-**Status**: planned | **Created**: 2026-01-22 | **Priority**: high
+**Status**: in_progress | **Created**: 2026-01-22 | **Updated**: 2026-05-28 | **Priority**: high | **Target**: v0.5.0
 
 **Context**: Despite BUG-003 fix (SKILL.md now specifies inline `context`), the actual verbose dump files for participants (`{NNN}-02-{participant}.yaml`) only contain `input.question` but NOT the full `input.context` block with project_summary, relevant_artifacts, etc.
 
@@ -825,36 +824,21 @@ input:
     recent_rounds: [...]
 ```
 
-**Root cause** (confirmed 2026-01-22):
-The command dump template at specs.md:884-886 uses ambiguous placeholder:
-```yaml
-input:
-  question: "{the question}"
-  context: {... context sent ...}   # <-- This placeholder is not expanded
-```
-
-The executor doesn't know what to put in `{... context sent ...}`.
-Fix: Replace placeholder with explicit template matching verbose-dump-format.md.
+**Root cause** (confirmed 2026-01-22; location corrected 2026-05-28): the dump-write instruction emphasized response fields only. The canonical schema in `verbose-dump-format.md` (§ Participant Response Dump) already specifies the full `input.context` block, but the instruction in `phase-2-core.md` §2.3e did not require copying it — so the executor wrote `input.question` and the response while dropping the `input.context` block. (The original ticket cited `specs.md:884-886`, a pre-v0.4.0 location that no longer exists.)
 
 **Impact**:
 - CTX-* checks will fail (CTX-002, CTX-003)
 - Cannot verify context propagation from dumps
 - Resume from scratch cannot reconstruct what participants received
 
-**Affected files** (to investigate):
-- `commands/specs.md` (~line 871 participant dump section)
-- `commands/design.md` (equivalent section)
-- `commands/brainstorm.md` (equivalent section)
+**Affected files** (corrected 2026-05-28):
+- `skills/roundtable-execution/references/phase-2-core.md` §2.3e (participant dump-write instruction)
+
+**Fix applied (2026-05-28)**: phase-2-core.md §2.3e now states the dump MUST include the full `input.context` block (`project_summary`, `relevant_artifacts`, `open_conflicts`, `open_questions`, `recent_rounds`) copied VERBATIM from what was sent to the participant in Step 2.3b — not only `input.question`.
 
 **Tasks**:
-- [ ] Verify specs.md participant dump template includes full context
-- [ ] Verify design.md participant dump template includes full context
-- [ ] Verify brainstorm.md participant dump template includes full context
-- [ ] Test with --verbose and verify dump content
-
-**Acceptance criteria**:
-- [ ] Participant dumps include full `input.context` block
-- [ ] CTX-002 and CTX-003 checks pass on new sessions
+- [x] Make phase-2-core.md §2.3e require the full `input.context` block in the participant dump
+- [ ] Dogfood-verify in ElfGiftRush_s2s/exp*: `--verbose` run, confirm `{NNN}-02-*.yaml` contains the context block + CTX-002/003 pass
 
 **Related**: BUG-003, BUG-004, TEST-003, CTX-*
 
