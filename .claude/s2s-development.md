@@ -714,6 +714,17 @@ Initially used `Task(subagent_type="general-purpose", prompt="...")` which creat
 
 **Solution**: Use `**Use the roundtable-X agent**` pattern to trigger proper agent loading.
 
+### 4. Drift-first, then deep-extract (cross-file consolidation)
+
+When consolidating similar-but-drifted logic across 3+ files, do it in two separate phases instead of one big refactor:
+
+- **Approach A (first)**: eliminate accidental drift in-place. Keep every implementation inline; only schema fields and template strings change, never the execution shape. Add a canonical reference doc describing the unified algorithm.
+- **Approach B (later)**: extract the algorithm into an executable single-source and thin the files into launchers that invoke it.
+
+**Why**: A preserves the execution shape, so a structural-fingerprint regression baseline stays comparable across the change (you can tell "expected re-arrangement" from "introduced bug"). The reference doc written in A becomes the target spec for B, so B implements against a spec instead of designing while refactoring. A is a small low-risk PR; B is the architectural one. Two PRs beat one monolith.
+
+**Applied in**: TECH-002 Phase 3 (A: drift elimination + `phase-2-core.md` as reference) then Phase 7B/8 (B: extraction + thin launchers). Capture the pre-A baseline as a structural fingerprint, not a bit-for-bit snapshot (LLM output varies run-to-run). See CONTRIBUTING.md "Regression testing (dogfood)".
+
 ---
 
 ## Deferred Features
