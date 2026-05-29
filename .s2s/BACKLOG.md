@@ -1192,7 +1192,7 @@ The session YAML file was likely 400-600+ lines.
 
 ### BUG-014: Agent resume gap during master-delegated runs
 
-**Status**: planned | **Created**: 2026-05-28 | **Priority**: medium | **Origin**: TECH-002 Phase 4 diagnostic finding (plan §8); reproduced in exp54 | **Target**: v0.5.0
+**Status**: in_progress | **Created**: 2026-05-28 | **Updated**: 2026-05-29 | **Priority**: medium | **Origin**: TECH-002 Phase 4 diagnostic finding (plan §8); reproduced in exp54 | **Target**: v0.5.0
 
 **Context**: During a master-delegated run (`/s2s:design` through the roundtable.md master), an agent resume produced the error `summary is required when message is a string`. The harness fallback completed the run, so it was non-blocking, but the resume path is not clean.
 
@@ -1200,47 +1200,57 @@ The session YAML file was likely 400-600+ lines.
 
 **Note**: this is distinct from BUG-001 (agent resume fails across Claude restarts). BUG-014 is within a single session, on the delegated master path.
 
+**Fix applied (2026-05-29)**: the error means the Task tool resume call sent a plain-string message with no `summary`. Both resume points in `phase-2-core.md` now require a one-line `summary` on the Task call: §2.2a (facilitator) and §2.3a (participant). Covers either origin without needing to disambiguate which one fired.
+
 **Tasks**:
-- [ ] Reproduce deterministically and capture the exact failing agent input
-- [ ] Identify whether the missing `summary` is on facilitator or participant resume input
-- [ ] Fix the resume input construction so no harness fallback is needed
+- [x] Identify the cause: string resume message without `summary` (applies to both facilitator and participant resume)
+- [x] Require a `summary` on both resume Task calls (phase-2-core.md §2.2a + §2.3a)
+- [ ] Dogfood-verify deterministically (master-delegated `/s2s:design --diagnostic`, multi-round): resume succeeds with no `summary is required` error and no harness fallback
 
 **Acceptance criteria**:
-- [ ] Master-delegated runs resume without the `summary is required` error
-- [ ] No reliance on harness fallback for normal resume
+- [x] Resume input now carries a `summary` (no string-only message)
+- [ ] Master-delegated runs resume without the `summary is required` error (dogfood)
+- [ ] No reliance on harness fallback for normal resume (dogfood)
 
 ---
 
 ### BUG-015: R1 observer false-positive on empty artifact maps
 
-**Status**: planned | **Created**: 2026-05-28 | **Priority**: low | **Origin**: TECH-002 Phase 4 diagnostic finding (plan §8) | **Target**: v0.5.0
+**Status**: in_progress | **Created**: 2026-05-28 | **Updated**: 2026-05-29 | **Priority**: low | **Origin**: TECH-002 Phase 4 diagnostic finding (plan §8) | **Target**: v0.5.0
 
 **Context**: On round 1, the session-observer (diagnostic mode) flags an anomaly when artifact maps are still empty, but an empty artifact map at R1 is expected (artifacts accrue from R1 synthesis onward). The false-positive adds noise to the diagnostic report.
 
+**Fix applied (2026-05-29)**: `agents/validation/session-observer.md` now states explicitly that at `round == 1` the artifact maps, `relevant_artifacts`, and `recent_rounds` are expected to be empty (baseline) and MUST NOT be reported as findings; "populated"/coherence checks apply only for `round > 1`. Added both as a callout in Per-Round Mode and a bullet in "Important".
+
 **Tasks**:
-- [ ] Suppress the empty-artifact-map anomaly on round 1 (or until first synthesis)
-- [ ] Verify the observer still flags genuinely-stuck rounds later
+- [x] Suppress the empty-artifact-map anomaly on round 1 (explicit baseline guard in the observer agent)
+- [x] Keep "populated"/coherence checks active for round > 1 (genuine stalls still flagged)
+- [ ] Dogfood-verify: `--diagnostic` run, no empty-artifact-map finding at R1; genuine stall past R1 still flagged
 
 **Acceptance criteria**:
-- [ ] No empty-artifact-map anomaly reported at R1
-- [ ] Genuine stalls (empty artifacts past R1) still flagged
+- [x] Observer instructed: no empty-artifact-map anomaly at R1
+- [x] Genuine stalls (empty artifacts past R1) still flagged (checks gated to round > 1, not removed)
 
 ---
 
 ### BUG-016: token-tracker.sh exits 1 and breaks && chains
 
-**Status**: planned | **Created**: 2026-05-28 | **Priority**: low | **Origin**: TECH-002 Phase 4 diagnostic finding (plan §8) | **Target**: v0.5.0
+**Status**: completed | **Created**: 2026-05-28 | **Completed**: 2026-05-29 | **Priority**: low | **Origin**: TECH-002 Phase 4 diagnostic finding (plan §8) | **Target**: v0.5.0
 
 **Context**: `token-tracker.sh` returns exit code 1 in a path that is not actually an error (observed during Phase 4 dogfood), which breaks `&&` command chains that invoke it. Callers must split the chain to avoid aborting subsequent steps.
 
+**Root cause (2026-05-29)**: the script has no `set -e` and no trailing `exit 0`, so it inherits the exit status of the last command in the matched `case` branch. The `init` branch ends with `[[ "$COMPACT_DETECTED" == "true" ]] && echo ...`, which returns 1 whenever no compact occurred (the normal case) — so a successful `init` exited 1, aborting `eval $(... init ...) && ...` chains.
+
+**Fix applied (2026-05-29)**: added `exit 0` after `esac` (the `*)` usage branch still `exit 1` before reaching it). Verified directly: normal `init` → exit 0; `init ... && echo CHAIN OK` → prints CHAIN OK; bogus action → exit 1.
+
 **Tasks**:
-- [ ] Locate the exit-1 path that is not a real failure
-- [ ] Return 0 on the non-error path (reserve non-zero for genuine failures)
-- [ ] Verify token tracking still surfaces real errors with a non-zero code
+- [x] Locate the exit-1 path that is not a real failure (init branch trailing `[[ ]] && echo`)
+- [x] Return 0 on the non-error path (trailing `exit 0`)
+- [x] Verify token tracking still surfaces real errors with a non-zero code (`*)` usage still exits 1)
 
 **Acceptance criteria**:
-- [ ] `token-tracker.sh` returns 0 on success paths
-- [ ] `&&` chains invoking it do not abort spuriously
+- [x] `token-tracker.sh` returns 0 on success paths
+- [x] `&&` chains invoking it do not abort spuriously
 
 ---
 
