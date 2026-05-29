@@ -14,7 +14,6 @@ MEMORY LOADING:
 HEADER CONVENTION:
 - Headers use "Component" prefix to avoid ambiguity with workspace context
 - When loaded alongside workspace CONTEXT.md, Claude can distinguish
-- See ADR-0009 for rationale on @ cascade design and header naming
 
 NOTE: S2S paths and how-to documentation are in README.md (not loaded in memory)
 -->

@@ -521,7 +521,7 @@ Error: No transcript found for agent ID: aaf0f99
 
 ### BUG-002: Consensus threshold 0.67 rejects exact 2/3 majority
 
-**Status**: planned | **Created**: 2026-01-20 | **Priority**: medium
+**Status**: completed | **Created**: 2026-01-20 | **Completed**: 2026-05-29 | **Priority**: medium | **Target**: v0.5.0
 
 **Context**: The threshold for 2/3 majority consensus is set to 0.67 in config files, but 2/3 = 0.6666... which means exact 2/3 votes fail the `>=0.67` check when participants are divisible by 3.
 
@@ -539,16 +539,16 @@ Error: No transcript found for agent ID: aaf0f99
 | 6 | 4 | 0.6666 | NO |
 | 9 | 6 | 0.6666 | NO |
 
-**Fix**: Change threshold from 0.67 to 0.6 for consistency with skill references.
+**Fix applied (2026-05-29)**: changed both `standard` and `six-hats` thresholds from 0.67 to 0.6 in `templates/project/config.yaml` and `.s2s/config.yaml`; comments now read "60% (ensures an exact 2/3 majority passes)".
 
 **Tasks**:
-- [ ] Update `templates/project/config.yaml` threshold values to 0.6
-- [ ] Update `.s2s/config.yaml` threshold values to 0.6
-- [ ] Update comment from "2/3 majority" to "60% (ensures 2/3 passes)"
+- [x] Update `templates/project/config.yaml` threshold values to 0.6
+- [x] Update `.s2s/config.yaml` threshold values to 0.6
+- [x] Update comment from "2/3 majority" to "60% (ensures 2/3 passes)"
 
 **Acceptance criteria**:
-- [ ] All threshold values aligned to 0.6
-- [ ] Exact 2/3 votes pass consensus check
+- [x] All threshold values aligned to 0.6
+- [x] Exact 2/3 votes pass consensus check
 
 ---
 
@@ -696,7 +696,7 @@ fi
 
 ### BUG-013: Session-observer Step 2.6c silently skipped at runtime
 
-**Status**: planned | **Created**: 2026-05-14 | **Priority**: medium | **Related**: TECH-002 Phase 7B (baseline finding F2)
+**Status**: in_progress | **Created**: 2026-05-14 | **Updated**: 2026-05-29 | **Priority**: medium | **Target**: v0.5.0 (verify-and-close) | **Related**: TECH-002 Phase 7B (baseline finding F2)
 
 **Context**: Step 2.6c (Diagnostic Observation, per-round) is consistently skipped by the LLM during roundtable execution despite `diagnostic_flag == true`. Confirmed via exp42/exp43 dogfood: 0 session-observer invocations leave any persistence trail in design and brainstorm baselines (2026-05-13).
 
@@ -718,7 +718,13 @@ Full investigation in `.s2s/plans/20260506-tech002-phase7b-deep-extraction.md` �
 
 **Acceptance**: exp44 replay shows ≥3/3 (specs/design/brainstorm) session-observer dump files per round when `--diagnostic` flag is set.
 
----
+**Re-triage (2026-05-29)**: the planned mitigation is confirmed present in the current code:
+- FIX-S1 persistence — `phase-2-core.md` §2.6c: `write rounds/{NNN}-04-session-observer.yaml ... (MANDATORY)` (L725).
+- FIX-S2 MANDATORY language — `phase-2-core.md` §2.6c: "**MANDATORY when `DIAGNOSTIC_FLAG == true`.** Do NOT skip this step." (L689).
+- Dump naming documented in `verbose-dump-format.md` (FIX-S1, BUG-013).
+- Step 2.6c now lives in the single canonical `phase-2-core.md` consumed by all commands (the old FIX-S3 "SKILL.md missing 2.6c" gap is structurally gone post-v0.4.0).
+
+The code mitigation is therefore complete; what remains is the empirical confirmation. **Folded into the v0.5.0 batch dogfood** (≥3/3 observer dump files per round under `--diagnostic`). Close once that replay passes. (BUG-015's R1 false-positive guard touches the same observer and is verified in the same run.)
 
 ### BUG-012: Token tracker non si riattiva dopo compact + resume
 
@@ -851,7 +857,7 @@ input:
 
 ### BUG-007: Internal ADR references leak into user project templates
 
-**Status**: planned | **Created**: 2026-01-28 | **Priority**: low
+**Status**: completed | **Created**: 2026-01-28 | **Completed**: 2026-05-29 | **Priority**: low | **Target**: v0.5.0
 
 **Context**: The workspace and project templates contain references to internal Spec2Ship ADRs (ADR-0009, ADR-0010). When a user runs `/s2s:init`, these references end up in the generated files. Users have no access to these ADRs and the references are meaningless outside of s2s development.
 
@@ -863,16 +869,18 @@ input:
 - `templates/project/CONTEXT.md` (line 17) - ADR-0009
 - `templates/project/config.yaml` (line 35, consensus comment) - ADR-0010
 
+**Fix applied (2026-05-29)**: removed all four internal ADR references from the user-facing templates. The `ADR-001` generic example in workspace.yaml stays (not a leak). The `.s2s/config.yaml` ADR-0010 comment was left untouched — it is the spec2ship repo's own config, not a shipped template.
+
 **Tasks**:
-- [ ] Remove ADR-0009 reference from `templates/workspace/workspace.yaml` context_note
-- [ ] Remove ADR-0009 reference from `templates/workspace/CONTEXT.md`
-- [ ] Remove ADR-0009 reference from `templates/project/CONTEXT.md`
-- [ ] Remove ADR-0010 reference from `templates/project/config.yaml` consensus comment
+- [x] Remove ADR-0009 reference from `templates/workspace/workspace.yaml` context_note
+- [x] Remove ADR-0009 reference from `templates/workspace/CONTEXT.md`
+- [x] Remove ADR-0009 reference from `templates/project/CONTEXT.md`
+- [x] Remove ADR-0010 reference from `templates/project/config.yaml` consensus comment
 
 **Acceptance criteria**:
-- [ ] Generated user files contain no references to internal s2s ADRs (ADR-0009, ADR-0010)
-- [ ] context_note in workspace.yaml retains its useful operational lines (71-74)
-- [ ] config.yaml consensus section remains functional without the ADR comment
+- [x] Generated user files contain no references to internal s2s ADRs (ADR-0009, ADR-0010)
+- [x] context_note in workspace.yaml retains its useful operational lines (71-74)
+- [x] config.yaml consensus section remains functional without the ADR comment
 
 ---
 
