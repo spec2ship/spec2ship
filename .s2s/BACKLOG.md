@@ -722,7 +722,7 @@ Full investigation in `.s2s/plans/20260506-tech002-phase7b-deep-extraction.md` �
 
 ### BUG-012: Token tracker non si riattiva dopo compact + resume
 
-**Status**: planned | **Created**: 2026-02-02 | **Priority**: high
+**Status**: in_progress | **Created**: 2026-02-02 | **Updated**: 2026-05-28 | **Priority**: high | **Target**: v0.5.0
 
 **Context**: Dopo `/compact`, quando si fa resume di una sessione roundtable, il token tracker non si riattiva. Di conseguenza, non tracciando più i token, il roundtable non è in grado di fermarsi quando sta per finire il contesto.
 
@@ -779,12 +779,17 @@ are lost and must be re-initialized.
 
 **Raccomandazione**: Opzione B - setup incondizionato. Il costo di una Read aggiuntiva è trascurabile rispetto al rischio di token tracking silenziosamente disabilitato.
 
+**Location correction (2026-05-28)**: post-v0.4.0 there is no `SKILL.md Step 2.0a`. Token-tracking setup lives in `phase-2-core.md` Step 2.0 (reads `token-tracking.md`, resolves `TOKEN_SCRIPT`) and in `token-tracking.md` "Script Location". The weakening language was "resolve ONCE, then reuse" + "cached if already loaded this session".
+
+**Fix applied (2026-05-28, Option B)**:
+- `token-tracking.md` "Script Location" → "resolve at the START of EVERY round"; removed "reuse for all subsequent rounds"; added compact/clear rationale (do NOT assume `TOKEN_SCRIPT` is still set — the model may "recall" it but the value is gone after context rebuild).
+- `phase-2-core.md` Step 2.0 → re-resolve `TOKEN_SCRIPT` unconditionally every round; removed the "cached if already loaded" hedge.
+
 **Tasks**:
-- [ ] Update SKILL.md Step 2.0a to always resolve TOKEN_SCRIPT
-- [ ] Remove conditional "IF first round OR TOKEN_SCRIPT not set"
-- [ ] Add comment explaining why unconditional (compact/clear resilience)
-- [ ] Update token-tracking.md to match
-- [ ] Test: verify token tracking works after compact + resume
+- [x] Make TOKEN_SCRIPT resolution unconditional every round (phase-2-core.md Step 2.0 + token-tracking.md "Script Location")
+- [x] Remove "resolve ONCE / cached" weakening language
+- [x] Add rationale explaining why unconditional (compact/clear resilience)
+- [ ] Dogfood-verify: token tracking active after /compact + resume, SHOULD_STOP fires
 
 **Acceptance criteria**:
 - [ ] Token tracking active after `/compact` + resume

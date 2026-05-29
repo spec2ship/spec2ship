@@ -73,8 +73,8 @@ The algorithm loops Steps 2.0 → 2.9 internally until Step 2.9 dispatches a ter
 
 Identical across all profiles.
 
-1. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md` (cached if already loaded this session).
-2. Execute the "Script Location" section to verify the token-tracking script and store its path as `TOKEN_SCRIPT`.
+1. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md`.
+2. Execute the "Script Location" section to (re-)resolve `TOKEN_SCRIPT` at the start of EVERY round, **unconditionally**. Do NOT assume `TOKEN_SCRIPT` carried over from a previous round: after `/compact` or `/clear` the value is lost even though the model may "recall" it, which silently disables token tracking and lets the loop run past capacity (BUG-012).
 3. Execute the "Context Capacity Check" section. This computes `SHOULD_STOP` and `SHOULD_WARN` flags based on current context usage.
 
 Token checkpoints `T1`, `T2`, `T3` fire at the end of Steps 2.2, 2.3, 2.4 respectively (commands shown in those steps).

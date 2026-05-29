@@ -26,9 +26,9 @@ Token tracking uses **progressive precision** to accurately measure per-round co
 
 ---
 
-## Script Location (resolve ONCE, then reuse)
+## Script Location (resolve at the START of EVERY round)
 
-**At first round or after resume**, use the Read tool to get the resolved script path:
+**At the start of EVERY round — unconditionally**, use the Read tool to (re-)resolve the script path:
 
 ```
 Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/token-tracker.sh`
@@ -36,11 +36,11 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/scripts/toke
 
 The Read tool response shows the actual resolved path in its header (e.g., `File: /path/to/.../token-tracker.sh`).
 
-**Extract that full path** and store it as `TOKEN_SCRIPT`. Reuse this path for all subsequent rounds.
+**Extract that full path** and store it as `TOKEN_SCRIPT`.
+
+Do NOT assume `TOKEN_SCRIPT` is still set from a previous round. After `/compact` or `/clear` (or a fresh resume in a new Claude session) the LLM context is rebuilt and any earlier `TOKEN_SCRIPT` value is gone — even though the model may "recall" having resolved it. Re-running the Read is cheap; a silently-lost `TOKEN_SCRIPT` disables token tracking, so `SHOULD_STOP` is never evaluated and the round loop runs past context capacity (BUG-012). When in doubt, resolve again.
 
 If Read fails (file not found): skip all token tracking, proceed normally.
-
-> **Note**: The script path resolution happens once. The script itself (`token-tracker init`) runs at EVERY round's Step 2.0.
 
 ---
 
