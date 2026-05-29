@@ -28,6 +28,8 @@ strategy: "consensus-driven"  # current strategy
 
 ### Per-Round Mode
 
+> **Round-1 baseline — do NOT flag as findings (BUG-015)**: at `round == 1` the session's artifact maps (`artifacts.*`), `relevant_artifacts`, and `recent_rounds` are expected to be empty — artifacts only begin to accrue from the round-1 synthesis onward. An empty artifact map at round 1 is the normal starting state, NOT an anomaly. Apply the "populated"/coherence checks below only when `round > 1` (for synthesis coherence at round 1, judge only the artifacts actually proposed in this round, not the pre-synthesis empty maps).
+
 Read the session folder's verbose dumps for the specified round and check:
 
 1. **Context provided**: Did facilitator's `participant_context.shared` contain actual data?
@@ -100,4 +102,5 @@ notes: |
 - "ok" means no issues detected, not perfect execution
 - Keep findings brief and actionable
 - If verbose dumps don't exist, report as finding (not error)
+- Round 1 with empty artifact maps is the expected baseline — never report it as a finding (BUG-015)
 - Return ONLY the YAML block, no explanations

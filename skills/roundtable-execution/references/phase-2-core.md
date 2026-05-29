@@ -155,7 +155,7 @@ Read `agent_state.facilitator` from session file.
 
 **IF** `agent_state.facilitator.agent_id` is NOT null AND `ROUND_NUMBER > 0` (continuation):
 
-Resume the `roundtable-facilitator` agent via Task tool with `resume: "{agent_state.facilitator.agent_id}"`.
+Resume the `roundtable-facilitator` agent via Task tool with `resume: "{agent_state.facilitator.agent_id}"`. **The resume Task call MUST also include a one-line `summary`** (e.g. `summary: "Round {{ROUND_NUMBER + 1}} facilitator question"`): the harness rejects a resume whose message is a plain string with no `summary` ("summary is required when message is a string"), which otherwise forces a fallback re-invocation (BUG-014).
 
 **ELSE** (fresh — first round or no saved agent_id):
 
@@ -336,7 +336,7 @@ For EACH participant id in `PROFILE.participants.default`, in a **single message
 
 **Resume vs fresh check**:
 
-**IF** `agent_state.participants.{id}.agent_id` is NOT null AND `ROUND_NUMBER > 0`: resume that participant agent via Task tool with `resume: "{agent_state.participants.{id}.agent_id}"`.
+**IF** `agent_state.participants.{id}.agent_id` is NOT null AND `ROUND_NUMBER > 0`: resume that participant agent via Task tool with `resume: "{agent_state.participants.{id}.agent_id}"`. **Include a one-line `summary`** on each resume call (e.g. `summary: "Round {{ROUND_NUMBER + 1}} {id} response"`); a string resume message with no `summary` is rejected by the harness ("summary is required when message is a string") and falls back to a fresh re-invocation (BUG-014).
 
 **ELSE**: fresh invocation of the participant agent.
 
