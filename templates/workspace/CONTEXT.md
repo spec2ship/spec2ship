@@ -14,7 +14,6 @@ MEMORY LOADING:
 HEADER CONVENTION:
 - Headers use "System" or "Workspace" prefix to avoid ambiguity
 - When loaded alongside component CONTEXT.md, Claude can distinguish
-- See ADR-0009 for rationale on @ cascade design and header naming
 
 NOTE: S2S commands, paths, and how-to documentation are in README.md (not loaded in memory)
 -->

@@ -72,7 +72,6 @@ roundtable_scope:
       Workspace context is always in memory when running from components.
       For cross-component discussions, facilitator loads specific siblings on-demand.
       Decisions made here may generate backlog items in components.
-      See ADR-0009 for @ cascade design rationale.
 
   component_level:
     inherits_context_from: "workspace"  # Include workspace CONTEXT.md as background
