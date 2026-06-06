@@ -580,7 +580,7 @@ Error: No transcript found for agent ID: aaf0f99
 
 ### BUG-004: Verbose dumps not written incrementally during round
 
-**Status**: in_progress | **Created**: 2026-01-22 | **Updated**: 2026-05-28 | **Priority**: high | **Target**: v0.5.0
+**Status**: completed | **Created**: 2026-01-22 | **Updated**: 2026-05-28 | **Completed**: 2026-06-06 | **Priority**: high | **Target**: v0.5.0 | **Verified**: see test-baselines/v0.5.0-dogfood.md
 
 **Context**: Verbose dump files (`rounds/{NNN}-01-*.yaml`, `rounds/{NNN}-02-*.yaml`, `rounds/{NNN}-03-*.yaml`) are not written immediately after each phase. The command waits until the round completes before writing to disk.
 
@@ -696,7 +696,7 @@ fi
 
 ### BUG-013: Session-observer Step 2.6c silently skipped at runtime
 
-**Status**: in_progress | **Created**: 2026-05-14 | **Updated**: 2026-05-29 | **Priority**: medium | **Target**: v0.5.0 (verify-and-close) | **Related**: TECH-002 Phase 7B (baseline finding F2)
+**Status**: completed | **Created**: 2026-05-14 | **Updated**: 2026-05-29 | **Completed**: 2026-06-06 | **Priority**: medium | **Target**: v0.5.0 (verify-and-close)  | **Verified**: see test-baselines/v0.5.0-dogfood.md| **Related**: TECH-002 Phase 7B (baseline finding F2)
 
 **Context**: Step 2.6c (Diagnostic Observation, per-round) is consistently skipped by the LLM during roundtable execution despite `diagnostic_flag == true`. Confirmed via exp42/exp43 dogfood: 0 session-observer invocations leave any persistence trail in design and brainstorm baselines (2026-05-13).
 
@@ -728,7 +728,7 @@ The code mitigation is therefore complete; what remains is the empirical confirm
 
 ### BUG-012: Token tracker non si riattiva dopo compact + resume
 
-**Status**: in_progress | **Created**: 2026-02-02 | **Updated**: 2026-05-28 | **Priority**: high | **Target**: v0.5.0
+**Status**: completed | **Created**: 2026-02-02 | **Updated**: 2026-05-28 | **Completed**: 2026-06-06 | **Priority**: high | **Target**: v0.5.0 | **Verified**: see test-baselines/v0.5.0-dogfood.md
 
 **Context**: Dopo `/compact`, quando si fa resume di una sessione roundtable, il token tracker non si riattiva. Di conseguenza, non tracciando più i token, il roundtable non è in grado di fermarsi quando sta per finire il contesto.
 
@@ -809,7 +809,7 @@ are lost and must be re-initialized.
 
 ### BUG-005: Participant verbose dumps missing full context
 
-**Status**: in_progress | **Created**: 2026-01-22 | **Updated**: 2026-05-28 | **Priority**: high | **Target**: v0.5.0
+**Status**: completed | **Created**: 2026-01-22 | **Updated**: 2026-05-28 | **Completed**: 2026-06-06 | **Priority**: high | **Target**: v0.5.0 | **Verified**: see test-baselines/v0.5.0-dogfood.md
 
 **Context**: Despite BUG-003 fix (SKILL.md now specifies inline `context`), the actual verbose dump files for participants (`{NNN}-02-{participant}.yaml`) only contain `input.question` but NOT the full `input.context` block with project_summary, relevant_artifacts, etc.
 
@@ -927,7 +927,7 @@ input:
 
 ### BUG-009: Facilitator concludes despite unmet criteria
 
-**Status**: in_progress | **Created**: 2026-01-30 | **Updated**: 2026-05-28 | **Priority**: high | **Target**: v0.5.0
+**Status**: completed | **Created**: 2026-01-30 | **Updated**: 2026-05-28 | **Completed**: 2026-06-06 | **Priority**: high | **Target**: v0.5.0 | **Verified**: see test-baselines/v0.5.0-dogfood.md
 
 **Context**: During a roundtable session (round 4), the facilitator returned `next: "conclude"` despite the agenda showing:
 
@@ -995,7 +995,7 @@ Criteria 2 and 3 are NOT met, yet the facilitator decided to conclude.
 
 ### BUG-010: No user confirmation when facilitator decides to conclude
 
-**Status**: in_progress | **Created**: 2026-01-30 | **Updated**: 2026-05-28 | **Priority**: medium | **Target**: v0.5.0
+**Status**: completed | **Created**: 2026-01-30 | **Updated**: 2026-05-28 | **Completed**: 2026-06-06 | **Priority**: medium | **Target**: v0.5.0 | **Verified**: see test-baselines/v0.5.0-dogfood.md
 
 **Context**: When the facilitator returns `next: "conclude"`, the command exits the round loop and proceeds directly to Phase 3 without any user interaction. The user has no opportunity to say "no, keep going - there are still open topics."
 
@@ -1194,7 +1194,7 @@ The session YAML file was likely 400-600+ lines.
 
 ### BUG-014: Agent resume gap during master-delegated runs
 
-**Status**: in_progress | **Created**: 2026-05-28 | **Updated**: 2026-05-29 | **Priority**: medium | **Origin**: TECH-002 Phase 4 diagnostic finding (plan §8); reproduced in exp54 | **Target**: v0.5.0
+**Status**: completed | **Created**: 2026-05-28 | **Updated**: 2026-05-29 | **Completed**: 2026-06-06 | **Priority**: medium | **Origin**: TECH-002 Phase 4 diagnostic finding (plan §8); reproduced in exp54 | **Target**: v0.5.0 | **Verified**: see test-baselines/v0.5.0-dogfood.md
 
 **Context**: During a master-delegated run (`/s2s:design` through the roundtable.md master), an agent resume produced the error `summary is required when message is a string`. The harness fallback completed the run, so it was non-blocking, but the resume path is not clean.
 
@@ -1218,7 +1218,7 @@ The session YAML file was likely 400-600+ lines.
 
 ### BUG-015: R1 observer false-positive on empty artifact maps
 
-**Status**: in_progress | **Created**: 2026-05-28 | **Updated**: 2026-05-29 | **Priority**: low | **Origin**: TECH-002 Phase 4 diagnostic finding (plan §8) | **Target**: v0.5.0
+**Status**: completed | **Created**: 2026-05-28 | **Updated**: 2026-05-29 | **Completed**: 2026-06-06 | **Priority**: low | **Origin**: TECH-002 Phase 4 diagnostic finding (plan §8) | **Target**: v0.5.0 | **Verified**: see test-baselines/v0.5.0-dogfood.md
 
 **Context**: On round 1, the session-observer (diagnostic mode) flags an anomaly when artifact maps are still empty, but an empty artifact map at R1 is expected (artifacts accrue from R1 synthesis onward). The false-positive adds noise to the diagnostic report.
 
@@ -1253,6 +1253,59 @@ The session YAML file was likely 400-600+ lines.
 **Acceptance criteria**:
 - [x] `token-tracker.sh` returns 0 on success paths
 - [x] `&&` chains invoking it do not abort spuriously
+
+---
+
+### BUG-017: Token-tracker recap math glitched after compact+resume
+
+**Status**: planned | **Created**: 2026-06-06 | **Priority**: low | **Origin**: v0.5.0 dogfood (exp61) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F2)
+
+**Context**: in exp61 (post-fix BUG-012 verification), the token-tracker `init` at round 3 post-compact ran cleanly (BUG-012 PASS), but the subsequent round-3 `recap` reported `statusline returned 0%` and produced negative round deltas. Model self-described as "non-blocking" and continued. The cause appears to be that the per-round capture markers (T1/T2/T3 state and the previous-round T0/T3 snapshot) from the pre-compact round are still in the cache, so the recap arithmetic mixes pre- and post-compact values.
+
+**Hypothesis**: `init` after a detected compact should reset the per-round capture markers (or the recap should detect compactDetected and use a different code path).
+
+**Tasks**:
+- [ ] Reproduce deterministically: `/s2s:specs --verbose --interactive`, 2 rounds, `/compact`, resume, observe round-3 recap.
+- [ ] Decide whether `init` clears or `recap` guards on `compactDetected`; instrument fix.
+- [ ] Confirm: post-compact resume rounds report a sensible recap (no 0% statusline, no negative deltas).
+
+**Acceptance criteria**:
+- [ ] Round-3 (or first post-compact round) recap produces non-negative deltas and a real percentage.
+- [ ] BUG-012's `compactDetected=true` semantics preserved.
+
+---
+
+### BUG-018: Token-tracker cache loses workflow params after compact+resume
+
+**Status**: planned | **Created**: 2026-06-06 | **Priority**: low | **Origin**: v0.5.0 dogfood (exp61) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F3)
+
+**Context**: post-compact resume cache file in exp61 had `workflowType=`, `strategy=`, `phase=`, `participantsCount=` empty. The model called `token-tracker.sh init` with only `session-id` + `round-number` and omitted the optional positional params. Pre-compact cache had them populated. Statusline display loses roundtable context after resume.
+
+**Tasks**:
+- [ ] Decide if `init` should preserve previous cache values when optional params are omitted, OR instruct the model to always pass them on resume.
+- [ ] If script-side: add a "merge with existing cache" behavior when optional params are missing.
+- [ ] If instruction-side: add explicit guidance in `token-tracking.md` "Script Location" / `phase-2-core.md` Step 2.0.
+
+**Acceptance criteria**:
+- [ ] Post-resume cache retains `workflowType` / `strategy` / `phase` / `participantsCount`.
+- [ ] Statusline roundtable info survives `/compact` + resume.
+
+---
+
+### TECH-011: assign_debate_sides launcher pre-step is vestigial for design+debate
+
+**Status**: planned | **Created**: 2026-06-06 | **Priority**: low | **Origin**: v0.5.0 dogfood (exp58 step 2 design report) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F1)
+
+**Context**: post-fix design run reported that the launcher's `assign_debate_sides` pre-step is vestigial when design uses the `debate` strategy. The static side assignment is no longer load-bearing because the per-round `facilitator_emergent` policy reassigns Pro/Con/Observer per topic at each round (Phase 4 / strategy-hooks). The launcher writes an initial side split into `session.yaml` that subsequent rounds ignore.
+
+**Tasks**:
+- [ ] Audit `commands/design.md` / `commands/roundtable.md` launcher: is `assign_debate_sides` still called?
+- [ ] Audit `strategy-hooks.md` `debate` entry: confirm `facilitator_emergent` policy supersedes static assignment.
+- [ ] Either remove the pre-step or document why it remains (e.g., backward-compat for non-emergent debate variants).
+
+**Acceptance criteria**:
+- [ ] `assign_debate_sides` either removed or explicitly documented as legacy/optional.
+- [ ] No semantic change to design+debate runs.
 
 ---
 

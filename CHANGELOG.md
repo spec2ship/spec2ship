@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-06
+
+### Highlights
+
+**Bug-fix release.** Eight bugs closed against the v0.4.0 round-loop, including the four high/critical bugs that were the v1.0 BUG gate (BUG-004, BUG-005, BUG-009, BUG-012). All fixes verified end-to-end via dogfood in `ElfGiftRush_s2s/exp*` (structural summary in `.s2s/test-baselines/v0.5.0-dogfood.md`).
+
+### Fixed
+- **BUG-004 (critical)** — Verbose dumps now survive `--interactive` turn boundaries. Each per-phase dump instruction in `phase-2-core.md` (§2.2e, §2.3e, §2.4e) starts with "**YOU MUST use the Write tool NOW** ... before proceeding"; pre-fix the planned writes were lost when `AskUserQuestion` ended the LLM turn, leaving `rounds/` empty after N completed rounds.
+- **BUG-005 (high)** — Participant dump (`{NNN}-02-{participant}.yaml`) now requires the full `input.context` block (`project_summary`, `relevant_artifacts`, `open_conflicts`, `open_questions`, `recent_rounds`) copied verbatim from what was sent to the participant in Step 2.3b. Pre-fix the instruction emphasized response fields only and the context block was dropped.
+- **BUG-009 (high)** — Command-side conclude validation added as `phase-2-core.md` §2.9b (defense in depth). When `next == "conclude"` on the agenda axis, the gate joins the `agenda.yaml` snapshot (`topics[].critical`) with the live `session.agenda` statuses and overrides `conclude → continue` if any critical topic is not `closed` or if <50% of non-critical topics are `closed`. Records `validation_override` on the round entry. Facilitator instructions unchanged.
+- **BUG-010 (medium)** — Conclude confirmation added as `phase-2-core.md` §2.9c for the non-interactive path. Displays a short session summary (decisions / coverage / open items) and an Accept-vs-Continue prompt before output generation. Interactive mode keeps the Step 2.8 choice unchanged.
+- **BUG-012 (high)** — `TOKEN_SCRIPT` is now re-resolved at the start of EVERY round, unconditionally. `token-tracking.md` "Script Location" and `phase-2-core.md` Step 2.0 lost the "resolve ONCE, then reuse" / "cached if already loaded" hedges; instead they carry an explicit compact/clear rationale (the model may "recall" `TOKEN_SCRIPT` after `/compact` even when the value is gone, silently disabling token tracking and letting the loop run past capacity).
+- **BUG-014 (medium)** — Task-tool agent resume calls now require a one-line `summary` (`phase-2-core.md` §2.2a facilitator and §2.3a participants). Without it the harness rejects the resume with "summary is required when message is a string" and falls back to a fresh re-invocation. Preventive fix; the original Phase 4 repro was non-blocking via harness fallback.
+- **BUG-015 (low)** — Session-observer agent now explicitly states that at `round == 1` the artifact maps, `relevant_artifacts`, and `recent_rounds` are the expected empty baseline and MUST NOT be reported as findings. Populated/coherence checks are gated to `round > 1`.
+- **BUG-016 (low)** — `token-tracker.sh` now ends with an explicit `exit 0`. Without it the script inherited the exit status of the last branch command — the `init` branch ends with `[[ "$COMPACT_DETECTED" == "true" ]] && echo …`, returning 1 when no compact occurred, which spuriously aborted `eval $(... init ...) && ...` chains.
+
+### Templates
+- **BUG-002 (medium)** — Consensus threshold lowered from `0.67` to `0.6` in `templates/project/config.yaml` and `.s2s/config.yaml` so an exact 2/3 majority passes for participant counts divisible by 3. Aligned with the skill references.
+- **BUG-007 (low)** — Internal `ADR-0009` and `ADR-0010` references removed from `templates/workspace/workspace.yaml`, `templates/workspace/CONTEXT.md`, `templates/project/CONTEXT.md`, and `templates/project/config.yaml`. The generic `ADR-001` example remains as a placeholder.
+
+### Closed by re-triage
+- **TECH-005** — Marked completed: token tracking auto-setup via per-project statusline was already shipped in v0.4.0 (`templates/statusline/{statusline.sh,settings.json}`, `templates/hooks/context-reset.sh`, `commands/init.md` Phase 5.5b). The two remaining tasks were either a manual restart test or tracked as TECH-008 (config toggle).
+
+### Verification
+- Five dogfood worktrees against `ElfGiftRush_s2s` bare repo: three forward post-fix (exp58, exp60, exp61) and two pre-fix A/B (exp62, exp63 vs `main @ v0.4.0`). Raw kept local per `feedback_test_data_split`; structural summary in `.s2s/test-baselines/v0.5.0-dogfood.md`.
+- BUG-009 and BUG-010 confirmed by A/B (pre-fix reproduced, post-fix corrected). BUG-012 and BUG-014 A/B came back non-deterministic this run (LLM-context-dependent); both fixes are preventive instruction changes.
+- Three non-blocking follow-up tickets opened (`BUG-017`, `BUG-018`, `TECH-011`) for findings observed during the dogfood: token-tracker recap math after compact, cache loses workflow params after compact, vestigial `assign_debate_sides` pre-step.
+
 ## [0.4.0] - 2026-05-27
 
 ### Highlights
