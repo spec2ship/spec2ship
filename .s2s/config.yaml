@@ -29,7 +29,7 @@ roundtable:
     # Consensus rules per strategy (ADR-0010)
     consensus:
       standard:
-        threshold: 0.67            # 2/3 majority
+        threshold: 0.6             # 60% (ensures an exact 2/3 majority passes)
         mechanism: "majority"      # majority | consent | facilitator_decides | none
         block_prevents_terminal: true
       consensus-driven:
@@ -46,7 +46,7 @@ roundtable:
         mechanism: "none"          # Ideas collected, not voted
         block_prevents_terminal: false
       six-hats:
-        threshold: 0.67            # 2/3 after all perspectives
+        threshold: 0.6             # 60% after all perspectives (exact 2/3 passes)
         mechanism: "majority"
         block_prevents_terminal: true
 

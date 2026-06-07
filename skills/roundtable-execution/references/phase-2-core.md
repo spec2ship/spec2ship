@@ -73,8 +73,8 @@ The algorithm loops Steps 2.0 → 2.9 internally until Step 2.9 dispatches a ter
 
 Identical across all profiles.
 
-1. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md` (cached if already loaded this session).
-2. Execute the "Script Location" section to verify the token-tracking script and store its path as `TOKEN_SCRIPT`.
+1. Read `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/token-tracking.md`.
+2. Execute the "Script Location" section to (re-)resolve `TOKEN_SCRIPT` at the start of EVERY round, **unconditionally**. Do NOT assume `TOKEN_SCRIPT` carried over from a previous round: after `/compact` or `/clear` the value is lost even though the model may "recall" it, which silently disables token tracking and lets the loop run past capacity (BUG-012).
 3. Execute the "Context Capacity Check" section. This computes `SHOULD_STOP` and `SHOULD_WARN` flags based on current context usage.
 
 Token checkpoints `T1`, `T2`, `T3` fire at the end of Steps 2.2, 2.3, 2.4 respectively (commands shown in those steps).
@@ -155,7 +155,7 @@ Read `agent_state.facilitator` from session file.
 
 **IF** `agent_state.facilitator.agent_id` is NOT null AND `ROUND_NUMBER > 0` (continuation):
 
-Resume the `roundtable-facilitator` agent via Task tool with `resume: "{agent_state.facilitator.agent_id}"`.
+Resume the `roundtable-facilitator` agent via Task tool with `resume: "{agent_state.facilitator.agent_id}"`. **The resume Task call MUST also include a one-line `summary`** (e.g. `summary: "Round {{ROUND_NUMBER + 1}} facilitator question"`): the harness rejects a resume whose message is a plain string with no `summary` ("summary is required when message is a string"), which otherwise forces a fallback re-invocation (BUG-014).
 
 **ELSE** (fresh — first round or no saved agent_id):
 
@@ -318,7 +318,7 @@ agent_state:
 
 #### 2.2e Verbose dump (IF VERBOSE_FLAG)
 
-**IF** `VERBOSE_FLAG == true`: write `rounds/{NNN}-01-facilitator-question.yaml`. **NNN** is the zero-padded round number `(ROUND_NUMBER + 1)`. See `verbose-dump-format.md` for the canonical schema. Save FULL `participant_context.shared` content (no summarization, no placeholders).
+**IF** `VERBOSE_FLAG == true`: **YOU MUST use the Write tool NOW** to write `rounds/{NNN}-01-facilitator-question.yaml` before proceeding to the next step. Do NOT defer this write: in `--interactive` mode a later `AskUserQuestion` ends the turn and any deferred write is lost (BUG-004). **NNN** is the zero-padded round number `(ROUND_NUMBER + 1)`. See `verbose-dump-format.md` for the canonical schema. Save FULL `participant_context.shared` content (no summarization, no placeholders).
 
 #### 2.2f Token checkpoint T1
 
@@ -336,7 +336,7 @@ For EACH participant id in `PROFILE.participants.default`, in a **single message
 
 **Resume vs fresh check**:
 
-**IF** `agent_state.participants.{id}.agent_id` is NOT null AND `ROUND_NUMBER > 0`: resume that participant agent via Task tool with `resume: "{agent_state.participants.{id}.agent_id}"`.
+**IF** `agent_state.participants.{id}.agent_id` is NOT null AND `ROUND_NUMBER > 0`: resume that participant agent via Task tool with `resume: "{agent_state.participants.{id}.agent_id}"`. **Include a one-line `summary`** on each resume call (e.g. `summary: "Round {{ROUND_NUMBER + 1}} {id} response"`); a string resume message with no `summary` is rejected by the harness ("summary is required when message is a string") and falls back to a fresh re-invocation (BUG-014).
 
 **ELSE**: fresh invocation of the participant agent.
 
@@ -428,7 +428,7 @@ agent_state:
 
 #### 2.3e Verbose dump (IF VERBOSE_FLAG)
 
-**IF** `VERBOSE_FLAG == true`: for EACH participant, write `rounds/{NNN}-02-{participant-id}.yaml`. Header comment is `# Round {N} - {Role} Response` (specs/design) or `# Round {N} - {Role} Response ({disney_phase} phase)` (brainstorm). Capture ALL response fields including `rationale`, `concerns`, `suggestions`. See `verbose-dump-format.md` for full schema.
+**IF** `VERBOSE_FLAG == true`: for EACH participant, **YOU MUST use the Write tool NOW** to write `rounds/{NNN}-02-{participant-id}.yaml` before proceeding to the next step. Do NOT defer this write: in `--interactive` mode a later `AskUserQuestion` ends the turn and any deferred write is lost (BUG-004). Header comment is `# Round {N} - {Role} Response` (specs/design) or `# Round {N} - {Role} Response ({disney_phase} phase)` (brainstorm). The dump MUST include the full `input.context` block (`project_summary`, `relevant_artifacts`, `open_conflicts`, `open_questions`, `recent_rounds`) copied VERBATIM from what was sent to the participant in Step 2.3b — not only `input.question` (BUG-005) — AND ALL response fields including `rationale`, `concerns`, `suggestions`. See `verbose-dump-format.md` for full schema.
 
 #### 2.3f Token checkpoint T2
 
@@ -559,7 +559,7 @@ agent_state:
 
 #### 2.4e Verbose dump (IF VERBOSE_FLAG)
 
-**IF** `VERBOSE_FLAG == true`: write `rounds/{NNN}-03-facilitator-synthesis.yaml` per `verbose-dump-format.md`. The dump MUST include:
+**IF** `VERBOSE_FLAG == true`: **YOU MUST use the Write tool NOW** to write `rounds/{NNN}-03-facilitator-synthesis.yaml` before proceeding to the next step. Do NOT defer this write: in `--interactive` mode a later `AskUserQuestion` ends the turn and any deferred write is lost (BUG-004). Write it per `verbose-dump-format.md`. The dump MUST include:
 
 ```yaml
 result:
@@ -799,7 +799,39 @@ IF ROUND_NUMBER + 1 < min_rounds (from config-snapshot.limits.min_rounds) AND ne
 
 This applies uniformly across workflows. Added in TECH-002 Phase 3; preserve verbatim.
 
-#### 2.9b Dispatch
+#### 2.9b Conclude validation — command-side, defense-in-depth (BUG-009)
+
+**Applies only when** `next == "conclude"` AND `PROFILE.progress.axis == "agenda"` AND an `agenda.yaml` snapshot exists (specs/design). The facilitator's `constraints_check.can_conclude` is self-reported and MUST NOT be trusted blindly — validate it here before accepting.
+
+1. Read `.s2s/sessions/{{SESSION_ID}}/agenda.yaml` and map each `topics[].id` to its `critical` flag.
+2. Read the live `session.agenda` and map each `topic_id` to its `status`.
+3. **Critical coverage**: IF any topic with `critical == true` has live `status != "closed"`:
+   - OVERRIDE `next = "continue"`.
+   - Add a `validation_override` field to the current round's entry in `session.rounds[]`: `"conclude rejected: critical topic '{id}' is '{status}', not closed"`.
+   - Display that line to the user.
+4. **Non-critical coverage** (only if step 3 passed): IF `(# non-critical topics with status == "closed") / (# non-critical topics) < 0.5`:
+   - OVERRIDE `next = "continue"`.
+   - Add `validation_override: "conclude rejected: only {closed}/{total} non-critical topics closed (<50%)"` to the current round's entry.
+   - Display that line to the user.
+
+Facilitator instructions are unchanged (this is a second, independent gate). Brainstorm (disney_phase axis) is exempt: its conclude is already gated by `current_phase == "critic"` in Step 2.10.
+
+#### 2.9c Conclude confirmation (non-interactive only) — BUG-010
+
+**Applies when** `next == "conclude"` survives 2.9b AND `INTERACTIVE_FLAG == false`. (In interactive mode the user already chose at Step 2.8, so do not ask twice.)
+
+1. Compile a short session summary from the session file:
+   - **Decisions**: accepted/approved artifacts grouped by type (counts + titles).
+   - **Coverage**: agenda `{closed}/{total}` (agenda axis) or Disney phase reached (disney_phase axis).
+   - **Open items**: artifacts still `draft` / `in_progress` / `blocked`, plus unresolved open questions and conflicts.
+2. Display the summary, then `AskUserQuestion`:
+   - "Accept conclusion — proceed to output generation"
+   - "Continue discussion — more rounds needed"
+3. **IF** the user chooses "Continue": OVERRIDE `next = "continue"`.
+
+The conclude moment is significant (the session closes and outputs are generated), so this one confirmation runs even when `INTERACTIVE_FLAG == false`.
+
+#### 2.9d Dispatch
 
 Dispatch on `next` (validated against `PROFILE.next_values`):
 

@@ -521,7 +521,7 @@ Error: No transcript found for agent ID: aaf0f99
 
 ### BUG-002: Consensus threshold 0.67 rejects exact 2/3 majority
 
-**Status**: planned | **Created**: 2026-01-20 | **Priority**: medium
+**Status**: completed | **Created**: 2026-01-20 | **Completed**: 2026-05-29 | **Priority**: medium | **Target**: v0.5.0
 
 **Context**: The threshold for 2/3 majority consensus is set to 0.67 in config files, but 2/3 = 0.6666... which means exact 2/3 votes fail the `>=0.67` check when participants are divisible by 3.
 
@@ -539,16 +539,16 @@ Error: No transcript found for agent ID: aaf0f99
 | 6 | 4 | 0.6666 | NO |
 | 9 | 6 | 0.6666 | NO |
 
-**Fix**: Change threshold from 0.67 to 0.6 for consistency with skill references.
+**Fix applied (2026-05-29)**: changed both `standard` and `six-hats` thresholds from 0.67 to 0.6 in `templates/project/config.yaml` and `.s2s/config.yaml`; comments now read "60% (ensures an exact 2/3 majority passes)".
 
 **Tasks**:
-- [ ] Update `templates/project/config.yaml` threshold values to 0.6
-- [ ] Update `.s2s/config.yaml` threshold values to 0.6
-- [ ] Update comment from "2/3 majority" to "60% (ensures 2/3 passes)"
+- [x] Update `templates/project/config.yaml` threshold values to 0.6
+- [x] Update `.s2s/config.yaml` threshold values to 0.6
+- [x] Update comment from "2/3 majority" to "60% (ensures 2/3 passes)"
 
 **Acceptance criteria**:
-- [ ] All threshold values aligned to 0.6
-- [ ] Exact 2/3 votes pass consensus check
+- [x] All threshold values aligned to 0.6
+- [x] Exact 2/3 votes pass consensus check
 
 ---
 
@@ -580,7 +580,7 @@ Error: No transcript found for agent ID: aaf0f99
 
 ### BUG-004: Verbose dumps not written incrementally during round
 
-**Status**: planned | **Created**: 2026-01-22 | **Priority**: high
+**Status**: completed | **Created**: 2026-01-22 | **Updated**: 2026-05-28 | **Completed**: 2026-06-06 | **Priority**: high | **Target**: v0.5.0 | **Verified**: see test-baselines/v0.5.0-dogfood.md
 
 **Context**: Verbose dump files (`rounds/{NNN}-01-*.yaml`, `rounds/{NNN}-02-*.yaml`, `rounds/{NNN}-03-*.yaml`) are not written immediately after each phase. The command waits until the round completes before writing to disk.
 
@@ -615,19 +615,18 @@ Without `--interactive`, all rounds execute in one LLM turn, so deferred writes 
 - Resume cannot recover partial round data from disk
 - EXEC-002 validation fails for interactive sessions with verbose flag
 
-**Affected files**:
-- `commands/specs.md` (lines 703, 957, 1212)
-- `commands/design.md` (lines 595, 845, 1094)
-- `commands/brainstorm.md` (lines 588, 841, 1082)
-- `skills/roundtable-execution/SKILL.md` (lines 504, 587, 692)
+**Affected files** (corrected 2026-05-28 — original refs were pre-v0.4.0 thin-launcher refactor; the round-loop logic is now consolidated in a single file):
+- `skills/roundtable-execution/references/phase-2-core.md` — §2.2e (dump 01 facilitator-question), §2.3e (dump 02 participant), §2.4e (dump 03 synthesis). The §2.6c observer dump (04) already persists via FIX-S1.
 
-**Fix**: Add "YOU MUST use Write tool NOW" to verbose dump instructions for each phase.
+The pre-refactor commands (`specs.md` / `design.md` / `brainstorm.md`) and `SKILL.md` no longer carry per-phase dump write instructions — they delegate to `phase-2-core.md`. Original line numbers (specs.md:703 etc.) no longer exist (files are now 78–172-line thin launchers).
+
+**Fix applied (2026-05-28)**: Added "**YOU MUST use the Write tool NOW** ... before proceeding to the next step. Do NOT defer this write: in `--interactive` mode a later `AskUserQuestion` ends the turn and any deferred write is lost (BUG-004)." to dumps 01/02/03 in phase-2-core.md.
 
 **Tasks**:
-- [ ] Update specs.md verbose write instructions with "YOU MUST use Write tool NOW"
-- [ ] Update design.md verbose write instructions with "YOU MUST use Write tool NOW"
-- [ ] Update brainstorm.md verbose write instructions with "YOU MUST use Write tool NOW"
-- [ ] Update roundtable-execution/SKILL.md verbose write instructions with "YOU MUST use Write tool NOW"
+- [x] Add "YOU MUST use Write tool NOW" to dump 01 (facilitator question) — phase-2-core.md §2.2e
+- [x] Add "YOU MUST use Write tool NOW" to dump 02 (participant) — phase-2-core.md §2.3e
+- [x] Add "YOU MUST use Write tool NOW" to dump 03 (synthesis) — phase-2-core.md §2.4e
+- [ ] Dogfood-verify in ElfGiftRush_s2s/exp*: `/s2s:specs --verbose --interactive`, 2+ rounds, confirm `rounds/` has 3 files per round
 
 **Acceptance criteria**:
 - [ ] Verbose dumps written immediately after each phase (2.2, 2.3, 2.4)
@@ -697,7 +696,7 @@ fi
 
 ### BUG-013: Session-observer Step 2.6c silently skipped at runtime
 
-**Status**: planned | **Created**: 2026-05-14 | **Priority**: medium | **Related**: TECH-002 Phase 7B (baseline finding F2)
+**Status**: completed | **Created**: 2026-05-14 | **Updated**: 2026-05-29 | **Completed**: 2026-06-06 | **Priority**: medium | **Target**: v0.5.0 (verify-and-close)  | **Verified**: see test-baselines/v0.5.0-dogfood.md| **Related**: TECH-002 Phase 7B (baseline finding F2)
 
 **Context**: Step 2.6c (Diagnostic Observation, per-round) is consistently skipped by the LLM during roundtable execution despite `diagnostic_flag == true`. Confirmed via exp42/exp43 dogfood: 0 session-observer invocations leave any persistence trail in design and brainstorm baselines (2026-05-13).
 
@@ -719,11 +718,17 @@ Full investigation in `.s2s/plans/20260506-tech002-phase7b-deep-extraction.md` �
 
 **Acceptance**: exp44 replay shows ≥3/3 (specs/design/brainstorm) session-observer dump files per round when `--diagnostic` flag is set.
 
----
+**Re-triage (2026-05-29)**: the planned mitigation is confirmed present in the current code:
+- FIX-S1 persistence — `phase-2-core.md` §2.6c: `write rounds/{NNN}-04-session-observer.yaml ... (MANDATORY)` (L725).
+- FIX-S2 MANDATORY language — `phase-2-core.md` §2.6c: "**MANDATORY when `DIAGNOSTIC_FLAG == true`.** Do NOT skip this step." (L689).
+- Dump naming documented in `verbose-dump-format.md` (FIX-S1, BUG-013).
+- Step 2.6c now lives in the single canonical `phase-2-core.md` consumed by all commands (the old FIX-S3 "SKILL.md missing 2.6c" gap is structurally gone post-v0.4.0).
+
+The code mitigation is therefore complete; what remains is the empirical confirmation. **Folded into the v0.5.0 batch dogfood** (≥3/3 observer dump files per round under `--diagnostic`). Close once that replay passes. (BUG-015's R1 false-positive guard touches the same observer and is verified in the same run.)
 
 ### BUG-012: Token tracker non si riattiva dopo compact + resume
 
-**Status**: planned | **Created**: 2026-02-02 | **Priority**: high
+**Status**: completed | **Created**: 2026-02-02 | **Updated**: 2026-05-28 | **Completed**: 2026-06-06 | **Priority**: high | **Target**: v0.5.0 | **Verified**: see test-baselines/v0.5.0-dogfood.md
 
 **Context**: Dopo `/compact`, quando si fa resume di una sessione roundtable, il token tracker non si riattiva. Di conseguenza, non tracciando più i token, il roundtable non è in grado di fermarsi quando sta per finire il contesto.
 
@@ -780,12 +785,17 @@ are lost and must be re-initialized.
 
 **Raccomandazione**: Opzione B - setup incondizionato. Il costo di una Read aggiuntiva è trascurabile rispetto al rischio di token tracking silenziosamente disabilitato.
 
+**Location correction (2026-05-28)**: post-v0.4.0 there is no `SKILL.md Step 2.0a`. Token-tracking setup lives in `phase-2-core.md` Step 2.0 (reads `token-tracking.md`, resolves `TOKEN_SCRIPT`) and in `token-tracking.md` "Script Location". The weakening language was "resolve ONCE, then reuse" + "cached if already loaded this session".
+
+**Fix applied (2026-05-28, Option B)**:
+- `token-tracking.md` "Script Location" → "resolve at the START of EVERY round"; removed "reuse for all subsequent rounds"; added compact/clear rationale (do NOT assume `TOKEN_SCRIPT` is still set — the model may "recall" it but the value is gone after context rebuild).
+- `phase-2-core.md` Step 2.0 → re-resolve `TOKEN_SCRIPT` unconditionally every round; removed the "cached if already loaded" hedge.
+
 **Tasks**:
-- [ ] Update SKILL.md Step 2.0a to always resolve TOKEN_SCRIPT
-- [ ] Remove conditional "IF first round OR TOKEN_SCRIPT not set"
-- [ ] Add comment explaining why unconditional (compact/clear resilience)
-- [ ] Update token-tracking.md to match
-- [ ] Test: verify token tracking works after compact + resume
+- [x] Make TOKEN_SCRIPT resolution unconditional every round (phase-2-core.md Step 2.0 + token-tracking.md "Script Location")
+- [x] Remove "resolve ONCE / cached" weakening language
+- [x] Add rationale explaining why unconditional (compact/clear resilience)
+- [ ] Dogfood-verify: token tracking active after /compact + resume, SHOULD_STOP fires
 
 **Acceptance criteria**:
 - [ ] Token tracking active after `/compact` + resume
@@ -799,7 +809,7 @@ are lost and must be re-initialized.
 
 ### BUG-005: Participant verbose dumps missing full context
 
-**Status**: planned | **Created**: 2026-01-22 | **Priority**: high
+**Status**: completed | **Created**: 2026-01-22 | **Updated**: 2026-05-28 | **Completed**: 2026-06-06 | **Priority**: high | **Target**: v0.5.0 | **Verified**: see test-baselines/v0.5.0-dogfood.md
 
 **Context**: Despite BUG-003 fix (SKILL.md now specifies inline `context`), the actual verbose dump files for participants (`{NNN}-02-{participant}.yaml`) only contain `input.question` but NOT the full `input.context` block with project_summary, relevant_artifacts, etc.
 
@@ -825,36 +835,21 @@ input:
     recent_rounds: [...]
 ```
 
-**Root cause** (confirmed 2026-01-22):
-The command dump template at specs.md:884-886 uses ambiguous placeholder:
-```yaml
-input:
-  question: "{the question}"
-  context: {... context sent ...}   # <-- This placeholder is not expanded
-```
-
-The executor doesn't know what to put in `{... context sent ...}`.
-Fix: Replace placeholder with explicit template matching verbose-dump-format.md.
+**Root cause** (confirmed 2026-01-22; location corrected 2026-05-28): the dump-write instruction emphasized response fields only. The canonical schema in `verbose-dump-format.md` (§ Participant Response Dump) already specifies the full `input.context` block, but the instruction in `phase-2-core.md` §2.3e did not require copying it — so the executor wrote `input.question` and the response while dropping the `input.context` block. (The original ticket cited `specs.md:884-886`, a pre-v0.4.0 location that no longer exists.)
 
 **Impact**:
 - CTX-* checks will fail (CTX-002, CTX-003)
 - Cannot verify context propagation from dumps
 - Resume from scratch cannot reconstruct what participants received
 
-**Affected files** (to investigate):
-- `commands/specs.md` (~line 871 participant dump section)
-- `commands/design.md` (equivalent section)
-- `commands/brainstorm.md` (equivalent section)
+**Affected files** (corrected 2026-05-28):
+- `skills/roundtable-execution/references/phase-2-core.md` §2.3e (participant dump-write instruction)
+
+**Fix applied (2026-05-28)**: phase-2-core.md §2.3e now states the dump MUST include the full `input.context` block (`project_summary`, `relevant_artifacts`, `open_conflicts`, `open_questions`, `recent_rounds`) copied VERBATIM from what was sent to the participant in Step 2.3b — not only `input.question`.
 
 **Tasks**:
-- [ ] Verify specs.md participant dump template includes full context
-- [ ] Verify design.md participant dump template includes full context
-- [ ] Verify brainstorm.md participant dump template includes full context
-- [ ] Test with --verbose and verify dump content
-
-**Acceptance criteria**:
-- [ ] Participant dumps include full `input.context` block
-- [ ] CTX-002 and CTX-003 checks pass on new sessions
+- [x] Make phase-2-core.md §2.3e require the full `input.context` block in the participant dump
+- [ ] Dogfood-verify in ElfGiftRush_s2s/exp*: `--verbose` run, confirm `{NNN}-02-*.yaml` contains the context block + CTX-002/003 pass
 
 **Related**: BUG-003, BUG-004, TEST-003, CTX-*
 
@@ -862,7 +857,7 @@ Fix: Replace placeholder with explicit template matching verbose-dump-format.md.
 
 ### BUG-007: Internal ADR references leak into user project templates
 
-**Status**: planned | **Created**: 2026-01-28 | **Priority**: low
+**Status**: completed | **Created**: 2026-01-28 | **Completed**: 2026-05-29 | **Priority**: low | **Target**: v0.5.0
 
 **Context**: The workspace and project templates contain references to internal Spec2Ship ADRs (ADR-0009, ADR-0010). When a user runs `/s2s:init`, these references end up in the generated files. Users have no access to these ADRs and the references are meaningless outside of s2s development.
 
@@ -874,16 +869,18 @@ Fix: Replace placeholder with explicit template matching verbose-dump-format.md.
 - `templates/project/CONTEXT.md` (line 17) - ADR-0009
 - `templates/project/config.yaml` (line 35, consensus comment) - ADR-0010
 
+**Fix applied (2026-05-29)**: removed all four internal ADR references from the user-facing templates. The `ADR-001` generic example in workspace.yaml stays (not a leak). The `.s2s/config.yaml` ADR-0010 comment was left untouched — it is the spec2ship repo's own config, not a shipped template.
+
 **Tasks**:
-- [ ] Remove ADR-0009 reference from `templates/workspace/workspace.yaml` context_note
-- [ ] Remove ADR-0009 reference from `templates/workspace/CONTEXT.md`
-- [ ] Remove ADR-0009 reference from `templates/project/CONTEXT.md`
-- [ ] Remove ADR-0010 reference from `templates/project/config.yaml` consensus comment
+- [x] Remove ADR-0009 reference from `templates/workspace/workspace.yaml` context_note
+- [x] Remove ADR-0009 reference from `templates/workspace/CONTEXT.md`
+- [x] Remove ADR-0009 reference from `templates/project/CONTEXT.md`
+- [x] Remove ADR-0010 reference from `templates/project/config.yaml` consensus comment
 
 **Acceptance criteria**:
-- [ ] Generated user files contain no references to internal s2s ADRs (ADR-0009, ADR-0010)
-- [ ] context_note in workspace.yaml retains its useful operational lines (71-74)
-- [ ] config.yaml consensus section remains functional without the ADR comment
+- [x] Generated user files contain no references to internal s2s ADRs (ADR-0009, ADR-0010)
+- [x] context_note in workspace.yaml retains its useful operational lines (71-74)
+- [x] config.yaml consensus section remains functional without the ADR comment
 
 ---
 
@@ -930,7 +927,7 @@ Fix: Replace placeholder with explicit template matching verbose-dump-format.md.
 
 ### BUG-009: Facilitator concludes despite unmet criteria
 
-**Status**: planned | **Created**: 2026-01-30 | **Priority**: high
+**Status**: completed | **Created**: 2026-01-30 | **Updated**: 2026-05-28 | **Completed**: 2026-06-06 | **Priority**: high | **Target**: v0.5.0 | **Verified**: see test-baselines/v0.5.0-dogfood.md
 
 **Context**: During a roundtable session (round 4), the facilitator returned `next: "conclude"` despite the agenda showing:
 
@@ -975,18 +972,22 @@ Criteria 2 and 3 are NOT met, yet the facilitator decided to conclude.
 
 **Impact**: Sessions may close prematurely with incomplete coverage, requiring manual session continuation or new session creation.
 
+**Location correction (2026-05-28)**: validation lives in `phase-2-core.md` Step 2.9, new sub-step **2.9b** (post-v0.4.0 the round loop is in phase-2-core.md, not SKILL.md). It joins the `agenda.yaml` snapshot (`topics[].critical`) with the live `session.agenda` (`topic_id` → `status`).
+
+**Fix applied (2026-05-28)**: phase-2-core.md Step 2.9b — applies when `next == "conclude"` AND agenda axis (specs/design). Overrides conclude→continue if any `critical` topic is not `closed`, or if <50% of non-critical topics are `closed`; records `validation_override` on the current round entry and displays the reason. Facilitator instructions untouched (independent gate). Brainstorm exempt (gated by `current_phase == "critic"`).
+
 **Tasks**:
-- [ ] Add command-side conclude validation in SKILL.md Step 2.9
-- [ ] Check critical topic closure before accepting conclude
-- [ ] Check 50% non-critical closure before accepting conclude
-- [ ] Log override reason when conclude is rejected
-- [ ] Consider adding `validation_override` field to round record for audit
+- [x] Add command-side conclude validation in phase-2-core.md Step 2.9b
+- [x] Check critical topic closure before accepting conclude
+- [x] Check 50% non-critical closure before accepting conclude
+- [x] Log override reason when conclude is rejected (`validation_override` on round entry)
+- [ ] Dogfood-verify: force a premature conclude with an open critical topic, confirm override + continue
 
 **Acceptance criteria**:
-- [ ] Command rejects premature conclude when critical topics are not closed
-- [ ] Command rejects premature conclude when <50% of other topics closed
-- [ ] Override is logged in session file for debugging
-- [ ] Facilitator instructions remain unchanged (defense in depth)
+- [x] Command rejects premature conclude when critical topics are not closed
+- [x] Command rejects premature conclude when <50% of other topics closed
+- [x] Override is logged in session file for debugging
+- [x] Facilitator instructions remain unchanged (defense in depth)
 
 **Related**: BUG-010 (user confirmation), TECH-002 Phase 3
 
@@ -994,7 +995,7 @@ Criteria 2 and 3 are NOT met, yet the facilitator decided to conclude.
 
 ### BUG-010: No user confirmation when facilitator decides to conclude
 
-**Status**: planned | **Created**: 2026-01-30 | **Priority**: medium
+**Status**: completed | **Created**: 2026-01-30 | **Updated**: 2026-05-28 | **Completed**: 2026-06-06 | **Priority**: medium | **Target**: v0.5.0 | **Verified**: see test-baselines/v0.5.0-dogfood.md
 
 **Context**: When the facilitator returns `next: "conclude"`, the command exits the round loop and proceeds directly to Phase 3 without any user interaction. The user has no opportunity to say "no, keep going - there are still open topics."
 
@@ -1089,24 +1090,25 @@ Phase 3: Completion
 - Single mechanism solves multiple issues
 - Summary file already exists in current design, just generated at better time
 
+**Location + scope correction (2026-05-28)**: implemented in `phase-2-core.md` Step 2.9 as new sub-step **2.9c** (the conclude decision lives in the round loop, not in a separate Phase 3 SKILL.md step). Scoped to the **confirmation + inline summary display** (roadmap Option 1). The broader Phase 3 restructure — generating a `summary.md` early and feeding it to output generation instead of re-reading the session file — is the BUG-011 optimization and stays **out of v0.5.0 scope**.
+
+**Fix applied (2026-05-28)**: phase-2-core.md Step 2.9c — when `next == "conclude"` survives 2.9b AND `INTERACTIVE_FLAG == false`, compile and display a short summary (decisions / coverage / open items), then `AskUserQuestion` (accept vs continue); "Continue" overrides `next = "continue"`. In interactive mode the user already chose at Step 2.8, so no double prompt.
+
 **Tasks**:
-- [ ] Add Step 3.0: Generate Session Summary in SKILL.md
-- [ ] Define summary format (decisions, coverage, open items, trade-offs)
-- [ ] Add Step 3.1: Display summary + AskUserQuestion
-- [ ] Update automatic continuation rules to exclude conclude from "no stop" conditions
-- [ ] Modify Step 3.3 to use summary as context for output generation
-- [ ] Update commands (specs, design, brainstorm) with new steps
-- [ ] Move summary.md generation from current location to Step 3.0
+- [x] Add conclude confirmation in phase-2-core.md Step 2.9c (non-interactive path)
+- [x] Define inline summary content (decisions, coverage, open items)
+- [x] AskUserQuestion (accept conclusion vs continue discussion); "Continue" overrides next
+- [ ] Dogfood-verify: non-interactive run reaching conclude shows summary + prompt; "Continue" adds a round
+- [~] (deferred to BUG-011) move summary.md generation earlier + use it as output-generation context
 
 **Acceptance criteria**:
-- [ ] User sees session summary before confirming conclude
-- [ ] Summary includes: approved artifacts, agenda coverage, open items
-- [ ] User can choose to continue discussion instead of concluding
-- [ ] Output generator uses summary as context (not full session re-read)
-- [ ] Summary file written at Step 3.0 (before confirmation)
-- [ ] Works in both interactive and non-interactive modes
+- [x] User sees session summary before confirming conclude
+- [x] Summary includes: approved artifacts, agenda coverage, open items
+- [x] User can choose to continue discussion instead of concluding
+- [~] Output generator uses summary as context (deferred — BUG-011)
+- [x] Confirmation runs on the non-interactive conclude path (interactive handled at Step 2.8)
 
-**Related**: BUG-009 (facilitator criteria), BUG-011 (session file size), TECH-002 Phase 3
+**Related**: BUG-009 (facilitator criteria), BUG-011 (session file size + summary-as-context), TECH-002 Phase 3
 
 ---
 
@@ -1187,6 +1189,123 @@ The session YAML file was likely 400-600+ lines.
 - [ ] No YAML corruption from targeted edits (regression test)
 
 **Related**: ADR-0010 (single state field), TECH-002 (command unification), BUG-010 (summary checkpoint mitigation)
+
+---
+
+### BUG-014: Agent resume gap during master-delegated runs
+
+**Status**: completed | **Created**: 2026-05-28 | **Updated**: 2026-05-29 | **Completed**: 2026-06-06 | **Priority**: medium | **Origin**: TECH-002 Phase 4 diagnostic finding (plan §8); reproduced in exp54 | **Target**: v0.5.0 | **Verified**: see test-baselines/v0.5.0-dogfood.md
+
+**Context**: During a master-delegated run (`/s2s:design` through the roundtable.md master), an agent resume produced the error `summary is required when message is a string`. The harness fallback completed the run, so it was non-blocking, but the resume path is not clean.
+
+**Reproduced**: exp54 (`/s2s:design --diagnostic`, 2026-05-22). The run never actually interrupted; the error surfaced and execution continued via harness fallback.
+
+**Note**: this is distinct from BUG-001 (agent resume fails across Claude restarts). BUG-014 is within a single session, on the delegated master path.
+
+**Fix applied (2026-05-29)**: the error means the Task tool resume call sent a plain-string message with no `summary`. Both resume points in `phase-2-core.md` now require a one-line `summary` on the Task call: §2.2a (facilitator) and §2.3a (participant). Covers either origin without needing to disambiguate which one fired.
+
+**Tasks**:
+- [x] Identify the cause: string resume message without `summary` (applies to both facilitator and participant resume)
+- [x] Require a `summary` on both resume Task calls (phase-2-core.md §2.2a + §2.3a)
+- [ ] Dogfood-verify deterministically (master-delegated `/s2s:design --diagnostic`, multi-round): resume succeeds with no `summary is required` error and no harness fallback
+
+**Acceptance criteria**:
+- [x] Resume input now carries a `summary` (no string-only message)
+- [ ] Master-delegated runs resume without the `summary is required` error (dogfood)
+- [ ] No reliance on harness fallback for normal resume (dogfood)
+
+---
+
+### BUG-015: R1 observer false-positive on empty artifact maps
+
+**Status**: completed | **Created**: 2026-05-28 | **Updated**: 2026-05-29 | **Completed**: 2026-06-06 | **Priority**: low | **Origin**: TECH-002 Phase 4 diagnostic finding (plan §8) | **Target**: v0.5.0 | **Verified**: see test-baselines/v0.5.0-dogfood.md
+
+**Context**: On round 1, the session-observer (diagnostic mode) flags an anomaly when artifact maps are still empty, but an empty artifact map at R1 is expected (artifacts accrue from R1 synthesis onward). The false-positive adds noise to the diagnostic report.
+
+**Fix applied (2026-05-29)**: `agents/validation/session-observer.md` now states explicitly that at `round == 1` the artifact maps, `relevant_artifacts`, and `recent_rounds` are expected to be empty (baseline) and MUST NOT be reported as findings; "populated"/coherence checks apply only for `round > 1`. Added both as a callout in Per-Round Mode and a bullet in "Important".
+
+**Tasks**:
+- [x] Suppress the empty-artifact-map anomaly on round 1 (explicit baseline guard in the observer agent)
+- [x] Keep "populated"/coherence checks active for round > 1 (genuine stalls still flagged)
+- [ ] Dogfood-verify: `--diagnostic` run, no empty-artifact-map finding at R1; genuine stall past R1 still flagged
+
+**Acceptance criteria**:
+- [x] Observer instructed: no empty-artifact-map anomaly at R1
+- [x] Genuine stalls (empty artifacts past R1) still flagged (checks gated to round > 1, not removed)
+
+---
+
+### BUG-016: token-tracker.sh exits 1 and breaks && chains
+
+**Status**: completed | **Created**: 2026-05-28 | **Completed**: 2026-05-29 | **Priority**: low | **Origin**: TECH-002 Phase 4 diagnostic finding (plan §8) | **Target**: v0.5.0
+
+**Context**: `token-tracker.sh` returns exit code 1 in a path that is not actually an error (observed during Phase 4 dogfood), which breaks `&&` command chains that invoke it. Callers must split the chain to avoid aborting subsequent steps.
+
+**Root cause (2026-05-29)**: the script has no `set -e` and no trailing `exit 0`, so it inherits the exit status of the last command in the matched `case` branch. The `init` branch ends with `[[ "$COMPACT_DETECTED" == "true" ]] && echo ...`, which returns 1 whenever no compact occurred (the normal case) — so a successful `init` exited 1, aborting `eval $(... init ...) && ...` chains.
+
+**Fix applied (2026-05-29)**: added `exit 0` after `esac` (the `*)` usage branch still `exit 1` before reaching it). Verified directly: normal `init` → exit 0; `init ... && echo CHAIN OK` → prints CHAIN OK; bogus action → exit 1.
+
+**Tasks**:
+- [x] Locate the exit-1 path that is not a real failure (init branch trailing `[[ ]] && echo`)
+- [x] Return 0 on the non-error path (trailing `exit 0`)
+- [x] Verify token tracking still surfaces real errors with a non-zero code (`*)` usage still exits 1)
+
+**Acceptance criteria**:
+- [x] `token-tracker.sh` returns 0 on success paths
+- [x] `&&` chains invoking it do not abort spuriously
+
+---
+
+### BUG-017: Token-tracker recap math glitched after compact+resume
+
+**Status**: planned | **Created**: 2026-06-06 | **Priority**: low | **Origin**: v0.5.0 dogfood (exp61) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F2)
+
+**Context**: in exp61 (post-fix BUG-012 verification), the token-tracker `init` at round 3 post-compact ran cleanly (BUG-012 PASS), but the subsequent round-3 `recap` reported `statusline returned 0%` and produced negative round deltas. Model self-described as "non-blocking" and continued. The cause appears to be that the per-round capture markers (T1/T2/T3 state and the previous-round T0/T3 snapshot) from the pre-compact round are still in the cache, so the recap arithmetic mixes pre- and post-compact values.
+
+**Hypothesis**: `init` after a detected compact should reset the per-round capture markers (or the recap should detect compactDetected and use a different code path).
+
+**Tasks**:
+- [ ] Reproduce deterministically: `/s2s:specs --verbose --interactive`, 2 rounds, `/compact`, resume, observe round-3 recap.
+- [ ] Decide whether `init` clears or `recap` guards on `compactDetected`; instrument fix.
+- [ ] Confirm: post-compact resume rounds report a sensible recap (no 0% statusline, no negative deltas).
+
+**Acceptance criteria**:
+- [ ] Round-3 (or first post-compact round) recap produces non-negative deltas and a real percentage.
+- [ ] BUG-012's `compactDetected=true` semantics preserved.
+
+---
+
+### BUG-018: Token-tracker cache loses workflow params after compact+resume
+
+**Status**: planned | **Created**: 2026-06-06 | **Priority**: low | **Origin**: v0.5.0 dogfood (exp61) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F3)
+
+**Context**: post-compact resume cache file in exp61 had `workflowType=`, `strategy=`, `phase=`, `participantsCount=` empty. The model called `token-tracker.sh init` with only `session-id` + `round-number` and omitted the optional positional params. Pre-compact cache had them populated. Statusline display loses roundtable context after resume.
+
+**Tasks**:
+- [ ] Decide if `init` should preserve previous cache values when optional params are omitted, OR instruct the model to always pass them on resume.
+- [ ] If script-side: add a "merge with existing cache" behavior when optional params are missing.
+- [ ] If instruction-side: add explicit guidance in `token-tracking.md` "Script Location" / `phase-2-core.md` Step 2.0.
+
+**Acceptance criteria**:
+- [ ] Post-resume cache retains `workflowType` / `strategy` / `phase` / `participantsCount`.
+- [ ] Statusline roundtable info survives `/compact` + resume.
+
+---
+
+### TECH-011: assign_debate_sides launcher pre-step is vestigial for design+debate
+
+**Status**: planned | **Created**: 2026-06-06 | **Priority**: low | **Origin**: v0.5.0 dogfood (exp58 step 2 design report) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F1)
+
+**Context**: post-fix design run reported that the launcher's `assign_debate_sides` pre-step is vestigial when design uses the `debate` strategy. The static side assignment is no longer load-bearing because the per-round `facilitator_emergent` policy reassigns Pro/Con/Observer per topic at each round (Phase 4 / strategy-hooks). The launcher writes an initial side split into `session.yaml` that subsequent rounds ignore.
+
+**Tasks**:
+- [ ] Audit `commands/design.md` / `commands/roundtable.md` launcher: is `assign_debate_sides` still called?
+- [ ] Audit `strategy-hooks.md` `debate` entry: confirm `facilitator_emergent` policy supersedes static assignment.
+- [ ] Either remove the pre-step or document why it remains (e.g., backward-compat for non-emergent debate variants).
+
+**Acceptance criteria**:
+- [ ] `assign_debate_sides` either removed or explicitly documented as legacy/optional.
+- [ ] No semantic change to design+debate runs.
 
 ---
 
@@ -2048,7 +2167,9 @@ Make commands actually USE roundtable-strategies instead of duplicating.
 
 ### TECH-005: Token tracking auto-setup via per-project statusline
 
-**Status**: in_progress | **Created**: 2026-01-24 | **Priority**: high
+**Status**: completed | **Created**: 2026-01-24 | **Completed**: 2026-05-28 | **Priority**: high
+
+**Re-triage (2026-05-28)**: Closed as completed. The implementation shipped with v0.4.0: `templates/statusline/{statusline.sh,settings.json}`, `templates/hooks/context-reset.sh`, and `commands/init.md` Phase 5.5b (statusline setup with chain-to-global) all exist in the repo. The two remaining unchecked boxes are not blockers: "test session isolation (requires restart)" is a manual verification, and "config toggle for token tracking" is tracked separately as TECH-008. FEAT-003 (`/s2s:config`), which depended on this, is now unblocked but stays out of v0.5.0 scope.
 
 **Context**: Token tracking requires statusline configuration to save `context-window.json`. Previously this required manual user setup. Now using per-project statusline with chain to global.
 

@@ -645,3 +645,9 @@ EOF
         exit 1
         ;;
 esac
+
+# BUG-016: explicit success exit. Without this the script inherits the exit
+# status of the last command in the matched branch — e.g. the init branch ends
+# with `[[ "$COMPACT_DETECTED" == "true" ]] && echo ...`, which returns 1 when no
+# compact occurred, spuriously aborting `eval $(... init ...) && ...` chains.
+exit 0
