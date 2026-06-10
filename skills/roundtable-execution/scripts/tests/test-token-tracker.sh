@@ -150,6 +150,45 @@ assert_eq "RECAP_DEGRADED" "false" "$OUT"
 assert_eq "COMPACT_DETECTED" "false" "$OUT"
 rm -rf "$PROJ"
 
+# --- Test 3: BUG-019 — limit adapts to a 1M window (absolute tokens correct) -
+# With a statusline JSON reporting a 1M window at 14%, init must report the real
+# 140k used / 860k available, not 28k / 172k scaled against a hardcoded 200k.
+echo "Test 3: BUG-019 init adapts to 1M context window (current_context_tokens)"
+PROJ=$(make_project)
+SID="20260610-specs-1m"
+cat > "${PROJ}/.s2s/context-window.json" <<EOF
+{
+  "session_id": "${SID}",
+  "used_percentage": 14,
+  "remaining_percentage": 86,
+  "context_window_size": 1000000,
+  "current_context_tokens": 140000
+}
+EOF
+OUT=$( cd "$PROJ" && bash "$TRACKER" init "$SID" 0 specs standard "" 4 )
+assert_eq "CURRENT_K" "140" "$OUT"      # 140000 / 1000, not 28 (200k-scaled)
+assert_eq "CURRENT_PCT" "14" "$OUT"
+assert_eq "AVAILABLE_K" "860" "$OUT"    # (1000000 - 140000) / 1000
+rm -rf "$PROJ"
+
+# --- Test 4: BUG-019 — pct fallback also uses the dynamic limit --------------
+# Older statusline JSON without current_context_tokens: the percentage recompute
+# must use the real window_size (1M), still yielding 140k, not 28k.
+echo "Test 4: BUG-019 percentage fallback uses dynamic limit"
+PROJ=$(make_project)
+SID="20260610-specs-1m-fallback"
+cat > "${PROJ}/.s2s/context-window.json" <<EOF
+{
+  "session_id": "${SID}",
+  "used_percentage": 14,
+  "context_window_size": 1000000
+}
+EOF
+OUT=$( cd "$PROJ" && bash "$TRACKER" init "$SID" 0 specs standard "" 4 )
+assert_eq "CURRENT_K" "140" "$OUT"
+assert_eq "CURRENT_PCT" "14" "$OUT"
+rm -rf "$PROJ"
+
 # --- Summary ----------------------------------------------------------------
 echo ""
 echo "Passed: ${PASS}, Failed: ${FAIL}"

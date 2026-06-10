@@ -2,7 +2,9 @@
 # token-tracker.sh - Token tracking for roundtable sessions
 # Works on: Linux, Windows (Git Bash), macOS
 #
-# Version: 5.3.1 - BUG-017: recap survives /compact (no negative deltas / phantom 0%)
+# Version: 5.4.0 - BUG-019: context limit adapts to the model window (read from
+#                  statusline JSON; 1M for Opus/Sonnet, 200K for Haiku) instead
+#                  of a hardcoded 200K. Builds on 5.3.1 (BUG-017 recap guard).
 #
 # Usage:
 #   token-tracker.sh init <session-id> <round-number> [workflow-type] [strategy] [phase] [participants-count]
@@ -38,7 +40,12 @@
 #   - State file: .s2s/state.json (managed by SKILL.md, not this script)
 
 ACTION="$1"
-CONTEXT_LIMIT=200000  # Claude Code context limit in tokens
+# BUG-019: the context window depends on the running model (1M for Opus 4.6+ /
+# Sonnet 4.6, 200K for Haiku 4.5). DEFAULT is only a fallback for when the
+# statusline JSON is unavailable; the real limit is resolved per-invocation from
+# context_window_size below.
+DEFAULT_CONTEXT_LIMIT=200000
+CONTEXT_LIMIT=$DEFAULT_CONTEXT_LIMIT
 
 # Project-local .s2s directory
 S2S_DIR=".s2s"
@@ -120,6 +127,18 @@ get_tokens_from_statusline() {
         return
     fi
 
+    # BUG-019: prefer the absolute count the statusline already wrote
+    # (current_context_tokens = window_size * used_pct / 100). It reflects the
+    # real model window and survives /compact, so we don't rescale a percentage
+    # against a hardcoded limit.
+    local cur_tokens=$(jq -r '.current_context_tokens // empty' "$context_file" 2>/dev/null)
+    if [[ "$cur_tokens" =~ ^[0-9]+$ && "$cur_tokens" -gt 0 ]]; then
+        echo "$cur_tokens"
+        return
+    fi
+
+    # Fallback (older statusline JSON without current_context_tokens): recompute
+    # from the percentage against the dynamic limit resolved in get_context_limit.
     local used_pct=$(jq -r '.used_percentage // 0' "$context_file" 2>/dev/null)
 
     if [[ -n "$used_pct" && "$used_pct" != "null" && "$used_pct" != "0" ]]; then
@@ -130,6 +149,24 @@ get_tokens_from_statusline() {
     fi
 
     echo ""
+}
+
+# Helper: Resolve the context window limit (BUG-019)
+# Reads context_window_size written by the statusline (adapts to the running
+# model). Falls back to DEFAULT_CONTEXT_LIMIT only when the JSON is absent or
+# lacks the field.
+get_context_limit() {
+    local context_file=$(get_context_window_file)
+
+    if [[ -f "$context_file" ]]; then
+        local size=$(jq -r '.context_window_size // empty' "$context_file" 2>/dev/null)
+        if [[ "$size" =~ ^[0-9]+$ && "$size" -gt 0 ]]; then
+            echo "$size"
+            return
+        fi
+    fi
+
+    echo "$DEFAULT_CONTEXT_LIMIT"
 }
 
 # Helper: Get current tokens (tries statusline first, falls back to JSONL)
@@ -179,6 +216,11 @@ check_statusline_active() {
         echo "false"
     fi
 }
+
+# BUG-019: adapt the limit to the running model's actual window before any
+# action computes percentages, available/remaining tokens, or the statusline
+# fallback. No-op (keeps 200K) when the statusline JSON is unavailable.
+CONTEXT_LIMIT=$(get_context_limit)
 
 case "$ACTION" in
     init)

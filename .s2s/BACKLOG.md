@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-06-10 (v0.6.0 bug-fix cycle started: BUG-017 closed; BUG-018, TECH-011 queued)
+**Updated**: 2026-06-10 (v0.6.0 bug-fix cycle: BUG-017 + BUG-019 closed; BUG-018, TECH-011 queued)
 **Format**: Work items for active development
 
 ---
@@ -1297,6 +1297,37 @@ The session YAML file was likely 400-600+ lines.
 **Acceptance criteria**:
 - [ ] Post-resume cache retains `workflowType` / `strategy` / `phase` / `participantsCount`.
 - [ ] Statusline roundtable info survives `/compact` + resume.
+
+---
+
+### BUG-019: Token-tracker hardcoded 200K context limit (wrong on 1M-window models)
+
+**Status**: completed | **Created**: 2026-06-10 | **Completed**: 2026-06-10 | **Priority**: medium | **Target**: v0.6.0 | **Origin**: user report (session 0ed30948, 2026-06-10)
+
+**Context**: `token-tracker.sh` hardcoded `CONTEXT_LIMIT=200000` (used in 9 places) and `get_tokens_from_statusline` recomputed tokens as `200000 * used_pct / 100`. Current Claude models have a 1M window (Opus 4.6/4.7/4.8, Sonnet 4.6; only Haiku 4.5 is 200K — confirmed via claude-api skill, cached 2026-05-26), so 200K is stale for nearly every model. This session ran at `context_window_size: 1000000`.
+
+**Impact (two token sources, hit differently)**:
+- **Statusline path** (normal s2s): percentages round-trip correctly (the 200K cancels: `tokens/200000 == used_pct`), so `SHOULD_STOP`/`SHOULD_WARN` decisions were still right, but every absolute number was wrong by the window ratio — at 14% of 1M it displayed `28k used / 172k available` instead of `140k / 860k`.
+- **JSONL fallback path** (statusline off): `get_tokens_from_jsonl` returns real absolute tokens, then `/200000` → at 140k real tokens it reported **70%** instead of 14%, so the roundtable would stop ~5× too early. Genuinely broken on large windows.
+
+**Root insight**: the fix needs no per-model table — the statusline already writes `context_window_size` and `current_context_tokens` into `.s2s/context-window.json` (the statusline template reads them from Claude Code's input and defaults to 200000 only when absent, so it was already correct). Only the tracker's consumption was wrong.
+
+**Fix applied (2026-06-10, `token-tracker.sh` v5.4.0)**:
+- New `get_context_limit()` reads `context_window_size` from the JSON; `CONTEXT_LIMIT` is resolved per-invocation before the action dispatch. `DEFAULT_CONTEXT_LIMIT=200000` is now only the fallback when the JSON is absent.
+- `get_tokens_from_statusline` prefers the absolute `current_context_tokens`; the percentage recompute fallback now uses the dynamic limit.
+- All 9 `CONTEXT_LIMIT` uses (percentages, `AVAILABLE_K`, `REMAINING_K`, statusline back-calc) now adapt automatically.
+
+**Tasks**:
+- [x] Resolve `CONTEXT_LIMIT` from `context_window_size` (fallback to 200000 when JSON absent).
+- [x] Use `current_context_tokens` directly instead of rescaling a percentage.
+- [x] Regression test for a 1M window (absolute tokens + percentage correct) and the percentage-fallback path — `scripts/tests/test-token-tracker.sh` Tests 3-4.
+
+**Acceptance criteria**:
+- [x] On a 1M-window model the tracker reports real used/available tokens (140k/860k at 14%), not 200K-scaled values. (Test 3)
+- [x] Percentage fallback (no `current_context_tokens`) also uses the real window. (Test 4)
+- [x] Falls back to 200K only when the statusline JSON is unavailable; no per-model table to maintain.
+
+**Note**: the JSONL-only fallback (statusline never active) still can't know the window and defaults to 200K — acceptable since `/s2s:init` sets up the statusline. Related: BUG-018 (same cache, post-compact param loss).
 
 ---
 
