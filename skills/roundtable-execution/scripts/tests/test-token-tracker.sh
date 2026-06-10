@@ -63,6 +63,30 @@ assert_ne() {
     fi
 }
 
+# Assert that a file does NOT contain a given grep pattern.
+assert_file_lacks() {
+    local pattern="$1" file="$2"
+    if [[ -f "$file" ]] && grep -q "$pattern" "$file"; then
+        echo "  FAIL: '${file}' should not contain '${pattern}'" >&2
+        FAIL=$((FAIL + 1))
+    else
+        echo "  ok: '${pattern}' absent from cache"
+        PASS=$((PASS + 1))
+    fi
+}
+
+# Assert that a file DOES contain a given grep pattern.
+assert_file_has() {
+    local pattern="$1" file="$2"
+    if [[ -f "$file" ]] && grep -q "$pattern" "$file"; then
+        echo "  ok: '${pattern}' present in cache"
+        PASS=$((PASS + 1))
+    else
+        echo "  FAIL: '${file}' should contain '${pattern}'" >&2
+        FAIL=$((FAIL + 1))
+    fi
+}
+
 make_project() {
     local dir
     dir=$(mktemp -d)
@@ -187,6 +211,26 @@ EOF
 OUT=$( cd "$PROJ" && bash "$TRACKER" init "$SID" 0 specs standard "" 4 )
 assert_eq "CURRENT_K" "140" "$OUT"
 assert_eq "CURRENT_PCT" "14" "$OUT"
+rm -rf "$PROJ"
+
+# --- Test 5: BUG-018 — init drops vestigial cache fields, accepts extra args -
+# The old workflow-type/strategy/phase/participants-count positional args were
+# write-only cache fields nobody read (statusline uses state.json). init must no
+# longer persist them, while still accepting the extra args without error
+# (back-compat for callers not yet updated).
+echo "Test 5: BUG-018 init drops vestigial cache fields (extra args ignored)"
+PROJ=$(make_project)
+SID="20260610-specs-bug018"
+# Call with the OLD-style positional args to prove they are accepted + ignored.
+OUT=$( cd "$PROJ" && bash "$TRACKER" init "$SID" 0 specs standard "" 4 )
+CACHE="${PROJ}/.s2s/sessions/${SID}.cache"
+assert_file_lacks "^workflowType=" "$CACHE"
+assert_file_lacks "^strategy=" "$CACHE"
+assert_file_lacks "^phase=" "$CACHE"
+assert_file_lacks "^participantsCount=" "$CACHE"
+assert_file_has "^compactDetected=" "$CACHE"   # real fields still written
+assert_file_has "^startTokens=" "$CACHE"
+assert_ne "CURRENT_K" "" "$OUT"                # init still produced output (no crash)
 rm -rf "$PROJ"
 
 # --- Summary ----------------------------------------------------------------

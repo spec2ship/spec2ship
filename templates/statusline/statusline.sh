@@ -5,7 +5,8 @@
 #
 # Writes context data to .s2s/context-window.json for token tracking.
 # Project-local file, no session ID needed (one state per project).
-# Reads roundtable state from .s2s/state.json (written by token-tracker).
+# Reads roundtable state from .s2s/state.json (written each round by
+# phase-2-core.md Step 2.1b, not by token-tracker; survives /compact).
 
 INPUT=$(cat)
 

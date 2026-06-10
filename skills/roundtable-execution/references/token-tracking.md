@@ -63,16 +63,18 @@ No session ID needed in filenames - one state per project.
 **Execute at EVERY round** (including first and resume):
 
 ```bash
-eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed} "{workflow_type}" "{strategy}" "{phase}" {participants_count})
+eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed})
 ```
 
 **Parameters**:
 - `session-id`: current session ID
 - `rounds_completed`: from session file's `metrics.rounds_completed`
-- `workflow_type`: specs | design | brainstorm | roundtable
-- `strategy`: standard | consensus-driven | debate | disney | six-hats
-- `phase`: current phase (e.g., "discussion", "dreamer", "opening")
-- `participants_count`: number of participants
+
+> **Note (BUG-018)**: `init` no longer takes workflow-type/strategy/phase/participants-count.
+> Those were write-only cache fields nobody read. The statusline's roundtable info
+> (`workflow:strategy R{n}`) is driven by `state.json`, which `phase-2-core.md §2.1b`
+> rewrites every round from the on-disk profile/config — so it survives `/compact` + resume
+> regardless of this cache. Extra positional args are still accepted (ignored) for back-compat.
 
 **Check SHOULD_STOP and SHOULD_WARN from output** (TECH-009):
 

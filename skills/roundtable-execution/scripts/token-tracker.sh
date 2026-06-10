@@ -2,12 +2,13 @@
 # token-tracker.sh - Token tracking for roundtable sessions
 # Works on: Linux, Windows (Git Bash), macOS
 #
-# Version: 5.4.0 - BUG-019: context limit adapts to the model window (read from
-#                  statusline JSON; 1M for Opus/Sonnet, 200K for Haiku) instead
-#                  of a hardcoded 200K. Builds on 5.3.1 (BUG-017 recap guard).
+# Version: 5.5.0 - BUG-018: drop vestigial write-only cache fields (workflowType/
+#                  strategy/phase/participantsCount); statusline RT info comes
+#                  from state.json (phase-2-core.md §2.1b), not this cache.
+#                  5.4.0 BUG-019: limit adapts to model window. 5.3.1 BUG-017 recap guard.
 #
 # Usage:
-#   token-tracker.sh init <session-id> <round-number> [workflow-type] [strategy] [phase] [participants-count]
+#   token-tracker.sh init <session-id> <round-number>   # (extra args ignored; back-compat)
 #   token-tracker.sh capture <session-id> <T1|T2|T3>
 #   token-tracker.sh recap <session-id> <participant-count>
 #   token-tracker.sh summary <session-id>
@@ -226,10 +227,12 @@ case "$ACTION" in
     init)
         SESSION_ID="$2"
         ROUND_NUMBER="$3"
-        WORKFLOW_TYPE="$4"
-        STRATEGY="$5"
-        PHASE="$6"
-        PARTICIPANTS_COUNT="$7"
+        # BUG-018: positional args 4-7 (workflow-type/strategy/phase/
+        # participants-count) are accepted for backward compatibility but no
+        # longer stored — they were write-only cache fields nobody read. The
+        # statusline's roundtable info comes from state.json (written every round
+        # by phase-2-core.md §2.1b from on-disk profile/config, so it survives
+        # /compact), not from this cache.
         CACHE_FILE=$(get_cache_file "$SESSION_ID")
 
         # Ensure cache directory exists
@@ -419,10 +422,6 @@ lastRoundEstimate=${PREV_ROUND_ESTIMATE}
 roundsDeltaAccum=${ROUNDS_DELTA_ACCUM}
 orchestratorGapThisRound=${ORCHESTRATOR_GAP}
 compactDetected=${COMPACT_DETECTED:-false}
-workflowType=${WORKFLOW_TYPE}
-strategy=${STRATEGY}
-phase=${PHASE}
-participantsCount=${PARTICIPANTS_COUNT}
 EOF
 
         # Note: state.json is updated by SKILL.md inline, not by token-tracker

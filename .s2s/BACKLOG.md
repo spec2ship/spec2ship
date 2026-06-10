@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-06-10 (v0.6.0 bug-fix cycle: BUG-017 + BUG-019 closed; BUG-018, TECH-011, BUG-020 queued)
+**Updated**: 2026-06-10 (v0.6.0 bug-fix cycle: BUG-017 + BUG-018 + BUG-019 closed; TECH-011, BUG-020 queued)
 **Format**: Work items for active development
 
 ---
@@ -1285,18 +1285,27 @@ The session YAML file was likely 400-600+ lines.
 
 ### BUG-018: Token-tracker cache loses workflow params after compact+resume
 
-**Status**: planned | **Created**: 2026-06-06 | **Priority**: low | **Origin**: v0.5.0 dogfood (exp61) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F3)
+**Status**: completed | **Created**: 2026-06-06 | **Completed**: 2026-06-10 | **Priority**: low | **Target**: v0.6.0 | **Origin**: v0.5.0 dogfood (exp61) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F3)
 
-**Context**: post-compact resume cache file in exp61 had `workflowType=`, `strategy=`, `phase=`, `participantsCount=` empty. The model called `token-tracker.sh init` with only `session-id` + `round-number` and omitted the optional positional params. Pre-compact cache had them populated. Statusline display loses roundtable context after resume.
+**Context**: post-compact resume cache file in exp61 had `workflowType=`, `strategy=`, `phase=`, `participantsCount=` empty. The model called `token-tracker.sh init` with only `session-id` + `round-number` and omitted the optional positional params.
+
+**Re-triage (2026-06-10) — premise was wrong**: the empty cache fields are real but **harmless**. Two findings:
+1. **The four params are write-only.** `token-tracker.sh` wrote them to the cache (init) but **nothing ever read them back** (grep: only the write + tests; recap/summary `source` the cache but don't use them). They are leftovers from an older design where token-tracker wrote `state.json`.
+2. **The statusline's roundtable info does not come from this cache.** It reads `state.json.active_session.*`, which `phase-2-core.md §2.1b` rewrites **every round** (including the resume round) from the on-disk `PROFILE` + config-snapshot + `session.yaml.metrics.rounds_completed`. Those files survive `/compact`, so the statusline RT info **already survives resume**, independent of the token cache. Acceptance criterion 2 was therefore already satisfied by design.
+
+**Resolution (remove vestigial state, not preserve it)**: dropped `workflowType`/`strategy`/`phase`/`participantsCount` from the init cache write and the init signature (`token-tracker.sh` v5.5.0); `init` still accepts the extra positional args (ignored) for back-compat. Updated `token-tracking.md` init usage + a note explaining the state.json mechanism. Fixed the stale `templates/statusline/statusline.sh` header comment ("written by token-tracker" → written by phase-2-core.md §2.1b).
 
 **Tasks**:
-- [ ] Decide if `init` should preserve previous cache values when optional params are omitted, OR instruct the model to always pass them on resume.
-- [ ] If script-side: add a "merge with existing cache" behavior when optional params are missing.
-- [ ] If instruction-side: add explicit guidance in `token-tracking.md` "Script Location" / `phase-2-core.md` Step 2.0.
+- [x] Decide: remove the write-only fields rather than preserve them (chosen over cache-merge — nothing reads them).
+- [x] Remove fields from init cache write + signature; keep extra args accepted (back-compat).
+- [x] Update `token-tracking.md` init call + document the state.json (§2.1b) mechanism.
+- [x] Fix stale statusline template comment.
 
-**Acceptance criteria**:
-- [ ] Post-resume cache retains `workflowType` / `strategy` / `phase` / `participantsCount`.
-- [ ] Statusline roundtable info survives `/compact` + resume.
+**Acceptance criteria** (re-interpreted after re-triage):
+- [x] Cache no longer carries write-only `workflowType`/`strategy`/`phase`/`participantsCount`. (`scripts/tests/test-token-tracker.sh` Test 5)
+- [x] Statusline roundtable info survives `/compact` + resume — confirmed to be driven by `state.json` (§2.1b re-derives from disk each round), not the token cache.
+
+**Related**: BUG-017, BUG-019 (same file/cache, same v0.6.0 cycle).
 
 ---
 
