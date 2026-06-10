@@ -2,7 +2,7 @@
 # token-tracker.sh - Token tracking for roundtable sessions
 # Works on: Linux, Windows (Git Bash), macOS
 #
-# Version: 5.3.0 - Fix CURRENT_PCT alias, add AVG_ACTUAL_K/SAMPLE_COUNT to recap
+# Version: 5.3.1 - BUG-017: recap survives /compact (no negative deltas / phantom 0%)
 #
 # Usage:
 #   token-tracker.sh init <session-id> <round-number> [workflow-type] [strategy] [phase] [participants-count]
@@ -14,7 +14,7 @@
 # Output (eval-able):
 #   init:    CURRENT_K, NEXT_ESTIMATE_K, SHOULD_STOP, SHOULD_WARN, PREV_ROUND_ACTUAL, PREV_ROUND_SOURCE
 #   capture: (appends to cache file)
-#   recap:   ROUND_TOKENS_ESTIMATE, QUESTION_K, PARTICIPANTS_K, SYNTHESIS_K, ROUND_DELTA_K, AVG_ACTUAL_K, SAMPLE_COUNT
+#   recap:   ROUND_TOKENS_ESTIMATE, QUESTION_K, PARTICIPANTS_K, SYNTHESIS_K, ROUND_DELTA_K, AVG_ACTUAL_K, SAMPLE_COUNT, COMPACT_DETECTED, RECAP_DEGRADED
 #   summary: SESSION_CONSUMED_K, ROUNDS_TOTAL_K, ORCHESTRATOR_ESTIMATED_K, FINAL_TOTAL_K
 #
 # Token tracking model (TECH-009 - Progressive Precision):
@@ -464,11 +464,41 @@ EOF
         ROUND_START_COST=${startCost:-0}
         PREV_ROUNDS_ACCUM=${roundsDeltaAccum:-0}
         ORCH_GAP_THIS_ROUND=${orchestratorGapThisRound:-0}
+        COMPACT_THIS_ROUND=${compactDetected:-false}
+
+        # BUG-017: keep recap sane after /compact. In the v0.5.0 dogfood (exp61)
+        # a post-compact round-3 recap reported "statusline returned 0%" and
+        # negative round deltas. Root cause: a capture can land 0 when the
+        # statusline momentarily reports 0% and the JSONL fallback is unavailable,
+        # leaving T3=0; the recap then computes T3-T0 < 0 and a phantom 0%.
+        # Recover the end-of-round count from a fresh read, then from the
+        # round-start count, so the percentage is never a false 0%.
+        _NOW=$(get_current_tokens "$jsonlFile")
+        NOW_TOKENS=${_NOW%%:*}
+        NOW_TOKENS=${NOW_TOKENS:-0}
+        if [[ $T3_TOKENS -le 0 ]]; then
+            T3_TOKENS=$NOW_TOKENS
+        fi
+        if [[ $T3_TOKENS -le 0 ]]; then
+            T3_TOKENS=$T0_TOKENS
+        fi
 
         QUESTION_TOKENS=$((T1_TOKENS - T0_TOKENS))
         PARTICIPANTS_TOKENS=$((T2_TOKENS - T1_TOKENS))
         SYNTHESIS_TOKENS=$((T3_TOKENS - T2_TOKENS))
         ROUND_DELTA_TOKENS=$((T3_TOKENS - T0_TOKENS))
+
+        # BUG-017: inconsistent T0..T3 markers (a compact span or a 0 capture)
+        # can still drive any phase delta negative. Clamp to 0 and flag the recap
+        # as degraded so the display can note it, rather than printing negative
+        # token counts. init's compactDetected (BUG-006/012) also degrades the
+        # first post-compact round's recap.
+        RECAP_DEGRADED=false
+        if [[ $QUESTION_TOKENS -lt 0 ]]; then QUESTION_TOKENS=0; RECAP_DEGRADED=true; fi
+        if [[ $PARTICIPANTS_TOKENS -lt 0 ]]; then PARTICIPANTS_TOKENS=0; RECAP_DEGRADED=true; fi
+        if [[ $SYNTHESIS_TOKENS -lt 0 ]]; then SYNTHESIS_TOKENS=0; RECAP_DEGRADED=true; fi
+        if [[ $ROUND_DELTA_TOKENS -lt 0 ]]; then ROUND_DELTA_TOKENS=0; RECAP_DEGRADED=true; fi
+        if [[ "$COMPACT_THIS_ROUND" == "true" ]]; then RECAP_DEGRADED=true; fi
 
         NEW_ROUNDS_ACCUM=$((PREV_ROUNDS_ACCUM + ROUND_DELTA_TOKENS))
 
@@ -551,6 +581,11 @@ EOF
         echo "ROUNDS_ACCUM_K=${ROUNDS_ACCUM_K}"
         echo "CONTEXT_SOURCE=${contextSource:-jsonl}"
         echo "STATUSLINE_ACTIVE=${statuslineActive:-false}"
+
+        # BUG-017: surface the compact/degraded state so the display can note
+        # "recap approximate after /compact" instead of trusting the breakdown.
+        echo "COMPACT_DETECTED=${COMPACT_THIS_ROUND}"
+        echo "RECAP_DEGRADED=${RECAP_DEGRADED}"
 
         # TECH-009: Calculate AVG_ACTUAL_K and SAMPLE_COUNT from session file
         # These are needed for "Avg per round" display in recap

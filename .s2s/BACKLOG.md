@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-05-26 (TECH-002 closed at Phase 8; v0.4.0 ready for develop -> main release)
+**Updated**: 2026-06-10 (v0.6.0 bug-fix cycle started: BUG-017 closed; BUG-018, TECH-011 queued)
 **Format**: Work items for active development
 
 ---
@@ -1258,20 +1258,28 @@ The session YAML file was likely 400-600+ lines.
 
 ### BUG-017: Token-tracker recap math glitched after compact+resume
 
-**Status**: planned | **Created**: 2026-06-06 | **Priority**: low | **Origin**: v0.5.0 dogfood (exp61) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F2)
+**Status**: completed | **Created**: 2026-06-06 | **Completed**: 2026-06-10 | **Priority**: low | **Target**: v0.6.0 | **Origin**: v0.5.0 dogfood (exp61) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F2) + hermetic regression test
 
-**Context**: in exp61 (post-fix BUG-012 verification), the token-tracker `init` at round 3 post-compact ran cleanly (BUG-012 PASS), but the subsequent round-3 `recap` reported `statusline returned 0%` and produced negative round deltas. Model self-described as "non-blocking" and continued. The cause appears to be that the per-round capture markers (T1/T2/T3 state and the previous-round T0/T3 snapshot) from the pre-compact round are still in the cache, so the recap arithmetic mixes pre- and post-compact values.
+**Context**: in exp61 (post-fix BUG-012 verification), the token-tracker `init` at round 3 post-compact ran cleanly (BUG-012 PASS), but the subsequent round-3 `recap` reported `statusline returned 0%` and produced negative round deltas. Model self-described as "non-blocking" and continued.
 
-**Hypothesis**: `init` after a detected compact should reset the per-round capture markers (or the recap should detect compactDetected and use a different code path).
+**Root cause (confirmed 2026-06-10)**: `init` already overwrites the whole cache file each round (`cat > $CACHE_FILE`), so stale pre-compact T1/T2/T3 are NOT the cause. The real failure is in `recap`: a `capture` can write `0` when the statusline momentarily reports 0% (right after `/compact`, before it re-runs) AND the JSONL fallback is unavailable, leaving `T3=0`. recap then computes `ROUND_DELTA = T3 - T0 < 0` and `CONTEXT_PCT = T3/LIMIT = 0%`. The cross-round compact gap is already handled by `init` (BUG-006/012 `compactDetected`); `recap` had no equivalent guard.
+
+**Decision**: `recap` guards (not `init` clears). Chosen because init already produces a clean cache; the defect is recap trusting a possibly-zero end-of-round capture.
+
+**Fix applied (2026-06-10, `token-tracker.sh` v5.3.1)**:
+- recap recovers the end-of-round count when `T3<=0`: fresh `get_current_tokens` read → round-start `T0` fallback, so `CONTEXT_PCT` is never a phantom 0%.
+- recap clamps any negative phase delta (`QUESTION`/`PARTICIPANTS`/`SYNTHESIS`/`ROUND_DELTA`) to 0 and emits `RECAP_DEGRADED=true` (also true when `compactDetected`), so the display can mark the breakdown approximate instead of printing negative tokens.
+- recap now emits `COMPACT_DETECTED` + `RECAP_DEGRADED`; `init`'s compact semantics untouched.
 
 **Tasks**:
-- [ ] Reproduce deterministically: `/s2s:specs --verbose --interactive`, 2 rounds, `/compact`, resume, observe round-3 recap.
-- [ ] Decide whether `init` clears or `recap` guards on `compactDetected`; instrument fix.
-- [ ] Confirm: post-compact resume rounds report a sensible recap (no 0% statusline, no negative deltas).
+- [x] Reproduce deterministically — hermetic test `skills/roundtable-execution/scripts/tests/test-token-tracker.sh` Test 1 (degenerate post-compact cache: T0=42000, T1=T2=T3=0, compactDetected=true) reproduces negative deltas + 0% pre-fix.
+- [x] Decide whether `init` clears or `recap` guards on `compactDetected` — recap guards (see Decision).
+- [x] Confirm: post-compact resume rounds report a sensible recap (no 0% statusline, no negative deltas).
 
 **Acceptance criteria**:
-- [ ] Round-3 (or first post-compact round) recap produces non-negative deltas and a real percentage.
-- [ ] BUG-012's `compactDetected=true` semantics preserved.
+- [x] Round-3 (or first post-compact round) recap produces non-negative deltas and a real percentage. (Test 1)
+- [x] BUG-012's `compactDetected=true` semantics preserved. (Test 1 asserts `COMPACT_DETECTED=true`; init path unchanged + smoke-tested)
+- [x] Guard does not degrade a healthy recap. (Test 2: normal monotonic captures → real positive deltas, `RECAP_DEGRADED=false`)
 
 ---
 
