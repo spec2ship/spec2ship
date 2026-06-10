@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-06-10 (v0.6.0 bug-fix cycle: BUG-017 + BUG-019 closed; BUG-018, TECH-011 queued)
+**Updated**: 2026-06-10 (v0.6.0 bug-fix cycle: BUG-017 + BUG-019 closed; BUG-018, TECH-011, BUG-020 queued)
 **Format**: Work items for active development
 
 ---
@@ -1345,6 +1345,25 @@ The session YAML file was likely 400-600+ lines.
 **Acceptance criteria**:
 - [ ] `assign_debate_sides` either removed or explicitly documented as legacy/optional.
 - [ ] No semantic change to design+debate runs.
+
+---
+
+### BUG-020: Statusline fallback progress bar hardcoded to 200K
+
+**Status**: planned | **Created**: 2026-06-10 | **Priority**: low | **Origin**: BUG-019 review (2026-06-10)
+
+**Context**: surfaced while reviewing BUG-019. `templates/statusline/statusline.sh` (the fallback statusline used only when the user has no global statusline to chain to) computes the ASCII bar as `FILLED = USED_K / 20` — 10 slots × 20k = 200K total. `USED_K`, `AVAIL_K`, and the percentage are already dynamic (read `context_window_size` from Claude Code's input), so only the bar is mis-scaled: on a 1M-window model it pegs to full at 200K used (≈20% of the window). Same 200K-hardcode family as BUG-019, different file (BUG-019 fixed `token-tracker.sh`; this is the statusline template).
+
+**Tasks**:
+- [ ] Scale the bar to the real window: derive slot size from `context_window_size` (e.g., `FILLED = used_pct / 10`, percentage-based, so it's window-agnostic).
+- [ ] Update the "each = 20k tokens (200k total)" comment.
+- [ ] Note: only affects the fallback branch (users chaining to a global statusline are unaffected).
+
+**Acceptance criteria**:
+- [ ] Bar reflects true fill fraction on a 1M window (≈half-full at 50%, not pegged).
+- [ ] No change for 200K-window models (Haiku).
+
+**Related**: BUG-019 (token-tracker dynamic limit).
 
 ---
 

@@ -182,6 +182,9 @@ Tokens:
   Participants ({count}):    {PARTICIPANTS_K}k  ({PARTICIPANT_AVG_K}k avg)
   Facilitator synthesis:     {SYNTHESIS_K}k
   Round subtotal:           {ROUND_DELTA_K}k
+{if RECAP_DEGRADED}
+  ⚠️  breakdown approximate — context was compacted/reset this round (BUG-017)
+{/if}
 
 {if round_number > 0}
   Avg per round:            {AVG_ACTUAL_K}k  ({SAMPLE_COUNT + 1} rounds)
@@ -202,8 +205,9 @@ Tokens:
 - `ROUND_DELTA_K`: round subtotal (T3 - T0)
 - `ROUNDS_ACCUM_K`: roundtable total (accumulated)
 - `CURRENT_K`, `CURRENT_PCT`: context consumed
-- `REMAINING_K = 200 - CURRENT_K`, `REMAINING_PCT = 100 - CURRENT_PCT`
+- `REMAINING_K`, `REMAINING_PCT`: context remaining — computed against the model's actual window (1M for Opus/Sonnet, 200K for Haiku), not a fixed 200k (BUG-019)
 - `AVG_ACTUAL_K`, `SAMPLE_COUNT`: for rounds > 1
+- `RECAP_DEGRADED`, `COMPACT_DETECTED`: `true` when `/compact` or a 0-token capture made this round's breakdown unreliable — display the approximate-breakdown note above (BUG-017)
 
 **TECH-009: Save estimate to session file**:
 
