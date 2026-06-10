@@ -41,20 +41,24 @@ defaults:
 validation:
   requires_two_sides: true
   min_participants_per_side: 1
-  side_assignment: "automatic"  # or "facilitator"
+  side_assignment: "facilitator_emergent"  # per-round LLM assignment (see § Strategy hooks); not a static pre-debate split
 ```
 
 ## How It Works
 
 ### Side Assignment
 
-Before debate begins, participants are assigned sides:
+The facilitator assigns each participant a Pro or Con role **per round**, by LLM judgment,
+under the `facilitator_emergent` policy (see § Strategy hooks). There is no static
+pre-debate side assignment: roles are emitted into each round's
+`participant_context.overrides.{participant-id}.debate_role` (`"pro"` | `"con"`) and can be
+reassigned per topic each round.
 - **Pro**: Arguments in favor of the proposal
 - **Con**: Arguments against the proposal
 
-Assignment can be:
-- **Automatic**: Based on participant role (e.g., architect = Pro, QA = Con)
-- **Facilitator**: Facilitator assigns based on topic
+> Removed in TECH-011: the session-setup `assign_debate_sides` pre-step (and the
+> `--pro`/`--con` flags) wrote a static `debate_sides` split that the round loop never read.
+> Pro/Con assignment is realised per round by `facilitator_emergent`, not by a fixed rule.
 
 ### Debate Structure
 

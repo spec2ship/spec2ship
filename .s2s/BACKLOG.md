@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-06-10 (v0.6.0 bug-fix cycle: BUG-017 + BUG-018 + BUG-019 closed; TECH-011, BUG-020 queued)
+**Updated**: 2026-06-11 (v0.6.0 cycle: BUG-017 + BUG-018 + BUG-019 + TECH-011 closed; BUG-020 queued)
 **Format**: Work items for active development
 
 ---
@@ -1342,18 +1342,32 @@ The session YAML file was likely 400-600+ lines.
 
 ### TECH-011: assign_debate_sides launcher pre-step is vestigial for design+debate
 
-**Status**: planned | **Created**: 2026-06-06 | **Priority**: low | **Origin**: v0.5.0 dogfood (exp58 step 2 design report) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F1)
+**Status**: completed | **Created**: 2026-06-06 | **Completed**: 2026-06-11 | **Priority**: low | **Target**: v0.6.0 | **Origin**: v0.5.0 dogfood (exp58 step 2 design report) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F1)
 
-**Context**: post-fix design run reported that the launcher's `assign_debate_sides` pre-step is vestigial when design uses the `debate` strategy. The static side assignment is no longer load-bearing because the per-round `facilitator_emergent` policy reassigns Pro/Con/Observer per topic at each round (Phase 4 / strategy-hooks). The launcher writes an initial side split into `session.yaml` that subsequent rounds ignore.
+**Context**: post-fix design run reported that the launcher's `assign_debate_sides` pre-step is vestigial when design uses the `debate` strategy. The static side assignment is no longer load-bearing because the per-round `facilitator_emergent` policy reassigns Pro/Con per topic at each round (Phase 4 / strategy-hooks). The launcher writes an initial side split into `session.yaml` that subsequent rounds ignore.
+
+**Audit findings (2026-06-11)**: confirmed vestigial — same write-only pattern as BUG-018.
+- `debate_sides` was written at setup (`roundtable.md`) and **read nowhere** (grep across commands/skills/agents: only the 3 write-side refs). The facilitator agent picks Pro/Con per round by LLM judgment under `facilitator_emergent` (`facilitator.md:198`); it never reads `debate_sides`.
+- The pre-step invoked `action: "assign_debate_sides"`, which the facilitator agent doesn't even document handling — doubly dead.
+- The gating `--pro`/`--con` flags (documented, debate-only) fed only the unread `debate_sides`, so they were **silently non-functional** — a user's explicit side choice was ignored.
+- design+debate reaches the pre-step (design.md delegates to roundtable.md PHASE 0). Removing it is no semantic change (already ignored).
+
+**Resolution (remove all — user decision, consistent with BUG-018)**:
+- `commands/roundtable.md`: deleted the "Handle debate strategy" pre-step + `debate_sides` session-creation line; removed the non-functional `--pro`/`--con` flags from the argument-hint and the "Other optional arguments" docs.
+- `skills/roundtable-strategies/references/debate.md`: rewrote § Side Assignment to state Pro/Con is per-round `facilitator_emergent`; `side_assignment` config value → `"facilitator_emergent"` with a clarifying comment.
+- `skills/roundtable-execution/references/strategy-hooks.md`: behavior row no longer implies a session-start split.
+- The live per-round mechanism (`Resolve strategy hooks` → `hook_overrides` → `phase-2-core.md §2.2c facilitator_emergent`) is untouched.
 
 **Tasks**:
-- [ ] Audit `commands/design.md` / `commands/roundtable.md` launcher: is `assign_debate_sides` still called?
-- [ ] Audit `strategy-hooks.md` `debate` entry: confirm `facilitator_emergent` policy supersedes static assignment.
-- [ ] Either remove the pre-step or document why it remains (e.g., backward-compat for non-emergent debate variants).
+- [x] Audit launcher: `assign_debate_sides` was called from `roundtable.md` (shared PHASE 1, hit by design+debate too).
+- [x] Confirm `facilitator_emergent` supersedes static assignment (`debate_sides` unread; per-round override is the real path).
+- [x] Remove the pre-step (chosen over document; includes the dead `--pro`/`--con` flags).
 
 **Acceptance criteria**:
-- [ ] `assign_debate_sides` either removed or explicitly documented as legacy/optional.
-- [ ] No semantic change to design+debate runs.
+- [x] `assign_debate_sides` removed; docs updated to reflect per-round emergent assignment.
+- [x] No semantic change to design+debate runs (the removed split was never read).
+
+**Note / follow-up**: if explicit user-controlled sides are wanted later, that is a NEW feature (wire a seed into `facilitator_emergent`), not a regression — `--pro`/`--con` never worked. Not filed; raise if needed.
 
 ---
 
