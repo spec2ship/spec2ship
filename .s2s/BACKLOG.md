@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-06-11 (v0.6.0 cycle: BUG-017 + BUG-018 + BUG-019 + TECH-011 closed; BUG-020 queued)
+**Updated**: 2026-06-11 (v0.6.0 cycle COMPLETE: BUG-017 + BUG-018 + BUG-019 + BUG-020 + TECH-011 closed)
 **Format**: Work items for active development
 
 ---
@@ -1373,18 +1373,20 @@ The session YAML file was likely 400-600+ lines.
 
 ### BUG-020: Statusline fallback progress bar hardcoded to 200K
 
-**Status**: planned | **Created**: 2026-06-10 | **Priority**: low | **Origin**: BUG-019 review (2026-06-10)
+**Status**: completed | **Created**: 2026-06-10 | **Completed**: 2026-06-11 | **Priority**: low | **Target**: v0.6.0 | **Origin**: BUG-019 review (2026-06-10)
 
-**Context**: surfaced while reviewing BUG-019. `templates/statusline/statusline.sh` (the fallback statusline used only when the user has no global statusline to chain to) computes the ASCII bar as `FILLED = USED_K / 20` — 10 slots × 20k = 200K total. `USED_K`, `AVAIL_K`, and the percentage are already dynamic (read `context_window_size` from Claude Code's input), so only the bar is mis-scaled: on a 1M-window model it pegs to full at 200K used (≈20% of the window). Same 200K-hardcode family as BUG-019, different file (BUG-019 fixed `token-tracker.sh`; this is the statusline template).
+**Context**: surfaced while reviewing BUG-019. `templates/statusline/statusline.sh` (the fallback statusline used only when the user has no global statusline to chain to) computed the ASCII bar as `FILLED = USED_K / 20` — 10 slots × 20k = 200K total. `USED_K`, `AVAIL_K`, and the percentage are already dynamic (read `context_window_size` from Claude Code's input), so only the bar was mis-scaled: on a 1M-window model it pegged to full at 200K used (≈20% of the window). Same 200K-hardcode family as BUG-019, different file.
+
+**Fix applied (2026-06-11, statusline template v3.2.0)**: bar is now percentage-based — `FILLED = round(used_pct / 10)` (10 slots × 10%), window-agnostic, clamped 0–10. Verified: PCT 14→1/10, 50→5/10, 80→8/10, 95→10/10 (old formula on 1M: 14→7/10, 50→10/10 pegged). The repo's tracked dogfood copy `.claude/statusline.sh` had the identical bug (and was missing the BUG-018 comment fix) — re-synced byte-identical to the template (`statusline.sh` is a static script, no init-time placeholders).
 
 **Tasks**:
-- [ ] Scale the bar to the real window: derive slot size from `context_window_size` (e.g., `FILLED = used_pct / 10`, percentage-based, so it's window-agnostic).
-- [ ] Update the "each = 20k tokens (200k total)" comment.
-- [ ] Note: only affects the fallback branch (users chaining to a global statusline are unaffected).
+- [x] Scale the bar to the real window: percentage-based `FILLED = round(used_pct / 10)`.
+- [x] Update the "each = 20k tokens (200k total)" comment.
+- [x] Sync the repo's tracked `.claude/statusline.sh` dogfood copy to match.
 
 **Acceptance criteria**:
-- [ ] Bar reflects true fill fraction on a 1M window (≈half-full at 50%, not pegged).
-- [ ] No change for 200K-window models (Haiku).
+- [x] Bar reflects true fill fraction on a 1M window (half-full at 50%, not pegged).
+- [x] No change for 200K-window models (percentage-based → identical result).
 
 **Related**: BUG-019 (token-tracker dynamic limit).
 
