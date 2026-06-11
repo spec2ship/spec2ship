@@ -47,7 +47,7 @@ Hooks are **additive**: they extend canonical schemas with extra fields without 
 | **Condition** | `STRATEGY == "debate"` |
 | **Field added** | `debate_role: "pro" \| "con"` (top-level in participant dump's `response`) |
 | **Source** | `hook_overrides.participant_response.debate_role` from session.yaml; facilitator emits per-participant assignment in Step 2.2c via `participant_context.overrides.{participant-id}.debate_role`. |
-| **Behavior** | Each participant is assigned to either the "pro" or "con" side at session start (or per round). The role drives the participant's argumentation stance. Without this hook, the participant gives a neutral response. |
+| **Behavior** | The facilitator assigns each participant a "pro" or "con" role per round (TECH-011: no static session-start split). The role drives the participant's argumentation stance. Without this hook, the participant gives a neutral response. |
 
 **Wiring**: Option B (Phase 4). `roundtable.md` PHASE 1 populates `hook_overrides.participant_response.debate_role.policy = "facilitator_emergent"` per `debate.md` § Strategy hooks. Facilitator agent consumes the policy at Step 2.2c via the dispatch in `strategy-hook-resolution.md`. Promote to a deterministic rule once empirical baseline justifies.
 

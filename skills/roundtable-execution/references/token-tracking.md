@@ -63,16 +63,18 @@ No session ID needed in filenames - one state per project.
 **Execute at EVERY round** (including first and resume):
 
 ```bash
-eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed} "{workflow_type}" "{strategy}" "{phase}" {participants_count})
+eval $(bash "<TOKEN_SCRIPT>" init "{session-id}" {rounds_completed})
 ```
 
 **Parameters**:
 - `session-id`: current session ID
 - `rounds_completed`: from session file's `metrics.rounds_completed`
-- `workflow_type`: specs | design | brainstorm | roundtable
-- `strategy`: standard | consensus-driven | debate | disney | six-hats
-- `phase`: current phase (e.g., "discussion", "dreamer", "opening")
-- `participants_count`: number of participants
+
+> **Note (BUG-018)**: `init` no longer takes workflow-type/strategy/phase/participants-count.
+> Those were write-only cache fields nobody read. The statusline's roundtable info
+> (`workflow:strategy R{n}`) is driven by `state.json`, which `phase-2-core.md §2.1b`
+> rewrites every round from the on-disk profile/config — so it survives `/compact` + resume
+> regardless of this cache. Extra positional args are still accepted (ignored) for back-compat.
 
 **Check SHOULD_STOP and SHOULD_WARN from output** (TECH-009):
 
@@ -182,6 +184,9 @@ Tokens:
   Participants ({count}):    {PARTICIPANTS_K}k  ({PARTICIPANT_AVG_K}k avg)
   Facilitator synthesis:     {SYNTHESIS_K}k
   Round subtotal:           {ROUND_DELTA_K}k
+{if RECAP_DEGRADED}
+  ⚠️  breakdown approximate — context was compacted/reset this round (BUG-017)
+{/if}
 
 {if round_number > 0}
   Avg per round:            {AVG_ACTUAL_K}k  ({SAMPLE_COUNT + 1} rounds)
@@ -202,8 +207,9 @@ Tokens:
 - `ROUND_DELTA_K`: round subtotal (T3 - T0)
 - `ROUNDS_ACCUM_K`: roundtable total (accumulated)
 - `CURRENT_K`, `CURRENT_PCT`: context consumed
-- `REMAINING_K = 200 - CURRENT_K`, `REMAINING_PCT = 100 - CURRENT_PCT`
+- `REMAINING_K`, `REMAINING_PCT`: context remaining — computed against the model's actual window (1M for Opus/Sonnet, 200K for Haiku), not a fixed 200k (BUG-019)
 - `AVG_ACTUAL_K`, `SAMPLE_COUNT`: for rounds > 1
+- `RECAP_DEGRADED`, `COMPACT_DETECTED`: `true` when `/compact` or a 0-token capture made this round's breakdown unreliable — display the approximate-breakdown note above (BUG-017)
 
 **TECH-009: Save estimate to session file**:
 

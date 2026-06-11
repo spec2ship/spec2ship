@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-05-26 (TECH-002 closed at Phase 8; v0.4.0 ready for develop -> main release)
+**Updated**: 2026-06-11 (v0.6.0 cycle COMPLETE: BUG-017 + BUG-018 + BUG-019 + BUG-020 + TECH-011 closed)
 **Format**: Work items for active development
 
 ---
@@ -1258,54 +1258,137 @@ The session YAML file was likely 400-600+ lines.
 
 ### BUG-017: Token-tracker recap math glitched after compact+resume
 
-**Status**: planned | **Created**: 2026-06-06 | **Priority**: low | **Origin**: v0.5.0 dogfood (exp61) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F2)
+**Status**: completed | **Created**: 2026-06-06 | **Completed**: 2026-06-10 | **Priority**: low | **Target**: v0.6.0 | **Origin**: v0.5.0 dogfood (exp61) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F2) + hermetic regression test
 
-**Context**: in exp61 (post-fix BUG-012 verification), the token-tracker `init` at round 3 post-compact ran cleanly (BUG-012 PASS), but the subsequent round-3 `recap` reported `statusline returned 0%` and produced negative round deltas. Model self-described as "non-blocking" and continued. The cause appears to be that the per-round capture markers (T1/T2/T3 state and the previous-round T0/T3 snapshot) from the pre-compact round are still in the cache, so the recap arithmetic mixes pre- and post-compact values.
+**Context**: in exp61 (post-fix BUG-012 verification), the token-tracker `init` at round 3 post-compact ran cleanly (BUG-012 PASS), but the subsequent round-3 `recap` reported `statusline returned 0%` and produced negative round deltas. Model self-described as "non-blocking" and continued.
 
-**Hypothesis**: `init` after a detected compact should reset the per-round capture markers (or the recap should detect compactDetected and use a different code path).
+**Root cause (confirmed 2026-06-10)**: `init` already overwrites the whole cache file each round (`cat > $CACHE_FILE`), so stale pre-compact T1/T2/T3 are NOT the cause. The real failure is in `recap`: a `capture` can write `0` when the statusline momentarily reports 0% (right after `/compact`, before it re-runs) AND the JSONL fallback is unavailable, leaving `T3=0`. recap then computes `ROUND_DELTA = T3 - T0 < 0` and `CONTEXT_PCT = T3/LIMIT = 0%`. The cross-round compact gap is already handled by `init` (BUG-006/012 `compactDetected`); `recap` had no equivalent guard.
+
+**Decision**: `recap` guards (not `init` clears). Chosen because init already produces a clean cache; the defect is recap trusting a possibly-zero end-of-round capture.
+
+**Fix applied (2026-06-10, `token-tracker.sh` v5.3.1)**:
+- recap recovers the end-of-round count when `T3<=0`: fresh `get_current_tokens` read → round-start `T0` fallback, so `CONTEXT_PCT` is never a phantom 0%.
+- recap clamps any negative phase delta (`QUESTION`/`PARTICIPANTS`/`SYNTHESIS`/`ROUND_DELTA`) to 0 and emits `RECAP_DEGRADED=true` (also true when `compactDetected`), so the display can mark the breakdown approximate instead of printing negative tokens.
+- recap now emits `COMPACT_DETECTED` + `RECAP_DEGRADED`; `init`'s compact semantics untouched.
 
 **Tasks**:
-- [ ] Reproduce deterministically: `/s2s:specs --verbose --interactive`, 2 rounds, `/compact`, resume, observe round-3 recap.
-- [ ] Decide whether `init` clears or `recap` guards on `compactDetected`; instrument fix.
-- [ ] Confirm: post-compact resume rounds report a sensible recap (no 0% statusline, no negative deltas).
+- [x] Reproduce deterministically — hermetic test `skills/roundtable-execution/scripts/tests/test-token-tracker.sh` Test 1 (degenerate post-compact cache: T0=42000, T1=T2=T3=0, compactDetected=true) reproduces negative deltas + 0% pre-fix.
+- [x] Decide whether `init` clears or `recap` guards on `compactDetected` — recap guards (see Decision).
+- [x] Confirm: post-compact resume rounds report a sensible recap (no 0% statusline, no negative deltas).
 
 **Acceptance criteria**:
-- [ ] Round-3 (or first post-compact round) recap produces non-negative deltas and a real percentage.
-- [ ] BUG-012's `compactDetected=true` semantics preserved.
+- [x] Round-3 (or first post-compact round) recap produces non-negative deltas and a real percentage. (Test 1)
+- [x] BUG-012's `compactDetected=true` semantics preserved. (Test 1 asserts `COMPACT_DETECTED=true`; init path unchanged + smoke-tested)
+- [x] Guard does not degrade a healthy recap. (Test 2: normal monotonic captures → real positive deltas, `RECAP_DEGRADED=false`)
 
 ---
 
 ### BUG-018: Token-tracker cache loses workflow params after compact+resume
 
-**Status**: planned | **Created**: 2026-06-06 | **Priority**: low | **Origin**: v0.5.0 dogfood (exp61) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F3)
+**Status**: completed | **Created**: 2026-06-06 | **Completed**: 2026-06-10 | **Priority**: low | **Target**: v0.6.0 | **Origin**: v0.5.0 dogfood (exp61) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F3)
 
-**Context**: post-compact resume cache file in exp61 had `workflowType=`, `strategy=`, `phase=`, `participantsCount=` empty. The model called `token-tracker.sh init` with only `session-id` + `round-number` and omitted the optional positional params. Pre-compact cache had them populated. Statusline display loses roundtable context after resume.
+**Context**: post-compact resume cache file in exp61 had `workflowType=`, `strategy=`, `phase=`, `participantsCount=` empty. The model called `token-tracker.sh init` with only `session-id` + `round-number` and omitted the optional positional params.
+
+**Re-triage (2026-06-10) — premise was wrong**: the empty cache fields are real but **harmless**. Two findings:
+1. **The four params are write-only.** `token-tracker.sh` wrote them to the cache (init) but **nothing ever read them back** (grep: only the write + tests; recap/summary `source` the cache but don't use them). They are leftovers from an older design where token-tracker wrote `state.json`.
+2. **The statusline's roundtable info does not come from this cache.** It reads `state.json.active_session.*`, which `phase-2-core.md §2.1b` rewrites **every round** (including the resume round) from the on-disk `PROFILE` + config-snapshot + `session.yaml.metrics.rounds_completed`. Those files survive `/compact`, so the statusline RT info **already survives resume**, independent of the token cache. Acceptance criterion 2 was therefore already satisfied by design.
+
+**Resolution (remove vestigial state, not preserve it)**: dropped `workflowType`/`strategy`/`phase`/`participantsCount` from the init cache write and the init signature (`token-tracker.sh` v5.5.0); `init` still accepts the extra positional args (ignored) for back-compat. Updated `token-tracking.md` init usage + a note explaining the state.json mechanism. Fixed the stale `templates/statusline/statusline.sh` header comment ("written by token-tracker" → written by phase-2-core.md §2.1b).
 
 **Tasks**:
-- [ ] Decide if `init` should preserve previous cache values when optional params are omitted, OR instruct the model to always pass them on resume.
-- [ ] If script-side: add a "merge with existing cache" behavior when optional params are missing.
-- [ ] If instruction-side: add explicit guidance in `token-tracking.md` "Script Location" / `phase-2-core.md` Step 2.0.
+- [x] Decide: remove the write-only fields rather than preserve them (chosen over cache-merge — nothing reads them).
+- [x] Remove fields from init cache write + signature; keep extra args accepted (back-compat).
+- [x] Update `token-tracking.md` init call + document the state.json (§2.1b) mechanism.
+- [x] Fix stale statusline template comment.
+
+**Acceptance criteria** (re-interpreted after re-triage):
+- [x] Cache no longer carries write-only `workflowType`/`strategy`/`phase`/`participantsCount`. (`scripts/tests/test-token-tracker.sh` Test 5)
+- [x] Statusline roundtable info survives `/compact` + resume — confirmed to be driven by `state.json` (§2.1b re-derives from disk each round), not the token cache.
+
+**Related**: BUG-017, BUG-019 (same file/cache, same v0.6.0 cycle).
+
+---
+
+### BUG-019: Token-tracker hardcoded 200K context limit (wrong on 1M-window models)
+
+**Status**: completed | **Created**: 2026-06-10 | **Completed**: 2026-06-10 | **Priority**: medium | **Target**: v0.6.0 | **Origin**: user report (session 0ed30948, 2026-06-10)
+
+**Context**: `token-tracker.sh` hardcoded `CONTEXT_LIMIT=200000` (used in 9 places) and `get_tokens_from_statusline` recomputed tokens as `200000 * used_pct / 100`. Current Claude models have a 1M window (Opus 4.6/4.7/4.8, Sonnet 4.6; only Haiku 4.5 is 200K — confirmed via claude-api skill, cached 2026-05-26), so 200K is stale for nearly every model. This session ran at `context_window_size: 1000000`.
+
+**Impact (two token sources, hit differently)**:
+- **Statusline path** (normal s2s): percentages round-trip correctly (the 200K cancels: `tokens/200000 == used_pct`), so `SHOULD_STOP`/`SHOULD_WARN` decisions were still right, but every absolute number was wrong by the window ratio — at 14% of 1M it displayed `28k used / 172k available` instead of `140k / 860k`.
+- **JSONL fallback path** (statusline off): `get_tokens_from_jsonl` returns real absolute tokens, then `/200000` → at 140k real tokens it reported **70%** instead of 14%, so the roundtable would stop ~5× too early. Genuinely broken on large windows.
+
+**Root insight**: the fix needs no per-model table — the statusline already writes `context_window_size` and `current_context_tokens` into `.s2s/context-window.json` (the statusline template reads them from Claude Code's input and defaults to 200000 only when absent, so it was already correct). Only the tracker's consumption was wrong.
+
+**Fix applied (2026-06-10, `token-tracker.sh` v5.4.0)**:
+- New `get_context_limit()` reads `context_window_size` from the JSON; `CONTEXT_LIMIT` is resolved per-invocation before the action dispatch. `DEFAULT_CONTEXT_LIMIT=200000` is now only the fallback when the JSON is absent.
+- `get_tokens_from_statusline` prefers the absolute `current_context_tokens`; the percentage recompute fallback now uses the dynamic limit.
+- All 9 `CONTEXT_LIMIT` uses (percentages, `AVAILABLE_K`, `REMAINING_K`, statusline back-calc) now adapt automatically.
+
+**Tasks**:
+- [x] Resolve `CONTEXT_LIMIT` from `context_window_size` (fallback to 200000 when JSON absent).
+- [x] Use `current_context_tokens` directly instead of rescaling a percentage.
+- [x] Regression test for a 1M window (absolute tokens + percentage correct) and the percentage-fallback path — `scripts/tests/test-token-tracker.sh` Tests 3-4.
 
 **Acceptance criteria**:
-- [ ] Post-resume cache retains `workflowType` / `strategy` / `phase` / `participantsCount`.
-- [ ] Statusline roundtable info survives `/compact` + resume.
+- [x] On a 1M-window model the tracker reports real used/available tokens (140k/860k at 14%), not 200K-scaled values. (Test 3)
+- [x] Percentage fallback (no `current_context_tokens`) also uses the real window. (Test 4)
+- [x] Falls back to 200K only when the statusline JSON is unavailable; no per-model table to maintain.
+
+**Note**: the JSONL-only fallback (statusline never active) still can't know the window and defaults to 200K — acceptable since `/s2s:init` sets up the statusline. Related: BUG-018 (same cache, post-compact param loss).
 
 ---
 
 ### TECH-011: assign_debate_sides launcher pre-step is vestigial for design+debate
 
-**Status**: planned | **Created**: 2026-06-06 | **Priority**: low | **Origin**: v0.5.0 dogfood (exp58 step 2 design report) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F1)
+**Status**: completed | **Created**: 2026-06-06 | **Completed**: 2026-06-11 | **Priority**: low | **Target**: v0.6.0 | **Origin**: v0.5.0 dogfood (exp58 step 2 design report) | **Verified-via**: test-baselines/v0.5.0-dogfood.md (F1)
 
-**Context**: post-fix design run reported that the launcher's `assign_debate_sides` pre-step is vestigial when design uses the `debate` strategy. The static side assignment is no longer load-bearing because the per-round `facilitator_emergent` policy reassigns Pro/Con/Observer per topic at each round (Phase 4 / strategy-hooks). The launcher writes an initial side split into `session.yaml` that subsequent rounds ignore.
+**Context**: post-fix design run reported that the launcher's `assign_debate_sides` pre-step is vestigial when design uses the `debate` strategy. The static side assignment is no longer load-bearing because the per-round `facilitator_emergent` policy reassigns Pro/Con per topic at each round (Phase 4 / strategy-hooks). The launcher writes an initial side split into `session.yaml` that subsequent rounds ignore.
+
+**Audit findings (2026-06-11)**: confirmed vestigial — same write-only pattern as BUG-018.
+- `debate_sides` was written at setup (`roundtable.md`) and **read nowhere** (grep across commands/skills/agents: only the 3 write-side refs). The facilitator agent picks Pro/Con per round by LLM judgment under `facilitator_emergent` (`facilitator.md:198`); it never reads `debate_sides`.
+- The pre-step invoked `action: "assign_debate_sides"`, which the facilitator agent doesn't even document handling — doubly dead.
+- The gating `--pro`/`--con` flags (documented, debate-only) fed only the unread `debate_sides`, so they were **silently non-functional** — a user's explicit side choice was ignored.
+- design+debate reaches the pre-step (design.md delegates to roundtable.md PHASE 0). Removing it is no semantic change (already ignored).
+
+**Resolution (remove all — user decision, consistent with BUG-018)**:
+- `commands/roundtable.md`: deleted the "Handle debate strategy" pre-step + `debate_sides` session-creation line; removed the non-functional `--pro`/`--con` flags from the argument-hint and the "Other optional arguments" docs.
+- `skills/roundtable-strategies/references/debate.md`: rewrote § Side Assignment to state Pro/Con is per-round `facilitator_emergent`; `side_assignment` config value → `"facilitator_emergent"` with a clarifying comment.
+- `skills/roundtable-execution/references/strategy-hooks.md`: behavior row no longer implies a session-start split.
+- The live per-round mechanism (`Resolve strategy hooks` → `hook_overrides` → `phase-2-core.md §2.2c facilitator_emergent`) is untouched.
 
 **Tasks**:
-- [ ] Audit `commands/design.md` / `commands/roundtable.md` launcher: is `assign_debate_sides` still called?
-- [ ] Audit `strategy-hooks.md` `debate` entry: confirm `facilitator_emergent` policy supersedes static assignment.
-- [ ] Either remove the pre-step or document why it remains (e.g., backward-compat for non-emergent debate variants).
+- [x] Audit launcher: `assign_debate_sides` was called from `roundtable.md` (shared PHASE 1, hit by design+debate too).
+- [x] Confirm `facilitator_emergent` supersedes static assignment (`debate_sides` unread; per-round override is the real path).
+- [x] Remove the pre-step (chosen over document; includes the dead `--pro`/`--con` flags).
 
 **Acceptance criteria**:
-- [ ] `assign_debate_sides` either removed or explicitly documented as legacy/optional.
-- [ ] No semantic change to design+debate runs.
+- [x] `assign_debate_sides` removed; docs updated to reflect per-round emergent assignment.
+- [x] No semantic change to design+debate runs (the removed split was never read).
+
+**Note / follow-up**: if explicit user-controlled sides are wanted later, that is a NEW feature (wire a seed into `facilitator_emergent`), not a regression — `--pro`/`--con` never worked. Not filed; raise if needed.
+
+---
+
+### BUG-020: Statusline fallback progress bar hardcoded to 200K
+
+**Status**: completed | **Created**: 2026-06-10 | **Completed**: 2026-06-11 | **Priority**: low | **Target**: v0.6.0 | **Origin**: BUG-019 review (2026-06-10)
+
+**Context**: surfaced while reviewing BUG-019. `templates/statusline/statusline.sh` (the fallback statusline used only when the user has no global statusline to chain to) computed the ASCII bar as `FILLED = USED_K / 20` — 10 slots × 20k = 200K total. `USED_K`, `AVAIL_K`, and the percentage are already dynamic (read `context_window_size` from Claude Code's input), so only the bar was mis-scaled: on a 1M-window model it pegged to full at 200K used (≈20% of the window). Same 200K-hardcode family as BUG-019, different file.
+
+**Fix applied (2026-06-11, statusline template v3.2.0)**: bar is now percentage-based — `FILLED = round(used_pct / 10)` (10 slots × 10%), window-agnostic, clamped 0–10. Verified: PCT 14→1/10, 50→5/10, 80→8/10, 95→10/10 (old formula on 1M: 14→7/10, 50→10/10 pegged). The repo's tracked dogfood copy `.claude/statusline.sh` had the identical bug (and was missing the BUG-018 comment fix) — re-synced byte-identical to the template (`statusline.sh` is a static script, no init-time placeholders).
+
+**Tasks**:
+- [x] Scale the bar to the real window: percentage-based `FILLED = round(used_pct / 10)`.
+- [x] Update the "each = 20k tokens (200k total)" comment.
+- [x] Sync the repo's tracked `.claude/statusline.sh` dogfood copy to match.
+
+**Acceptance criteria**:
+- [x] Bar reflects true fill fraction on a 1M window (half-full at 50%, not pegged).
+- [x] No change for 200K-window models (percentage-based → identical result).
+
+**Related**: BUG-019 (token-tracker dynamic limit).
 
 ---
 
