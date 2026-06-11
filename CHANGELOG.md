@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-11
+
+### Highlights
+
+**Bug-fix release.** Token-tracker hardening: the three follow-up tickets opened during the v0.5.0 dogfood (BUG-017, BUG-018, TECH-011) plus one user-reported bug (BUG-019) and its review spin-off (BUG-020). Recurring theme: three of the five items were vestigial write-only state, removed rather than preserved. Ships the first hermetic regression test for `token-tracker.sh` (seed for the v1.0 automated-test-suite gate). Verified live in `ElfGiftRush_s2s/exp65` (debate strategy, 3 rounds); structural summary in `.s2s/test-baselines/v0.6.0-dogfood.md`.
+
+### Fixed
+- **BUG-019 (medium)** — `token-tracker.sh` no longer hardcodes a 200K context limit. New `get_context_limit()` reads `context_window_size` from `.s2s/context-window.json` (the statusline already writes it), and `get_tokens_from_statusline` prefers the absolute `current_context_tokens` instead of rescaling a percentage. All limit-dependent values (percentages, available/remaining, statusline back-calc) now adapt to the model's real window. On a 1M-window model (Opus 4.6/4.7/4.8, Sonnet 4.6) the tracker reported `28k used / 172k available` at 14% instead of `140k / 860k`; on the JSONL-fallback path it reported 70% at 140k real tokens and could stop the roundtable ~5x too early. Falls back to 200K only when the statusline JSON is absent (no per-model table to maintain). User-reported, filed and fixed the same session. Script → v5.4.0.
+- **BUG-017 (low)** — `token-tracker.sh recap` now survives `/compact`. When an end-of-round capture lands `0` (statusline momentarily at 0% right after a compact, JSONL fallback unavailable), recap recovers the count (fresh read → round-start fallback) so the percentage is never a phantom 0%, clamps any negative phase delta to 0, and emits `RECAP_DEGRADED` so the display marks the breakdown approximate instead of printing negative tokens. `init`'s `compactDetected` semantics (BUG-006/012) untouched. Script → v5.3.1.
+- **BUG-020 (low)** — `templates/statusline/statusline.sh` fallback progress bar was `FILLED = USED_K / 20` (10 slots x 20k = 200K), pegged full at ~20% of a 1M window. Now percentage-based `FILLED = round(used_pct / 10)`, window-agnostic and clamped 0-10 (identical result on a 200K window). The repo's tracked `.claude/statusline.sh` dogfood copy carried the same bug and was re-synced byte-identical. Template → v3.2.0.
+
+### Removed
+- **BUG-018 (low)** — Dropped the write-only `workflowType`/`strategy`/`phase`/`participantsCount` fields from the `token-tracker.sh init` cache write and signature. Re-triage showed the four params were never read back (the statusline's roundtable info comes from `state.json`, rewritten every round by `phase-2-core.md §2.1b` from on-disk profile/config, which already survives `/compact`). `init` still accepts the extra positional args (ignored) for back-compat. Fixed the stale `statusline.sh` header comment ("written by token-tracker" → `phase-2-core.md §2.1b`). Script → v5.5.0.
+- **TECH-011** — Removed the vestigial `assign_debate_sides` launcher pre-step and the `debate_sides` session field from `commands/roundtable.md`, plus the non-functional `--pro`/`--con` flags. `debate_sides` was written at setup and read nowhere; Pro/Con is assigned per round by the `facilitator_emergent` policy (`facilitator.md`), so the static split was ignored and `--pro`/`--con` were silently no-ops. Docs (`debate.md` § Side Assignment, `strategy-hooks.md`) updated to the per-round wording. No semantic change to design+debate runs. Explicit user-controlled sides, if wanted later, would be a new feature (seed into `facilitator_emergent`), not a regression.
+
+### Added
+- **`skills/roundtable-execution/scripts/tests/test-token-tracker.sh`** — first hermetic regression test for the token tracker (5 tests, 26 assertions, black-box, no network/statusline/JSONL needed). Covers BUG-017 (post-compact recap, healthy-recap guard), BUG-019 (1M window via `current_context_tokens` + percentage fallback), and BUG-018 (cache drops vestigial fields, extra args still accepted). Seed for the automated test suite that gates v1.0.
+
+### Verification
+- One end-of-cycle dogfood in `ElfGiftRush_s2s/exp65` (`--strategy debate`, 3 rounds, against this working tree as the plugin source): `session.yaml` carries 0 `debate_sides` and wires `hook_overrides` to `facilitator_emergent`; the run concluded with no error from the removed pre-step (TECH-011 live). BUG-018/019 incidentally confirmed live (cache without `workflowType`; `context_window_size: 1000000`, ~16% of 1M = dynamic limit). BUG-017/020 unit-verified by the new test harness. Structural summary in `.s2s/test-baselines/v0.6.0-dogfood.md`; raw kept local per `feedback_test_data_split`.
+- A false-start run (exp64) tested a stale local clone and was discarded; an audit confirmed the v0.5.0 dogfood was unaffected.
+
 ## [0.5.0] - 2026-06-06
 
 ### Highlights
@@ -190,7 +212,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Arc42, ISO 25010, MADR skills
 - Project templates
 
-[Unreleased]: https://github.com/spec2ship/spec2ship/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/spec2ship/spec2ship/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/spec2ship/spec2ship/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/spec2ship/spec2ship/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/spec2ship/spec2ship/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/spec2ship/spec2ship/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/spec2ship/spec2ship/compare/v0.1.0...v0.2.0

@@ -167,7 +167,7 @@ cd /tmp && mkdir s2s-test && cd s2s-test
 
 ### Regression testing (dogfood)
 
-Spec2Ship has no automated test suite (it is a markdown/YAML plugin). Regression confidence comes from **dogfooding**: running the real `/s2s:*` workflows against a stable sample project and comparing outputs across code states.
+Spec2Ship's automated coverage is currently a single hermetic script test for the token tracker (run with `bash skills/roundtable-execution/scripts/tests/test-token-tracker.sh`). The workflow layer is markdown/YAML, so its regression confidence comes from **dogfooding**: running the real `/s2s:*` workflows against a stable sample project and comparing outputs across code states.
 
 Recommended pattern:
 
