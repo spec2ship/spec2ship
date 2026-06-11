@@ -2,10 +2,13 @@
 # token-tracker.sh - Token tracking for roundtable sessions
 # Works on: Linux, Windows (Git Bash), macOS
 #
-# Version: 5.3.0 - Fix CURRENT_PCT alias, add AVG_ACTUAL_K/SAMPLE_COUNT to recap
+# Version: 5.5.0 - BUG-018: drop vestigial write-only cache fields (workflowType/
+#                  strategy/phase/participantsCount); statusline RT info comes
+#                  from state.json (phase-2-core.md §2.1b), not this cache.
+#                  5.4.0 BUG-019: limit adapts to model window. 5.3.1 BUG-017 recap guard.
 #
 # Usage:
-#   token-tracker.sh init <session-id> <round-number> [workflow-type] [strategy] [phase] [participants-count]
+#   token-tracker.sh init <session-id> <round-number>   # (extra args ignored; back-compat)
 #   token-tracker.sh capture <session-id> <T1|T2|T3>
 #   token-tracker.sh recap <session-id> <participant-count>
 #   token-tracker.sh summary <session-id>
@@ -14,7 +17,7 @@
 # Output (eval-able):
 #   init:    CURRENT_K, NEXT_ESTIMATE_K, SHOULD_STOP, SHOULD_WARN, PREV_ROUND_ACTUAL, PREV_ROUND_SOURCE
 #   capture: (appends to cache file)
-#   recap:   ROUND_TOKENS_ESTIMATE, QUESTION_K, PARTICIPANTS_K, SYNTHESIS_K, ROUND_DELTA_K, AVG_ACTUAL_K, SAMPLE_COUNT
+#   recap:   ROUND_TOKENS_ESTIMATE, QUESTION_K, PARTICIPANTS_K, SYNTHESIS_K, ROUND_DELTA_K, AVG_ACTUAL_K, SAMPLE_COUNT, COMPACT_DETECTED, RECAP_DEGRADED
 #   summary: SESSION_CONSUMED_K, ROUNDS_TOTAL_K, ORCHESTRATOR_ESTIMATED_K, FINAL_TOTAL_K
 #
 # Token tracking model (TECH-009 - Progressive Precision):
@@ -38,7 +41,12 @@
 #   - State file: .s2s/state.json (managed by SKILL.md, not this script)
 
 ACTION="$1"
-CONTEXT_LIMIT=200000  # Claude Code context limit in tokens
+# BUG-019: the context window depends on the running model (1M for Opus 4.6+ /
+# Sonnet 4.6, 200K for Haiku 4.5). DEFAULT is only a fallback for when the
+# statusline JSON is unavailable; the real limit is resolved per-invocation from
+# context_window_size below.
+DEFAULT_CONTEXT_LIMIT=200000
+CONTEXT_LIMIT=$DEFAULT_CONTEXT_LIMIT
 
 # Project-local .s2s directory
 S2S_DIR=".s2s"
@@ -120,6 +128,18 @@ get_tokens_from_statusline() {
         return
     fi
 
+    # BUG-019: prefer the absolute count the statusline already wrote
+    # (current_context_tokens = window_size * used_pct / 100). It reflects the
+    # real model window and survives /compact, so we don't rescale a percentage
+    # against a hardcoded limit.
+    local cur_tokens=$(jq -r '.current_context_tokens // empty' "$context_file" 2>/dev/null)
+    if [[ "$cur_tokens" =~ ^[0-9]+$ && "$cur_tokens" -gt 0 ]]; then
+        echo "$cur_tokens"
+        return
+    fi
+
+    # Fallback (older statusline JSON without current_context_tokens): recompute
+    # from the percentage against the dynamic limit resolved in get_context_limit.
     local used_pct=$(jq -r '.used_percentage // 0' "$context_file" 2>/dev/null)
 
     if [[ -n "$used_pct" && "$used_pct" != "null" && "$used_pct" != "0" ]]; then
@@ -130,6 +150,24 @@ get_tokens_from_statusline() {
     fi
 
     echo ""
+}
+
+# Helper: Resolve the context window limit (BUG-019)
+# Reads context_window_size written by the statusline (adapts to the running
+# model). Falls back to DEFAULT_CONTEXT_LIMIT only when the JSON is absent or
+# lacks the field.
+get_context_limit() {
+    local context_file=$(get_context_window_file)
+
+    if [[ -f "$context_file" ]]; then
+        local size=$(jq -r '.context_window_size // empty' "$context_file" 2>/dev/null)
+        if [[ "$size" =~ ^[0-9]+$ && "$size" -gt 0 ]]; then
+            echo "$size"
+            return
+        fi
+    fi
+
+    echo "$DEFAULT_CONTEXT_LIMIT"
 }
 
 # Helper: Get current tokens (tries statusline first, falls back to JSONL)
@@ -180,14 +218,21 @@ check_statusline_active() {
     fi
 }
 
+# BUG-019: adapt the limit to the running model's actual window before any
+# action computes percentages, available/remaining tokens, or the statusline
+# fallback. No-op (keeps 200K) when the statusline JSON is unavailable.
+CONTEXT_LIMIT=$(get_context_limit)
+
 case "$ACTION" in
     init)
         SESSION_ID="$2"
         ROUND_NUMBER="$3"
-        WORKFLOW_TYPE="$4"
-        STRATEGY="$5"
-        PHASE="$6"
-        PARTICIPANTS_COUNT="$7"
+        # BUG-018: positional args 4-7 (workflow-type/strategy/phase/
+        # participants-count) are accepted for backward compatibility but no
+        # longer stored — they were write-only cache fields nobody read. The
+        # statusline's roundtable info comes from state.json (written every round
+        # by phase-2-core.md §2.1b from on-disk profile/config, so it survives
+        # /compact), not from this cache.
         CACHE_FILE=$(get_cache_file "$SESSION_ID")
 
         # Ensure cache directory exists
@@ -377,10 +422,6 @@ lastRoundEstimate=${PREV_ROUND_ESTIMATE}
 roundsDeltaAccum=${ROUNDS_DELTA_ACCUM}
 orchestratorGapThisRound=${ORCHESTRATOR_GAP}
 compactDetected=${COMPACT_DETECTED:-false}
-workflowType=${WORKFLOW_TYPE}
-strategy=${STRATEGY}
-phase=${PHASE}
-participantsCount=${PARTICIPANTS_COUNT}
 EOF
 
         # Note: state.json is updated by SKILL.md inline, not by token-tracker
@@ -464,11 +505,41 @@ EOF
         ROUND_START_COST=${startCost:-0}
         PREV_ROUNDS_ACCUM=${roundsDeltaAccum:-0}
         ORCH_GAP_THIS_ROUND=${orchestratorGapThisRound:-0}
+        COMPACT_THIS_ROUND=${compactDetected:-false}
+
+        # BUG-017: keep recap sane after /compact. In the v0.5.0 dogfood (exp61)
+        # a post-compact round-3 recap reported "statusline returned 0%" and
+        # negative round deltas. Root cause: a capture can land 0 when the
+        # statusline momentarily reports 0% and the JSONL fallback is unavailable,
+        # leaving T3=0; the recap then computes T3-T0 < 0 and a phantom 0%.
+        # Recover the end-of-round count from a fresh read, then from the
+        # round-start count, so the percentage is never a false 0%.
+        _NOW=$(get_current_tokens "$jsonlFile")
+        NOW_TOKENS=${_NOW%%:*}
+        NOW_TOKENS=${NOW_TOKENS:-0}
+        if [[ $T3_TOKENS -le 0 ]]; then
+            T3_TOKENS=$NOW_TOKENS
+        fi
+        if [[ $T3_TOKENS -le 0 ]]; then
+            T3_TOKENS=$T0_TOKENS
+        fi
 
         QUESTION_TOKENS=$((T1_TOKENS - T0_TOKENS))
         PARTICIPANTS_TOKENS=$((T2_TOKENS - T1_TOKENS))
         SYNTHESIS_TOKENS=$((T3_TOKENS - T2_TOKENS))
         ROUND_DELTA_TOKENS=$((T3_TOKENS - T0_TOKENS))
+
+        # BUG-017: inconsistent T0..T3 markers (a compact span or a 0 capture)
+        # can still drive any phase delta negative. Clamp to 0 and flag the recap
+        # as degraded so the display can note it, rather than printing negative
+        # token counts. init's compactDetected (BUG-006/012) also degrades the
+        # first post-compact round's recap.
+        RECAP_DEGRADED=false
+        if [[ $QUESTION_TOKENS -lt 0 ]]; then QUESTION_TOKENS=0; RECAP_DEGRADED=true; fi
+        if [[ $PARTICIPANTS_TOKENS -lt 0 ]]; then PARTICIPANTS_TOKENS=0; RECAP_DEGRADED=true; fi
+        if [[ $SYNTHESIS_TOKENS -lt 0 ]]; then SYNTHESIS_TOKENS=0; RECAP_DEGRADED=true; fi
+        if [[ $ROUND_DELTA_TOKENS -lt 0 ]]; then ROUND_DELTA_TOKENS=0; RECAP_DEGRADED=true; fi
+        if [[ "$COMPACT_THIS_ROUND" == "true" ]]; then RECAP_DEGRADED=true; fi
 
         NEW_ROUNDS_ACCUM=$((PREV_ROUNDS_ACCUM + ROUND_DELTA_TOKENS))
 
@@ -551,6 +622,11 @@ EOF
         echo "ROUNDS_ACCUM_K=${ROUNDS_ACCUM_K}"
         echo "CONTEXT_SOURCE=${contextSource:-jsonl}"
         echo "STATUSLINE_ACTIVE=${statuslineActive:-false}"
+
+        # BUG-017: surface the compact/degraded state so the display can note
+        # "recap approximate after /compact" instead of trusting the breakdown.
+        echo "COMPACT_DETECTED=${COMPACT_THIS_ROUND}"
+        echo "RECAP_DEGRADED=${RECAP_DEGRADED}"
 
         # TECH-009: Calculate AVG_ACTUAL_K and SAMPLE_COUNT from session file
         # These are needed for "Avg per round" display in recap

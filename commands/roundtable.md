@@ -1,7 +1,7 @@
 ---
 description: Start or resume a roundtable discussion with AI expert participants. Use for technical decisions, architecture reviews, or requirements refinement.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Bash(grep:*), Read, Write, Edit, Glob, Task, AskUserQuestion
-argument-hint: "topic" [--strategy standard|disney|debate|consensus-driven|six-hats] [--participants list] [--workflow-type specs|design|brainstorm] [--output-type adr|requirements|architecture|summary] [--verbose] [--interactive] [--diagnostic] [--pro list] [--con list] [--new] [--session <id>]
+argument-hint: "topic" [--strategy standard|disney|debate|consensus-driven|six-hats] [--participants list] [--workflow-type specs|design|brainstorm] [--output-type adr|requirements|architecture|summary] [--verbose] [--interactive] [--diagnostic] [--new] [--session <id>]
 skills: roundtable-execution, roundtable-strategies
 ---
 
@@ -71,10 +71,6 @@ Extract from $ARGUMENTS:
 **Boolean flags**: `--verbose`, `--interactive`, `--diagnostic` → parse as `true` if present, `false` if absent.
 
 **IF --diagnostic is true**: Force `verbose_flag = true` (diagnostic mode requires verbose dumps for analysis).
-
-Other optional arguments:
-- **--pro**: Optional (debate only). Comma-separated list of participant IDs for Pro side
-- **--con**: Optional (debate only). Comma-separated list of participant IDs for Con side
 
 ## Check for --session flag
 
@@ -246,34 +242,6 @@ If no regex matches, display error to user: `"Strategy doc opening line did not 
 
 Store `HOOK_OVERRIDES` for inclusion in `session.yaml.agent_state.facilitator.hook_overrides` at session creation (Phase 1 step "Create session"). `phase-2-core.md` Step 2.2c reads this field per round and dispatches via 3-branch logic (skip / policy / absent). See `strategy-hook-resolution.md` for full details.
 
-## Handle debate strategy
-
-If strategy is "debate":
-
-1. Check if --pro and --con flags provided
-2. If NOT provided, ask facilitator to assign sides:
-
-**Use the roundtable-facilitator agent** with this input:
-```yaml
-action: "assign_debate_sides"
-topic: "{topic}"
-participants:
-  - id: "{participant-1}"
-    role: "{role-1}"
-  - id: "{participant-2}"
-    role: "{role-2}"
-  # ... all participants
-```
-
-The facilitator will return:
-```yaml
-pro: [list of participant ids]
-con: [list of participant ids]
-rationale: "Assignment reasoning"
-```
-
-3. Store debate_sides in session file
-
 ## Create session
 
 `PROFILE` (loaded above) drives every workflow-specific value here. This session-setup path is identical for all 4 workflow types (TECH-002 Phase 8: profile-driven PHASE 1).
@@ -415,8 +383,6 @@ validation:
 # Linked sessions (optional)
 linked_sessions: {}
 ```
-
-   - If `strategy == "debate"`, include `debate_sides` with pro/con participant assignments.
 
 ## Display session start
 
