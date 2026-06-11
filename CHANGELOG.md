@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - Unreleased
+
+### Highlights
+
+**Test-infrastructure release.** Turns the lone, manually-run token-tracker test into a real automated suite, the substance of the v1.0 "automated test suite" gate. Adds a discovery runner (`make test`), GitHub Actions CI on every push/PR, and hermetic coverage for the two previously-untested shipped helpers (`statusline.sh`, `context-reset.sh`), bringing the suite to 51 assertions across all three bash helpers (green on bash 3.2 and 5.x, shellcheck clean). Writing the new tests surfaced and fixed one latent bug (BUG-021). Merged to develop via PR #31 (`de3a033`).
+
+### Added
+- **`tests/run-all.sh`** — discovery runner: finds every `*/tests/test-*.sh`, runs each in isolation, exits non-zero on any failure. Bash 3.2 compatible (default macOS bash). `Makefile` exposes `make test` as the single local/CI entrypoint. (TECH-012)
+- **`.github/workflows/tests.yml`** — CI that runs the suite on push to `develop`/`main` and on every pull request (ubuntu-latest; bash + jq; `LANG=C.UTF-8`). This is what makes the suite "automated", closing the structural half of the v1.0 gate. (TECH-012)
+- **`templates/statusline/tests/test-statusline.sh`** (11 assertions) — hermetic black-box tests locking BUG-019 (dynamic context window: 1M → 140k/860k, default 200k when size absent) and BUG-020 (percentage-based progress bar: 14→1, 50→5, 80→8, 95→10 filled slots). Runs with the real `$HOME` (faking it breaks a `$HOME`-relative jq, e.g. an asdf shim); the fallback-only assertions self-skip when a real global statusline is configured, while the `context-window.json` assertions always run. (TECH-012)
+- **`templates/hooks/tests/test-context-reset.sh`** (14 assertions) — hermetic tests for the resume banner on `/compact` + `/clear`, the no-op cases (startup / no active session / non-s2s dir), the jq path (`state.json.last_activity` update), and the no-jq fallback (banner + install note, `state.json` untouched). (TECH-012)
+- **Docs** — CONTRIBUTING.md gains an "Automated script tests" section (run with `make test`); `.s2s/test-baselines/README.md` drops the stale "only automated test is the token tracker" claim. (TECH-012)
+
+### Fixed
+- **BUG-021 (medium)** — `templates/hooks/context-reset.sh` no-jq fallback now parses pretty-printed `state.json`. The grep/sed extractors matched `"key":"value"` (no space), but `state.json` is jq-written as `"key": "value"`, so without jq the extracted `workflow_type`/`id`/`round` were empty and the resume banner (the whole point of that path) never showed. Made the three extractors whitespace-tolerant; the tracked `.claude/context-reset.sh` dogfood copy re-synced byte-identical. Found while writing the context-reset tests. Script → v2.2.0.
+
 ## [0.6.0] - 2026-06-11
 
 ### Highlights
