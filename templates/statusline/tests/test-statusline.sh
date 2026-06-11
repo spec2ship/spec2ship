@@ -1,11 +1,15 @@
 #!/bin/bash
 # test-statusline.sh - hermetic regression tests for statusline.sh
 #
-# Black-box: feeds Claude Code's statusline JSON on stdin with HOME pointed at a
-# temp dir (no global statusline -> forces the s2s fallback branch), then asserts
-# on (a) the .s2s/context-window.json it writes and (b) the fallback line it
-# prints. No network, no real settings. Locks BUG-019 (dynamic context window)
-# and BUG-020 (percentage-based progress bar).
+# Black-box: feeds Claude Code's statusline JSON on stdin, then asserts on (a) the
+# .s2s/context-window.json the script writes (always, before any branch) and (b)
+# the fallback status line it prints. Locks BUG-019 (dynamic context window) and
+# BUG-020 (percentage-based progress bar). No network.
+#
+# HOME is left untouched: faking it to suppress the global statusline would break
+# $HOME-relative toolchains (e.g. an asdf-shimmed jq, which the script needs).
+# Instead, the fallback-only assertions self-skip when a real global statusline is
+# configured (the same condition the script checks). CI has none, so it runs them.
 #
 # Run: bash templates/statusline/tests/test-statusline.sh
 # Exit: 0 = all pass, 1 = any failure. SKIP (exit 0) if jq is unavailable.
@@ -43,6 +47,10 @@ assert_eq() {
 
 assert_contains() {
     local label="$1" haystack="$2" needle="$3"
+    if [[ -n "$SKIP_FALLBACK" ]]; then
+        echo "  skip: ${label} (a global statusline is configured; fallback branch not exercised)"
+        return
+    fi
     if [[ "$haystack" == *"$needle"* ]]; then
         echo "  ok: ${label} contains '${needle}'"
         PASS=$((PASS + 1))
@@ -52,14 +60,34 @@ assert_contains() {
     fi
 }
 
-# Run statusline.sh in a hermetic sandbox and echo its stdout.
+# assert_eq variant for fallback-branch-only values (skips when chaining).
+assert_eq_fallback() {
+    if [[ -n "$SKIP_FALLBACK" ]]; then
+        echo "  skip: $1 (global statusline configured; fallback branch not exercised)"
+        return
+    fi
+    assert_eq "$@"
+}
+
+# Whether statusline.sh will chain to a global statusline instead of rendering
+# its own fallback line. Mirrors the script's own check (lines 38-45). We do NOT
+# fake $HOME to force the fallback: $HOME-relative toolchains (e.g. an asdf/shim
+# jq) break under a synthetic HOME, and the script itself needs jq. Instead we
+# run with the real HOME and skip the fallback-only assertions when a global
+# statusline is actually configured. The json-write assertions run unconditionally
+# (the script writes context-window.json before the chain decision). CI has no
+# global statusline, so it always exercises the fallback branch.
+SKIP_FALLBACK=""
+_gs=""
+if [[ -f "$HOME/.claude/settings.json" ]]; then
+    _gs=$(jq -r '.statusLine.command // empty' "$HOME/.claude/settings.json" 2>/dev/null)
+fi
+[[ -n "$_gs" && -x "$_gs" ]] && SKIP_FALLBACK=1
+
+# Run statusline.sh and echo its stdout. Always writes ${proj}/.s2s/context-window.json.
 # Args: project_dir (created by caller), used_pct, window_size ("" to omit field).
-# The caller owns project_dir so it can read the json the script writes (this
-# function runs in a command-substitution subshell, so it cannot export it).
 run_statusline() {
     local proj="$1" pct="$2" size="$3"
-    local fake_home
-    fake_home=$(mktemp -d)   # no .claude/settings.json -> fallback branch
 
     local size_field=""
     [[ -n "$size" ]] && size_field="\"context_window_size\": ${size},"
@@ -81,14 +109,13 @@ run_statusline() {
 }
 EOF
 )
-    HOME="$fake_home" printf '%s' "$input" | bash "$STATUSLINE"
-    rm -rf "$fake_home"
+    printf '%s' "$input" | bash "$STATUSLINE"
 }
 
 # Count filled bar slots (BUG-020: '⛁' per 10% of the window).
 filled_slots() { printf '%s' "$1" | grep -o '⛁' | wc -l | tr -d ' '; }
 
-# --- Test 1: BUG-019 — current_context_tokens scales to a 1M window ----------
+# --- Test 1: BUG-019 - current_context_tokens scales to a 1M window ---------
 echo "Test 1: BUG-019 context-window.json uses the real 1M window"
 PROJ=$(mktemp -d)
 OUT=$(run_statusline "$PROJ" 14 1000000)
@@ -101,7 +128,7 @@ assert_contains "fallback line (used)" "$OUT" "140k (14%)"
 assert_contains "fallback line (avail)" "$OUT" "860k"
 rm -rf "$PROJ"
 
-# --- Test 2: BUG-019 — default window (size absent) falls back to 200k -------
+# --- Test 2: BUG-019 - default window (size absent) falls back to 200k ------
 echo "Test 2: BUG-019 default 200k window when size absent"
 PROJ=$(mktemp -d)
 OUT=$(run_statusline "$PROJ" 14 "")
@@ -110,14 +137,14 @@ assert_eq "current_context_tokens" "28000" "$(jq -r '.current_context_tokens' "$
 assert_contains "fallback line (used)" "$OUT" "28k (14%)"
 rm -rf "$PROJ"
 
-# --- Test 3: BUG-020 — progress bar is percentage-based ----------------------
+# --- Test 3: BUG-020 - progress bar is percentage-based ---------------------
 # Window-agnostic: filled slots = round(pct/10). On a 1M window the old USED_K/20
 # formula pegged the bar to full at 20% used; the percentage formula must not.
 echo "Test 3: BUG-020 bar slots = round(pct/10) on a 1M window"
-PROJ=$(mktemp -d); OUT=$(run_statusline "$PROJ" 14 1000000); assert_eq "filled@14%" "1" "$(filled_slots "$OUT")"; rm -rf "$PROJ"
-PROJ=$(mktemp -d); OUT=$(run_statusline "$PROJ" 50 1000000); assert_eq "filled@50%" "5" "$(filled_slots "$OUT")"; rm -rf "$PROJ"
-PROJ=$(mktemp -d); OUT=$(run_statusline "$PROJ" 80 1000000); assert_eq "filled@80%" "8" "$(filled_slots "$OUT")"; rm -rf "$PROJ"
-PROJ=$(mktemp -d); OUT=$(run_statusline "$PROJ" 95 1000000); assert_eq "filled@95%" "10" "$(filled_slots "$OUT")"; rm -rf "$PROJ"
+PROJ=$(mktemp -d); OUT=$(run_statusline "$PROJ" 14 1000000); assert_eq_fallback "filled@14%" "1" "$(filled_slots "$OUT")"; rm -rf "$PROJ"
+PROJ=$(mktemp -d); OUT=$(run_statusline "$PROJ" 50 1000000); assert_eq_fallback "filled@50%" "5" "$(filled_slots "$OUT")"; rm -rf "$PROJ"
+PROJ=$(mktemp -d); OUT=$(run_statusline "$PROJ" 80 1000000); assert_eq_fallback "filled@80%" "8" "$(filled_slots "$OUT")"; rm -rf "$PROJ"
+PROJ=$(mktemp -d); OUT=$(run_statusline "$PROJ" 95 1000000); assert_eq_fallback "filled@95%" "10" "$(filled_slots "$OUT")"; rm -rf "$PROJ"
 
 # --- Summary ----------------------------------------------------------------
 echo ""
