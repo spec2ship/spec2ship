@@ -165,9 +165,21 @@ cd /tmp && mkdir s2s-test && cd s2s-test
 > [!WARNING]
 > **Recommended for testing:** Run `claude --dangerously-skip-permissions` to prevent permission prompts that disrupt roundtable execution.
 
+### Automated script tests
+
+Spec2Ship ships a few bash helpers (token tracker, statusline, context-reset hook). These have hermetic, black-box regression tests under `**/tests/test-*.sh`. Run the whole suite with:
+
+```bash
+make test          # or: bash tests/run-all.sh
+```
+
+The runner discovers every `*/tests/test-*.sh`, runs each in isolation, and exits non-zero on any failure. The same entrypoint runs in CI (`.github/workflows/tests.yml`) on every push to `develop`/`main` and on every pull request. Tests need `bash` and `jq`; statusline/context-reset tests self-skip if `jq` is absent.
+
+When changing a shipped script, add or update the matching test next to it (colocated `tests/` dir) so the regression is locked. Init copies template scripts by exact path, so a `tests/` subfolder under `templates/.../` never leaks into user projects.
+
 ### Regression testing (dogfood)
 
-Spec2Ship's automated coverage is currently a single hermetic script test for the token tracker (run with `bash skills/roundtable-execution/scripts/tests/test-token-tracker.sh`). The workflow layer is markdown/YAML, so its regression confidence comes from **dogfooding**: running the real `/s2s:*` workflows against a stable sample project and comparing outputs across code states.
+The workflow layer is markdown/YAML and not covered by the script tests, so its regression confidence comes from **dogfooding**: running the real `/s2s:*` workflows against a stable sample project and comparing outputs across code states.
 
 Recommended pattern:
 

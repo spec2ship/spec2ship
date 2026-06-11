@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-06-11 (v0.6.0 cycle COMPLETE: BUG-017 + BUG-018 + BUG-019 + BUG-020 + TECH-011 closed)
+**Updated**: 2026-06-11 (v0.7.0 cycle START: TECH-012 automated test suite + CI; BUG-021 found+fixed)
 **Format**: Work items for active development
 
 ---
@@ -1389,6 +1389,57 @@ The session YAML file was likely 400-600+ lines.
 - [x] No change for 200K-window models (percentage-based → identical result).
 
 **Related**: BUG-019 (token-tracker dynamic limit).
+
+---
+
+### TECH-012: Automated script test suite + CI
+
+**Status**: completed | **Created**: 2026-06-11 | **Completed**: 2026-06-11 | **Priority**: high | **Target**: v0.7.0 | **Origin**: 1.0 gate (automated test suite)
+
+**Context**: before this, the only automated test was `test-token-tracker.sh`, run manually one file at a time. No runner, no CI: the "automated test suite" 1.0 gate was formally unmet (it was a manual script), and two of the three shipped bash helpers (`statusline.sh`, `context-reset.sh`) had zero coverage.
+
+**Done (2026-06-11)**:
+- **Runner**: `tests/run-all.sh` discovers every `*/tests/test-*.sh`, runs each in isolation, aggregates pass/fail, exits non-zero on any failure. `Makefile` exposes `make test`.
+- **CI**: `.github/workflows/tests.yml` runs `bash tests/run-all.sh` on push to `develop`/`main` and on every PR (ubuntu-latest; bash + jq preinstalled; `LANG=C.UTF-8`).
+- **Coverage — statusline** (`templates/statusline/tests/test-statusline.sh`, 11 asserts): locks BUG-019 (dynamic context window: 1M → 140k/860k, default 200k when size absent) and BUG-020 (percentage-based bar: 14→1, 50→5, 80→8, 95→10 filled slots). Hermetic: feeds Claude Code statusline JSON on stdin with `HOME` pointed at a temp dir to force the fallback branch.
+- **Coverage — context-reset hook** (`templates/hooks/tests/test-context-reset.sh`, 14 asserts): resume banner on `/compact`+`/clear` with an active session; no banner on `startup` / no active_session / non-s2s dir; jq path updates `state.json.last_activity`; no-jq fallback (simulated via a curated PATH without jq) still emits the banner and the install note and leaves `state.json` untouched. **Surfaced and fixed BUG-021** (see below).
+- **Docs**: CONTRIBUTING.md → new "Automated script tests" section; `.s2s/test-baselines/README.md` updated ("only automated test" claim removed).
+- Tests colocate next to their target; init copies template scripts by exact path, so the `tests/` subfolders never leak into user projects.
+
+**Tasks**:
+- [x] Discovery runner + `make test`.
+- [x] GitHub Actions workflow (push develop/main + PR).
+- [x] statusline.sh hermetic tests (BUG-019 + BUG-020).
+- [x] context-reset.sh hermetic tests (jq + no-jq fallback).
+- [x] Update CONTRIBUTING + test-baselines README.
+
+**Acceptance criteria**:
+- [x] `make test` / `bash tests/run-all.sh` runs all script tests and fails non-zero on any failure (51 asserts across 3 files, all green).
+- [x] CI runs the suite on every PR.
+- [x] statusline.sh and context-reset.sh have regression coverage.
+
+**Related**: BUG-019, BUG-020 (locked by the new statusline tests), BUG-021 (found while writing context-reset tests), DEBT-002 (dev-tools separation — test exclusion at release still open there).
+
+---
+
+### BUG-021: context-reset.sh no-jq fallback can't parse pretty-printed state.json
+
+**Status**: completed | **Created**: 2026-06-11 | **Completed**: 2026-06-11 | **Priority**: medium | **Target**: v0.7.0 | **Origin**: found while writing TECH-012 context-reset tests
+
+**Context**: `context-reset.sh`'s grep/sed fallback (used when `jq` is absent) extracted JSON values with the pattern `"key":"value"` — no whitespace after the colon. But `state.json` is written by `jq`, which always emits `"key": "value"` (with a space). So on a machine without jq, the fallback read **empty** `workflow_type`/`id`/`round`, and the resume banner — the whole point of that path — **never showed**. (The stdin parse worked only because Claude Code sends compact hook input.)
+
+**Fix applied (2026-06-11, `context-reset.sh` v2.2.0)**: made the three fallback extractors whitespace-tolerant — `grep -oE "\"key\": *\"[^\"]*\""` (and `: *[0-9]+` for numbers, `sed -E 's/.*: *//'`). `cut -d'"' -f4` already worked for both spacings. Synced the tracked dogfood copy `.claude/context-reset.sh` byte-identical (static script, no init placeholders).
+
+**Tasks**:
+- [x] Whitespace-tolerant fallback extractors in `templates/hooks/context-reset.sh`.
+- [x] Regression test (TECH-012 Test 6: no-jq fallback emits banner from a pretty-printed state.json).
+- [x] Sync `.claude/context-reset.sh`.
+
+**Acceptance criteria**:
+- [x] Without jq, the resume banner shows from a real (jq-written, spaced) `state.json`.
+- [x] jq path unchanged.
+
+**Related**: TECH-012, BUG-020 (same dogfood-copy sync pattern).
 
 ---
 
