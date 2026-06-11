@@ -2,7 +2,7 @@
 
 Structural fingerprints of dogfood regression runs, used to verify that refactors do not change observable workflow behavior.
 
-Spec2Ship's only automated test is a hermetic script test for the token tracker; the markdown/YAML workflow layer's regression confidence comes from running real `/s2s:*` workflows and comparing outputs across code states. See [CONTRIBUTING.md → Regression testing (dogfood)](../../CONTRIBUTING.md#regression-testing-dogfood) for the method.
+Spec2Ship's automated tests are hermetic script tests for the shipped bash helpers (token tracker, statusline, context-reset hook), run with `make test`. They do not cover the markdown/YAML workflow layer, whose regression confidence comes from running real `/s2s:*` workflows and comparing outputs across code states. See [CONTRIBUTING.md → Automated script tests](../../CONTRIBUTING.md#automated-script-tests) and [Regression testing (dogfood)](../../CONTRIBUTING.md#regression-testing-dogfood) for the methods.
 
 ## What lives here vs. in the dogfood repo
 

@@ -1,0 +1,23 @@
+name: tests
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+
+jobs:
+  script-tests:
+    runs-on: ubuntu-latest
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show tool versions
+        run: |
+          bash --version | head -1
+          jq --version
+
+      - name: Run hermetic script tests
+        run: bash tests/run-all.sh
