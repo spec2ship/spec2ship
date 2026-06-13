@@ -65,6 +65,18 @@ Thank you for your interest in contributing to Spec2Ship!
 - Git
 - A test project directory
 
+### Git hooks
+
+Activate the local guards after cloning. Currently a `pre-push` that blocks an
+accidental direct push to a protected branch (spec2ship is PR-only on
+`develop`/`main`):
+
+```bash
+make hooks
+```
+
+Deliberate override for a rare admin push: `git push --no-verify`.
+
 ### Installation for Development
 
 **Recommended: Local plugin directory**
