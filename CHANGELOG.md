@@ -11,7 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Highlights
 
-**Test-infrastructure release.** Turns the lone, manually-run token-tracker test into a real automated suite, the substance of the v1.0 "automated test suite" gate. Adds a discovery runner (`make test`), GitHub Actions CI on every push/PR, and hermetic coverage for the two previously-untested shipped helpers (`statusline.sh`, `context-reset.sh`), bringing the suite to 51 assertions across all three bash helpers (green on bash 3.2 and 5.x, shellcheck clean). Writing the new tests surfaced and fixed one latent bug (BUG-021). Merged to develop via PR #31 (`de3a033`).
+**Test-infrastructure release.** Turns the lone, manually-run token-tracker test into a real automated suite, the substance of the v1.0 "automated test suite" gate. Adds a discovery runner (`make test`), GitHub Actions CI on every push/PR, and hermetic coverage for the two previously-untested shipped helpers (`statusline.sh`, `context-reset.sh`). Writing the new tests surfaced and fixed one latent bug (BUG-021). Merged to develop via PR #31 (`de3a033`).
+
+Also closes the script-layer findings from the Vektra dogfood analysis (BUG-022/023/024, filed from findings VKT-001/002/021) and ships the confidential-context guardrail (TECH-013): `/s2s:init` now gitignores a sanctioned `.s2s/local/` private area and the CONTEXT.md template + guide warn that CONTEXT.md content flows into every generated document. The suite grows to 60 assertions across the three bash helpers.
 
 ### Added
 - **`tests/run-all.sh`** — discovery runner: finds every `*/tests/test-*.sh`, runs each in isolation, exits non-zero on any failure. Bash 3.2 compatible (default macOS bash). `Makefile` exposes `make test` as the single local/CI entrypoint. (TECH-012)
@@ -22,6 +24,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **BUG-021 (medium)** — `templates/hooks/context-reset.sh` no-jq fallback now parses pretty-printed `state.json`. The grep/sed extractors matched `"key":"value"` (no space), but `state.json` is jq-written as `"key": "value"`, so without jq the extracted `workflow_type`/`id`/`round` were empty and the resume banner (the whole point of that path) never showed. Made the three extractors whitespace-tolerant; the tracked `.claude/context-reset.sh` dogfood copy re-synced byte-identical. Found while writing the context-reset tests. Script → v2.2.0.
+- **BUG-022 (high)** — generated `statusline.sh` had no `jq` guard: 8+ jq calls with stderr suppressed meant that without jq every variable silently went empty and the status line rendered blank/garbled with no hint why. Early guard now prints a visible `[s2s] jq not found - install jq to enable the s2s statusline` and exits 0. From Vektra dogfood finding VKT-001 (external CodeRabbit/Gemini review of the generated tooling). Template → v3.3.0, dogfood copy re-synced. Locked by test-statusline.sh Test 0 (runs on a curated no-jq PATH, before the suite's jq skip).
+- **BUG-023 (high)** — generated `statusline.sh` could fork itself forever when the user's global `statusLine.command` resolved to the generated script itself: the chain-to-global pipe had no self-check. Now compares directory-resolved `SELF_PATH`/`GLOBAL_PATH` (bash 3.2 portable) and chains only when they differ; a new `S2S_GLOBAL_SETTINGS` override lets hermetic tests drive the chain branch without faking `$HOME`. From VKT-002. Locked by Tests 4 (self-chain suppressed, rendered exactly once, timeout-guarded) and 5 (distinct global still chains).
+- **BUG-024 (low)** — `context-reset.sh` no-jq fallback extracted `workflow_type`/`id`/`round` with file-wide first-match greps; same-named keys outside `active_session` (history entries, `last_activity.session_id`) could aim the resume command at the wrong session. The fallback now isolates the `active_session` block first (newline-flattened, works on pretty and compact JSON) and leaves the fields empty (no banner) when the block cannot be isolated; removed the now-unused file-wide helpers. From VKT-021. Script → v2.3.0, dogfood copy re-synced. Locked by Test 7 (decoy keys must not leak into the banner).
+
+### Security
+- **TECH-013** — confidential-context guardrail, from VKT-073 (a real client codename had to be manually scrubbed from a dogfood project's CONTEXT.md): `/s2s:init` step 5.4b now ensures the project `.gitignore` covers a sanctioned `.s2s/local/` private area (append or create) and the init summary carries a privacy note; the CONTEXT.md template gains a CONFIDENTIALITY header block; the s2s-guide gains a "Confidential context" section. CONTEXT.md feeds every session and generated document, so confidential names must live in `.s2s/local/`, never in CONTEXT.md.
+
+### Changed
+- Backlog hygiene from the 2026-06-13 Vektra-analysis audit: TECH-001 (plan ADR integration) and TECH-003 (schema centralization) retro-marked completed (shipped by earlier work, never flagged); stale pre-TECH-002 file references corrected in TEST-003, TECH-010, BUG-001, BUG-003; the Vektra-scale plan-validation cluster parked as IDEA-037 instead of entering the backlog. Native multi-agent conversion for the roundtable evaluated and declined (constraints recorded in `.claude/s2s-development.md`).
 
 ## [0.6.0] - 2026-06-11
 
