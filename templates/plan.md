@@ -60,6 +60,20 @@ Each task should be:
 - [ ] {task-2}
 - [ ] {task-3}
 
+## State & Data Lifecycle
+
+<!--
+For each stateful element this plan introduces or touches (cache, table, file,
+queue, in-memory registry): cover the FULL runtime lifecycle, not just the
+startup/load path. A cache that is only ever loaded at boot is a design smell:
+who writes it, who invalidates it, who deletes from it? (VKT-042)
+Write "None - this plan introduces no stateful elements." when that is true.
+-->
+
+| State element | Created by | Updated by | Invalidated/Deleted by |
+|---------------|-----------|------------|------------------------|
+| {element} | {task/path} | {task/path} | {task/path} |
+
 ## Acceptance Criteria
 
 - [ ] {criterion-1}
@@ -68,6 +82,30 @@ Each task should be:
 ## Testing Approach
 
 {testing-description}
+
+### Test Infrastructure
+
+<!--
+What the acceptance criteria need to actually run (VKT-032). A criterion that
+cannot run without infrastructure that no task provides will be silently
+skipped and reported as passed.
+Write "None - tests run with no external infrastructure." when that is true.
+-->
+
+- **Required**: {fixtures | Docker services | seeded database | external API stub | none}
+- **Provided by**: {task in this plan that sets it up, or plan-id that provides it}
+- **False-pass guard**: {how a skipped/impossible test is reported as SKIPPED/BLOCKED, never as passed}
+
+### NFR Verification
+
+<!--
+For each NFR this plan claims to satisfy: a runnable benchmark, not an
+adjective (VKT-043). Delete the section only if the References list no NFR.
+-->
+
+| NFR | Dataset/Load | Tool | Environment | Pass criterion |
+|-----|--------------|------|-------------|----------------|
+| {NFR-XXX} | {what is measured against} | {how} | {where} | {measurable threshold from the NFR target/minimum} |
 
 ## Integration Notes
 

@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-07-11 (v0.8.0 quality cycle: BUG-025 filed for arc42 output completeness with FEAT-006 superseded by it; FEAT-012 filed for roundtable quality — baseline ingestion, contradiction gate, technical panel)
+**Updated**: 2026-07-11 (v0.8.0 quality cycle: BUG-025 filed for arc42 output completeness with FEAT-006 superseded by it; FEAT-012 filed for roundtable quality; FEAT-013 filed for plan source-grounding + structured template blocks)
 **Format**: Work items for active development
 
 ---
@@ -1594,6 +1594,31 @@ The session YAML file was likely 400-600+ lines.
 - [ ] Missing-domain warning at session start with a non-technical panel (VKT-035 proposed test).
 
 **Related**: BUG-009 (the 2.9b gate this extends), VKT-005/034/036 (broader coverage machinery, deliberately parked per decision record).
+
+---
+
+### FEAT-013: Plan source-grounding + structured plan template blocks
+
+**Status**: in_progress | **Created**: 2026-07-11 | **Priority**: high | **Target**: v0.8.0 | **Origin**: Vektra dogfood (VKT-060/031/016 source-grounding; VKT-032/042/043 template gaps, all three re-verified real on current code)
+
+**Context**: `/s2s:plan` generated plans from documentation only: `commands/plan.md` Phase 1 sent doc content to a generic `Task(subagent_type="general-purpose")` while the existing `agents/exploration/codebase-analyzer.md` agent sat unused. Plans proposed fields/paths that already existed, and followed docs the code had drifted from. The plan template also had three structural gaps: free-text Testing Approach with no test-infrastructure declaration (criteria silently skipped and reported as passed, VKT-032), no state-lifecycle prompt (caches planned with a startup load and no runtime write paths, VKT-042), and no NFR benchmark block (NFR targets cited without a runnable verification, VKT-043).
+
+**Fix (2026-07-11, v0.8.0 cycle)**:
+- **Codebase analysis wired in (VKT-060/031/016)**: new Phase 1a in `commands/plan.md` detects source files and **uses the codebase-analyzer agent** (proper agent-file invocation, not a generic Task) with doc-derived focus areas; the report (`CODEBASE_ANALYSIS`) feeds Phase 1b work-item identification (existing-code column, code-wins-over-docs rule, drift flagging) and the per-plan generation prompt (real paths/signatures only, extend instead of re-create, note drift). Basic Mode runs a topic-scoped analysis. Greenfield projects skip with an explicit marker.
+- **Template blocks (VKT-032/042/043)**: `templates/plan.md` gains a State & Data Lifecycle table (created/updated/invalidated-by per stateful element), a Test Infrastructure block (required infra, providing task, false-pass guard) and an NFR Verification table (dataset/tool/env/pass criterion per covered NFR); generation prompt and placeholder-replacement list updated to fill them.
+
+**Tasks**:
+- [x] plan.md Phase 1a codebase detection + codebase-analyzer invocation; Phase 1b grounding rules.
+- [x] Plan Generation prompt: codebase grounding + structured sections; Basic Mode topic-scoped analysis.
+- [x] templates/plan.md: lifecycle table, test-infra block, NFR verification table.
+- [ ] Dogfood-verify (v0.8.0 batch): plan on a fixture whose code drifts from docs reflects the source; generated plan carries the three structured blocks filled.
+
+**Acceptance criteria**:
+- [ ] Plans match source, not docs, on a doc-drifted fixture (VKT-060/016 proposed test).
+- [ ] A plan proposing existing fields/paths flags them instead of re-creating (VKT-031 proposed test).
+- [ ] Generated plans carry test-infra, state-lifecycle and NFR-benchmark blocks (VKT-032/042/043 proposed tests).
+
+**Related**: TECH-001 (completed: plan ADR integration), IDEA-037 (parked Vektra-scale plan-validation cluster — this item ships only its general kernel per decision record D2).
 
 ---
 

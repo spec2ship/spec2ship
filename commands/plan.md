@@ -247,7 +247,39 @@ What would you like to do?
 
 ## Full Documentation Mode
 
-### Phase 1: Analyze and Identify Work Items
+### Phase 1a: Analyze the Codebase (VKT-060/031/016)
+
+Plans must be grounded in the CURRENT source code, not only in the documentation:
+docs drift, code does not. Skip this step ONLY when the project has no source code
+yet (greenfield: nothing beyond `.s2s/`, docs, and configuration).
+
+**Detect source code**: use Glob for common source patterns (`src/**`, `lib/**`,
+`app/**`, `*.py`, `*.ts`, `*.js`, `*.go`, `*.rs`, `*.java`, ...) excluding `.s2s/`,
+`docs/`, and dependency directories.
+
+**IF source files exist**, **use the codebase-analyzer agent** with this input:
+
+```
+Analyze this codebase to ground implementation planning.
+
+Focus areas (from the documentation that plans will be generated from):
+- {list of components/areas named in architecture docs}
+- {list of capabilities named in requirements}
+
+Pay special attention to:
+1. Existing implementations of anything the docs describe (fields, endpoints,
+   modules that already exist)
+2. Drift between the docs and the code (renamed modules, changed signatures,
+   abandoned patterns)
+3. Reusable components and established patterns new work must follow
+```
+
+Store the agent's markdown report as `CODEBASE_ANALYSIS` (used in Phase 1b and in
+Plan Generation below).
+
+**IF no source files exist**: set `CODEBASE_ANALYSIS = "greenfield - no existing code"`.
+
+### Phase 1b: Analyze and Identify Work Items
 
 Analyze all available documentation to identify implementation work items:
 
@@ -265,6 +297,9 @@ Requirements:
 Architecture:
 {architecture docs content if available}
 
+Codebase Analysis (current source state - authoritative over docs when they disagree):
+{CODEBASE_ANALYSIS}
+
 Your task:
 1. Identify distinct implementation units:
    - Features from requirements (user-facing functionality)
@@ -280,8 +315,16 @@ Your task:
    - Estimated complexity: small | medium | large
    - Requirements covered: list of REQ-xxx IDs
    - Architecture references: list of ARCH-xxx or component names
+   - Existing code: what already exists for this item per the codebase analysis
+     (partial implementations, reusable modules), or 'none'
 
-3. Order work items by:
+3. Ground every work item in the codebase analysis:
+   - If something a document describes ALREADY EXISTS in code, say so instead of
+     planning to build it again
+   - If the docs and the code disagree, the CODE is the current state: plan from
+     the code and flag the doc drift explicitly
+
+4. Order work items by:
    - Dependencies (items with no deps first)
    - Complexity (smaller items first when no dep constraints)
    - Priority (from requirements MoSCoW)
@@ -350,6 +393,12 @@ Ask user using AskUserQuestion:
 - "What would you like to plan?"
 - Free text input
 
+### Analyze the Codebase (topic-scoped)
+
+Run the same codebase analysis as Full Documentation Mode Phase 1a, with the focus
+areas derived from the topic instead of the docs. Skip only when the project has no
+source code (`CODEBASE_ANALYSIS = "greenfield - no existing code"`).
+
 Display suggestion:
 
     Tip: For comprehensive planning with work item breakdown, run:
@@ -388,6 +437,9 @@ Requirements covered (if available):
 Architecture references (if available):
 {relevant sections from architecture docs}
 
+Codebase analysis (current source state - authoritative over docs when they disagree):
+{relevant sections from CODEBASE_ANALYSIS}
+
 Dependencies:
 {list of prerequisite work items}
 
@@ -398,19 +450,37 @@ Your task:
    - Completable in a reasonable session
    - Testable/verifiable
 
-3. Include tasks for:
+3. Ground every task in the codebase analysis (VKT-031/016):
+   - Reference REAL file paths, module names and function signatures from the
+     analysis, never invented ones
+   - Do NOT plan to create fields/endpoints/modules the analysis shows already
+     exist - plan to extend or reuse them
+   - If a doc-described element is absent from or different in the code, plan
+     from the code and note the drift
+
+4. Include tasks for:
    - Setup/scaffolding (if first component)
    - Core implementation
    - Tests (unit, integration as appropriate)
    - Documentation updates
    - Integration with other components
 
-4. Order tasks by implementation sequence
+5. Order tasks by implementation sequence
+
+6. Fill the plan's structured sections:
+   - State & Data Lifecycle: for each stateful element, who creates/updates/
+     invalidates/deletes it at RUNTIME, not only the startup load path
+   - Test Infrastructure: what the acceptance criteria need to run (fixtures,
+     Docker, seeded data), which task provides it, and how an unrunnable test is
+     reported as SKIPPED/BLOCKED instead of silently passing
+   - NFR Verification: for each covered NFR, a runnable benchmark row
+     (dataset/load, tool, environment, measurable pass criterion)
 
 Return the plan in this format:
 - Task list with checkboxes
+- State & data lifecycle table
 - Acceptance criteria
-- Testing approach
+- Testing approach + test infrastructure block + NFR verification table
 - Integration notes"
 )
 ```
@@ -438,6 +508,9 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/plan.md`
 - `{criterion-1}`, `{criterion-2}` → `{generated acceptance criteria}`
 - `{testing-description}` → `{how to verify this implementation}`
 - `{integration-description}` → `{how this connects to other components}`
+- **State & Data Lifecycle table** → `{generated lifecycle rows, or the "None - ..." line}`
+- **Test Infrastructure block** → `{generated required/provided-by/false-pass-guard values}`
+- **NFR Verification table** → `{one row per covered NFR; delete the section if References list no NFR}`
 
 **Add traceability note** if source is IDEA-*:
 ```markdown
