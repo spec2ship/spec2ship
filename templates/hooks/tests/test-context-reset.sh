@@ -5,7 +5,8 @@
 # its SessionStart JSON on stdin, and asserts on stdout (the resume banner) and
 # on the state.json mutation. The no-jq fallback path is exercised by running
 # the hook under a curated PATH that omits jq (the machine still has jq for the
-# test's own assertions). No network.
+# test's own assertions). Locks BUG-021 (spaced-JSON parsing) and BUG-024
+# (fallback scoped to active_session). No network.
 #
 # Run: bash templates/hooks/tests/test-context-reset.sh
 # Exit: 0 = all pass, 1 = any failure. SKIP (exit 0) if jq is unavailable.
@@ -142,6 +143,38 @@ assert_contains "resume cmd" "$OUT" "/s2s:specs --session 20260611-specs-foo"
 assert_contains "jq note" "$OUT" "'jq' not found"
 # Without jq the hook must NOT have rewritten state.json (last_activity stays absent).
 assert_eq "state untouched" "null" "$(jq -r '.last_activity // "null"' "${PROJ}/.s2s/state.json")"
+rm -rf "$PROJ" "$BINDIR"
+
+# --- Test 7: BUG-024 - fallback must read active_session, not decoy keys ----
+# state.json where "workflow_type"/"id"/"round" appear BEFORE active_session
+# (a history entry and last_activity). The old file-wide grep took the first
+# match and would print the decoy session in the resume command.
+echo "Test 7: BUG-024 fallback (no jq) scopes extraction to active_session"
+PROJ=$(mktemp -d)
+mkdir -p "${PROJ}/.s2s"
+cat > "${PROJ}/.s2s/state.json" <<'EOF'
+{
+  "last_activity": {
+    "timestamp": "2026-01-01T00:00:00Z",
+    "action": "context_clear",
+    "session_id": "20260101-specs-decoy"
+  },
+  "history": [
+    { "workflow_type": "design", "id": "20260101-design-decoy", "round": 9 }
+  ],
+  "active_session": {
+    "workflow_type": "specs",
+    "id": "20260611-specs-foo",
+    "round": 3
+  }
+}
+EOF
+BINDIR=$(make_nojq_path)
+OUT=$(printf '{"cwd":"%s","source":"compact"}' "$PROJ" | PATH="$BINDIR" bash "$RESET")
+assert_contains "scoped resume cmd" "$OUT" "/s2s:specs --session 20260611-specs-foo"
+assert_contains "scoped round" "$OUT" "Round:    3 completed"
+assert_lacks "no decoy id" "$OUT" "decoy"
+assert_lacks "no decoy round" "$OUT" "Round:    9"
 rm -rf "$PROJ" "$BINDIR"
 
 # --- Summary ----------------------------------------------------------------

@@ -15,6 +15,13 @@ HEADER CONVENTION:
 - Headers use "Component" prefix to avoid ambiguity with workspace context
 - When loaded alongside workspace CONTEXT.md, Claude can distinguish
 
+CONFIDENTIALITY:
+- Everything in this file feeds EVERY s2s session and flows into generated
+  artifacts (requirements, architecture, plans) that may live in a public repo.
+- Never put confidential names here (clients, codenames, partners, internal
+  project names). Keep them in .s2s/local/ (gitignored by /s2s:init) and
+  reference them generically in this file.
+
 NOTE: S2S paths and how-to documentation are in README.md (not loaded in memory)
 -->
 
