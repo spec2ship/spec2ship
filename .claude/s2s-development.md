@@ -198,6 +198,31 @@ IMPORTANT: Do NOT proceed to Step 3 until you have received the response.
 
 Source: [GitHub Issue #1078](https://github.com/anthropics/claude-code/issues/1078)
 
+### Native Multi-Agent Conversion: NO (decided 2026-06-13, revisit ~mid-2027)
+
+Evaluated converting the roundtable orchestration to Claude Code native multi-agent
+mechanisms (agent teams, Dynamic Workflows). Decision: **do not convert; do not build
+a prototype**. The blockers are architectural, not implementation-quality, so a
+prototype cannot solve them:
+
+1. Agent teams are experimental and env-gated (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`);
+   a marketplace plugin cannot enable them for users.
+2. Plugins cannot spawn workflows or teams programmatically (only Task-tool subagents
+   from command/skill markdown).
+3. Cross-session, cross-machine resume - s2s's hard requirement, satisfied today by
+   `.s2s/sessions/*.yaml` in git - is unsupported: teams have no in-process resume,
+   Dynamic Workflow state is same-session and node-local.
+4. Team messaging breaks the blind-voting contract (single-message parallel launch,
+   synthesis barrier); teammates also lose `skills` from agent frontmatter (facilitator
+   and architect knowledge bases).
+5. AskUserQuestion is unavailable inside subagents, so user gates must stay in the
+   main session - where the command orchestrator already runs them.
+
+Revisit when ALL of: teams GA without the env var; workflows/teams spawnable from
+plugin commands; cross-session resume supported; user-interaction available inside
+the target mechanism. Full analysis: local doc-set
+`.s2s/analysis/20260612-vektra-lessons-cc-features/` (docs 04 and 06, gitignored).
+
 ---
 
 ## SlashCommand Behavior

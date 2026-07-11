@@ -600,6 +600,24 @@ Read the file at `${CLAUDE_PLUGIN_ROOT}/templates/workspace/CONTEXT.md`
 
 **Write**: Save the modified content to `.s2s/CONTEXT.md`
 
+### 5.4b Private local area (.s2s/local/)
+
+CONTEXT.md feeds every s2s session and its content flows into generated
+artifacts that may live in a public repo. Give users a sanctioned private area
+so confidential names (clients, codenames, partners) never enter that flow:
+
+1. If a `.gitignore` exists at the project root and it does not already contain
+   `.s2s/local/`, append:
+
+   ```
+   # s2s private context (never committed; see the confidentiality note in .s2s/CONTEXT.md)
+   .s2s/local/
+   ```
+
+2. If no `.gitignore` exists, create it with exactly that content.
+3. Do NOT create the `.s2s/local/` directory itself (empty dirs are not tracked;
+   users create it when they need it).
+
 ### 5.5 Generate CLAUDE.md
 
 Write `.claude/CLAUDE.md` with project-specific content:
@@ -811,9 +829,14 @@ Created:
 - .claude/settings.json (statusline + hooks for token tracking)
 - .claude/statusline.sh (context tracking + chain to global)
 - .claude/context-reset.sh (handles /clear and /compact events)
+- .gitignore (ensures the private .s2s/local/ area stays untracked)
 
 Note: To enable token tracking, restart Claude Code in this directory.
       The statusline configuration is loaded at session start.
+
+Privacy: CONTEXT.md content reaches every session and generated document.
+      Keep confidential names (clients, codenames) out of it; use the
+      gitignored .s2s/local/ area for private notes.
 
 What's next?
 

@@ -1,0 +1,27 @@
+#!/bin/bash
+# pre-push guard — refuse direct pushes to protected branches.
+#
+# spec2ship is PR-only on develop/main: an admin can bypass GitHub branch
+# protection, so git not erroring is NOT permission. This hook stops a direct
+# push regardless of admin rights.
+#
+# Deliberate override (rare, e.g. owner release ops): git push --no-verify
+# (--no-verify skips all pre-push hooks; that intent must be explicit).
+#
+# Committed; activate per clone with `make hooks` (sets core.hooksPath .githooks).
+
+protected='^refs/heads/(develop|main|master)$'
+status=0
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+    if [[ "$remote_ref" =~ $protected ]]; then
+        echo "✗ BLOCKED: direct push to '${remote_ref#refs/heads/}' — spec2ship is PR-only on protected branches." >&2
+        status=1
+    fi
+done
+
+if [[ $status -ne 0 ]]; then
+    echo "  Open a PR instead. Deliberate override (rare): git push --no-verify" >&2
+fi
+
+exit $status

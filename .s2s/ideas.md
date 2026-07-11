@@ -1,6 +1,6 @@
 # Spec2Ship Ideas
 
-**Updated**: 2026-02-07
+**Updated**: 2026-06-13
 **Format**: Structured ideas from analysis and brainstorming
 
 ---
@@ -589,6 +589,18 @@ metadata:
 ---
 
 ## Parked
+
+### IDEA-037: Opt-in plan-validation rigor for large multi-component projects
+
+**Status**: parked | **Created**: 2026-06-13 | **Parked**: 2026-06-13
+**Origin**: Vektra dogfood analysis, lean-path decision (local doc-set: `.s2s/analysis/20260612-vektra-lessons-cc-features/`, see 07-decision-record.md)
+**Reason**: valuable only at 3+ interconnected components; ceremony for the median project (Simplicity First)
+
+**Problem**: the Vektra dogfood (15 plans, 8 waves, shared registries) surfaced a large cluster of plan-integration machinery requests: CHK-COORD-1..6 cross-plan checks, a 5-level Structured Plan Verification framework, `/s2s:plan:review-wave` / `verify-wave` / `add-traceability` commands, machine-readable `traceability.yaml` sidecars, import-boundary enforcement, a four-step wave-planning process, `--scope`/`--detailed` two-pass generation, plus new session types (integration session, gap-analysis strategy, strategy auto-detection). The 2026-06-13 adversarial review classified ~20 of the 25 epic findings as paying off only at Vektra scale.
+
+**Note**: parked, not rejected. The general kernel of that epic is NOT here and stays on the active path (plan agents reading source code before planning, silent test-skip guards, NFR operationalization). Full finding-by-finding detail: VKT-009..065 in the local analysis doc-set (docs 01/02/06).
+
+**Revisit trigger**: a real user with a 5+ component multi-wave project asks for it, or dogfood shows integration-gap pain outside Vektra.
 
 ### IDEA-020: Ready-to-use roundtable templates
 

@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-06-11 (v0.6.0 cycle COMPLETE: BUG-017 + BUG-018 + BUG-019 + BUG-020 + TECH-011 closed)
+**Updated**: 2026-06-13 (Vektra-analysis lean path: BUG-022/023/024 + TECH-013 fixed for v0.7.0; hygiene: TECH-001 and TECH-003 retro-completed, stale pre-TECH-002 refs corrected in TEST-003/TECH-010/BUG-001/BUG-003; Vektra-scale plan-validation cluster parked as IDEA-037)
 **Format**: Work items for active development
 
 ---
@@ -82,9 +82,11 @@ commands/dev/test.md         # /s2s:dev:test
 
 **Note**: This task is foundational for TECH-002. Test cases created here become the baseline for validating refactoring does not cause regression.
 
+**Location correction (2026-06-13 audit)**: written pre-TECH-002. There are no "inline commands" anymore: specs/design/brainstorm are thin launchers and resume logic is unified in `commands/roundtable.md` + `skills/roundtable-execution/references/phase-2-core.md` (§2.2a/§2.3a/§2.4). `session-qa` now exposes STR-*/STRAT-*/DIAG-* (not TRANS-*); CTX-* remain defined-only in `skills/dev-testing/references/roundtable-tests.md`. The live behavioral gap this item still owns (interrupted-round detection + recovery choice on resume) is VKT-007 in the Vektra analysis doc-set.
+
 **Tasks**:
-- [ ] Align roundtable.md resume logic with inline commands
-- [ ] Add TRANS-* checks to session-qa (state transitions)
+- [x] ~~Align roundtable.md resume logic with inline commands~~ (obsolete: resume unified by TECH-002, no inline path left)
+- [ ] Add state-transition checks to session-qa (current nomenclature: STR-*/STRAT-*/DIAG-*)
 - [x] Define CTX-* checks in roundtable-tests.md (5 checks defined)
 - [ ] Implement CTX-* in dev-validator (verbose dump analysis)
 - [ ] Enhance error-handling.md with mid-write recovery
@@ -451,13 +453,10 @@ The system presented 4 options to the user:
 3. Should compact be automatic at certain thresholds vs user-initiated?
 4. What happens to session state after compact? (Round continuity, artifact retention)
 
-**Other commands to check**: specs.md, brainstorm.md, roundtable.md may have similar mid-round prompts that don't offer compact option.
+**Location correction (2026-06-13 audit)**: written pre-TECH-002. The four per-command prompts no longer exist; the single mid-round prompt for all workflows is `skills/roundtable-execution/references/phase-2-core.md` Step 2.8 (Continue / conclude / exit, still no compact option — premise confirmed still open on current code).
 
 **Tasks**:
-- [ ] Review mid-round prompt logic in design.md
-- [ ] Review mid-round prompt logic in specs.md
-- [ ] Review mid-round prompt logic in brainstorm.md
-- [ ] Review mid-round prompt logic in roundtable.md (SKILL.md)
+- [ ] Review mid-round prompt logic in phase-2-core.md Step 2.8 (unified for all 4 workflows post-TECH-002)
 - [ ] Determine if compact option should be added to standard options
 - [ ] Define context threshold for suggesting compact (if applicable)
 - [ ] Document decision (ADR if significant change)
@@ -503,6 +502,8 @@ Error: No transcript found for agent ID: aaf0f99
 
 **Root cause**: Agent IDs and transcripts exist only within a single Claude CLI session. When Claude is restarted, the transcripts are lost but the session file still contains the old agent_id.
 
+**Location correction (2026-06-13 audit)**: premise confirmed still real on current code, but the resume logic moved: post-TECH-002 it lives in `skills/roundtable-execution/references/phase-2-core.md` §2.2a/§2.3a/§2.4 (not "workflow commands"). Resume still gates only on `agent_id != null AND round > 0` with no transcript-existence pre-check. Priority stays low: the harness fallback already degrades to a fresh agent after the error (solution 3 de facto). Sibling completed fix: BUG-014 (within-session delegated-master resume).
+
 **Possible solutions**:
 - [ ] Detect if transcript exists before attempting resume (official method TBD)
 - [ ] Clear agent_id on session load if Claude session is new
@@ -511,7 +512,7 @@ Error: No transcript found for agent ID: aaf0f99
 **Tasks**:
 - [ ] Research official method to check transcript existence
 - [ ] Implement pre-check before resume attempt
-- [ ] Update session resume logic in workflow commands
+- [ ] Update session resume logic in phase-2-core.md (§2.2a/§2.3a/§2.4)
 
 **Acceptance criteria**:
 - [ ] No failed resume attempts when Claude is restarted
@@ -573,6 +574,8 @@ Error: No transcript found for agent ID: aaf0f99
 
 **Files modified**:
 - `skills/roundtable-execution/SKILL.md`
+
+**Location correction (2026-06-13 audit)**: fix shipped and carried forward through TECH-002 (CHANGELOG v0.4.0), but the "SKILL.md Step 2.2/2.3" references above are pre-refactor: that logic now lives in `skills/roundtable-execution/references/phase-2-core.md` §2.2/§2.3 (inline context passing confirmed there, see also BUG-005).
 
 **Related**: TEST-003 (context propagation checks)
 
@@ -1392,6 +1395,145 @@ The session YAML file was likely 400-600+ lines.
 
 ---
 
+### TECH-012: Automated script test suite + CI
+
+**Status**: completed | **Created**: 2026-06-11 | **Completed**: 2026-06-11 | **Priority**: high | **Target**: v0.7.0 | **Origin**: 1.0 gate (automated test suite)
+
+**Context**: before this, the only automated test was `test-token-tracker.sh`, run manually one file at a time. No runner, no CI: the "automated test suite" 1.0 gate was formally unmet (it was a manual script), and two of the three shipped bash helpers (`statusline.sh`, `context-reset.sh`) had zero coverage.
+
+**Done (2026-06-11)**:
+- **Runner**: `tests/run-all.sh` discovers every `*/tests/test-*.sh`, runs each in isolation, aggregates pass/fail, exits non-zero on any failure. `Makefile` exposes `make test`.
+- **CI**: `.github/workflows/tests.yml` runs `bash tests/run-all.sh` on push to `develop`/`main` and on every PR (ubuntu-latest; bash + jq preinstalled; `LANG=C.UTF-8`).
+- **Coverage — statusline** (`templates/statusline/tests/test-statusline.sh`, 11 asserts at merge; 16 after BUG-022/023): locks BUG-019 (dynamic context window: 1M → 140k/860k, default 200k when size absent) and BUG-020 (percentage-based bar: 14→1, 50→5, 80→8, 95→10 filled slots). Hermetic: feeds Claude Code statusline JSON on stdin with the REAL `$HOME` (faking it breaks `$HOME`-relative toolchains like an asdf jq shim, dropped in d72035c); fallback-only assertions self-skip when a global statusline is configured.
+- **Coverage — context-reset hook** (`templates/hooks/tests/test-context-reset.sh`, 14 asserts): resume banner on `/compact`+`/clear` with an active session; no banner on `startup` / no active_session / non-s2s dir; jq path updates `state.json.last_activity`; no-jq fallback (simulated via a curated PATH without jq) still emits the banner and the install note and leaves `state.json` untouched. **Surfaced and fixed BUG-021** (see below).
+- **Docs**: CONTRIBUTING.md → new "Automated script tests" section; `.s2s/test-baselines/README.md` updated ("only automated test" claim removed).
+- Tests colocate next to their target; init copies template scripts by exact path, so the `tests/` subfolders never leak into user projects.
+
+**Tasks**:
+- [x] Discovery runner + `make test`.
+- [x] GitHub Actions workflow (push develop/main + PR).
+- [x] statusline.sh hermetic tests (BUG-019 + BUG-020).
+- [x] context-reset.sh hermetic tests (jq + no-jq fallback).
+- [x] Update CONTRIBUTING + test-baselines README.
+
+**Acceptance criteria**:
+- [x] `make test` / `bash tests/run-all.sh` runs all script tests and fails non-zero on any failure (51 asserts across 3 files at merge; 60 after BUG-022/023/024, all green).
+- [x] CI runs the suite on every PR.
+- [x] statusline.sh and context-reset.sh have regression coverage.
+
+**Related**: BUG-019, BUG-020 (locked by the new statusline tests), BUG-021 (found while writing context-reset tests), DEBT-002 (dev-tools separation — test exclusion at release still open there).
+
+---
+
+### BUG-021: context-reset.sh no-jq fallback can't parse pretty-printed state.json
+
+**Status**: completed | **Created**: 2026-06-11 | **Completed**: 2026-06-11 | **Priority**: medium | **Target**: v0.7.0 | **Origin**: found while writing TECH-012 context-reset tests
+
+**Context**: `context-reset.sh`'s grep/sed fallback (used when `jq` is absent) extracted JSON values with the pattern `"key":"value"` — no whitespace after the colon. But `state.json` is written by `jq`, which always emits `"key": "value"` (with a space). So on a machine without jq, the fallback read **empty** `workflow_type`/`id`/`round`, and the resume banner — the whole point of that path — **never showed**. (The stdin parse worked only because Claude Code sends compact hook input.)
+
+**Fix applied (2026-06-11, `context-reset.sh` v2.2.0)**: made the three fallback extractors whitespace-tolerant — `grep -oE "\"key\": *\"[^\"]*\""` (and `: *[0-9]+` for numbers, `sed -E 's/.*: *//'`). `cut -d'"' -f4` already worked for both spacings. Synced the tracked dogfood copy `.claude/context-reset.sh` byte-identical (static script, no init placeholders).
+
+**Tasks**:
+- [x] Whitespace-tolerant fallback extractors in `templates/hooks/context-reset.sh`.
+- [x] Regression test (TECH-012 Test 6: no-jq fallback emits banner from a pretty-printed state.json).
+- [x] Sync `.claude/context-reset.sh`.
+
+**Acceptance criteria**:
+- [x] Without jq, the resume banner shows from a real (jq-written, spaced) `state.json`.
+- [x] jq path unchanged.
+
+**Related**: TECH-012, BUG-020 (same dogfood-copy sync pattern).
+
+---
+
+### BUG-022: statusline.sh has no jq guard, breaks silently when jq is missing
+
+**Status**: completed | **Created**: 2026-06-13 | **Completed**: 2026-06-13 | **Priority**: high | **Target**: v0.7.0 | **Origin**: Vektra dogfood (VKT-001; CodeRabbit/Gemini review of generated tooling, 2026-03-22)
+
+**Context**: the generated `statusline.sh` called `jq` 8+ times across both code paths with every stderr suppressed (`2>/dev/null`) and no `command -v jq` check. Without jq, every variable silently went empty and the status line rendered blank/garbled with no hint why.
+
+**Fix applied (2026-06-13, `statusline.sh` v3.3.0)**: early guard after reading stdin — when jq is absent, print a visible `[s2s] jq not found - install jq to enable the s2s statusline` line and exit 0. Synced `.claude/statusline.sh` byte-identical.
+
+**Tasks**:
+- [x] jq presence guard in `templates/statusline/statusline.sh`.
+- [x] Regression test (test-statusline.sh Test 0: curated no-jq PATH, asserts the visible notice + exit 0; runs before the suite's jq skip).
+- [x] Sync `.claude/statusline.sh`.
+
+**Acceptance criteria**:
+- [x] Without jq the statusline degrades visibly, not silently.
+- [x] jq path unchanged (Tests 1-3 green).
+
+**Related**: BUG-023 (same file, same review), DOC-001 (documenting jq as recommended dependency), BUG-021 (same dogfood-copy sync pattern).
+
+---
+
+### BUG-023: statusline.sh recurses forever when statusLine.command points at itself
+
+**Status**: completed | **Created**: 2026-06-13 | **Completed**: 2026-06-13 | **Priority**: high | **Target**: v0.7.0 | **Origin**: Vektra dogfood (VKT-002; CodeRabbit review of generated tooling, 2026-03-22)
+
+**Context**: the chain-to-global logic piped stdin into `statusLine.command` from the user's global settings unconditionally. If that command resolved to the generated statusline itself (a plausible misconfiguration after copying settings), the script forked itself until the process limit.
+
+**Fix applied (2026-06-13, `statusline.sh` v3.3.0)**: resolve `SELF_PATH` and `GLOBAL_PATH` via portable `cd dirname && pwd` + `basename` (bash 3.2 safe) and chain only when they differ; otherwise fall through to the fallback renderer. Also introduced `S2S_GLOBAL_SETTINGS` (settings-path override) so hermetic tests can drive the chain branch without faking `$HOME`. A symlinked duplicate still differs and at worst chains one extra hop before its own guard stops.
+
+**Tasks**:
+- [x] Self-path comparison guard before chaining.
+- [x] `S2S_GLOBAL_SETTINGS` override for tests.
+- [x] Regression tests (Test 4: self-referential command renders the fallback exactly once, timeout-guarded; Test 5: a distinct global statusline still chains).
+- [x] Sync `.claude/statusline.sh`.
+
+**Acceptance criteria**:
+- [x] Self-referential `statusLine.command` cannot recurse.
+- [x] Legitimate chaining still works.
+
+**Related**: BUG-022 (same file), TECH-012 (test suite home).
+
+---
+
+### BUG-024: context-reset.sh no-jq fallback reads session metadata from anywhere in state.json
+
+**Status**: completed | **Created**: 2026-06-13 | **Completed**: 2026-06-13 | **Priority**: low | **Target**: v0.7.0 | **Origin**: Vektra dogfood (VKT-021; CodeRabbit review nitpick, 2026-03-22)
+
+**Context**: the no-jq fallback extracted `workflow_type`/`id`/`round` with file-wide greps that took the FIRST match anywhere in `state.json`. With keys of the same name outside `active_session` (e.g. a history entry or `last_activity.session_id`), the resume banner could target the wrong session. The jq path was already correctly scoped.
+
+**Fix applied (2026-06-13, `context-reset.sh` v2.3.0)**: isolate the `active_session` block first (newline-flattened `grep -oE '"active_session"...\{[^{}]*\}'`, works on pretty-printed and compact JSON since the block is a flat object), then extract from the block only; if the block cannot be isolated, leave the fields empty (no banner) instead of guessing. Removed the now-unused file-wide helpers. Synced `.claude/context-reset.sh`.
+
+**Tasks**:
+- [x] Block-scoped fallback extraction.
+- [x] Regression test (Test 7: decoy `workflow_type`/`id`/`round` before `active_session` must not leak into the banner).
+- [x] Sync `.claude/context-reset.sh`.
+
+**Acceptance criteria**:
+- [x] Fallback banner always reflects `active_session`, never a decoy key.
+- [x] jq path and BUG-021 spacing tolerance unchanged.
+
+**Related**: BUG-021 (same fallback machinery), BUG-001 (stale resume targets, sibling concern at the instruction layer).
+
+---
+
+### TECH-013: Private local area (.s2s/local/) + confidential-context guidance
+
+**Status**: completed | **Created**: 2026-06-13 | **Completed**: 2026-06-13 | **Priority**: medium | **Target**: v0.7.0 | **Origin**: Vektra dogfood (VKT-073: a confidential client codename had to be manually scrubbed from CONTEXT.md with a standing local-only rule)
+
+**Context**: `.s2s/CONTEXT.md` feeds every session and its content flows into generated artifacts that often live in public repos. s2s had no sanctioned private area and no warning, so users carried the discipline manually in gitignored files — one real leak-and-scrub case in the Vektra dogfood.
+
+**Fix applied (2026-06-13)**:
+- `commands/init.md` new step 5.4b: ensure the project `.gitignore` covers `.s2s/local/` (append or create); the final summary now carries a privacy note.
+- `templates/project/CONTEXT.md`: CONFIDENTIALITY block in the header comment (never put client names/codenames in this file; use `.s2s/local/`).
+- `s2s-guide` workflow-guide: `local/` in the file-structure tree + "Confidential context" section.
+
+**Tasks**:
+- [x] init.md 5.4b gitignore step + summary privacy note.
+- [x] CONTEXT.md template confidentiality block.
+- [x] s2s-guide confidential-context section.
+
+**Acceptance criteria**:
+- [x] A fresh `/s2s:init` leaves `.s2s/local/` gitignored and the user warned.
+- [ ] Instruction-layer behavior (init actually appends on a real run) verified at the next dogfood batch.
+
+**Related**: BUG-008 (broader init gitignore configuration, still open; 5.4b covers only the private area), VKT-052/VKT-073 in the Vektra analysis doc-set.
+
+---
+
 ### FEAT-004: Enhanced hybrid workspace support
 
 **Status**: planned | **Created**: 2026-01-29 | **Priority**: medium | **Origin**: Vektra project feedback
@@ -1955,18 +2097,20 @@ What would you like to configure?
 
 ### TECH-001: Plan command ADR integration
 
-**Status**: planned | **Created**: 2026-01-16 | **Updated**: 2026-01-19
+**Status**: completed | **Created**: 2026-01-16 | **Updated**: 2026-06-13 | **Completed**: 2026-06-13 (retroactive: shipped with the v0.3.0/v0.4.0 plan-command work, never marked)
 
 **Context**: The `/s2s:plan` command should read decisions/ to inform plan generation.
 
+**Resolution (2026-06-13 backlog audit)**: the work is in shipped code. `commands/plan.md` maps `ARCH-*` ids to `.s2s/decisions/` ("Read ADR, use as plan input", ID-pattern table) and the plan template substitutes `{decisions-list}` (relevant ADRs, or N/A). If a residual is ever wanted (proactive read of ALL `decisions/*.md` vs only ARCH-*-targeted planning), file it as a new narrow item.
+
 **Tasks**:
-- [ ] plan.md reads .s2s/decisions/*.md
-- [ ] ADRs influence task breakdown
-- [ ] Reference relevant ADRs in plan output
+- [x] plan.md reads .s2s/decisions/*.md
+- [x] ADRs influence task breakdown
+- [x] Reference relevant ADRs in plan output
 
 **Acceptance criteria**:
-- [ ] Plan considers decisions/ content
-- [ ] Previous phases inform plan tasks
+- [x] Plan considers decisions/ content
+- [x] Previous phases inform plan tasks
 
 ---
 
@@ -2500,28 +2644,15 @@ TECH-007's `.s2s/` approach is simpler:
 
 ### TECH-003: Centralize artifact schemas in session-schema.md
 
-**Status**: planned | **Created**: 2026-01-21 | **Priority**: low | **Origin**: TECH-002 review
+**Status**: completed | **Created**: 2026-01-21 | **Priority**: low | **Origin**: TECH-002 review | **Completed**: 2026-06-13 (by different means: TECH-002 delivered the goal in v0.4.0)
 
-**Context**: During TECH-002 format consolidation review, found that `session-schema.md` only contains schemas for specs workflow artifacts (REQ-*, BR-*, NFR-*, EX-*, CONF-*, OQ-*). Schemas for design (ARCH-*, COMP-*) and brainstorm (IDEA-*, RISK-*, MIT-*) are defined inline in their respective commands.
+**Context**: During TECH-002 format consolidation review, found that `session-schema.md` only contains schemas for specs workflow artifacts (REQ-*, BR-*, NFR-*, EX-*, CONF-*, OQ-*). Schemas for design (ARCH-*, COMP-*) and brainstorm (IDEA-*, RISK-*, MIT-*) were defined inline in their respective commands.
 
-**Current state**:
-- specs artifacts: defined in `session-schema.md` ✓
-- design artifacts: defined inline in `design.md`
-- brainstorm artifacts: defined inline in `brainstorm.md`
-
-**Tasks**:
-- [ ] Add ARCH-* schema to session-schema.md
-- [ ] Add COMP-* schema to session-schema.md
-- [ ] Add IDEA-* schema to session-schema.md
-- [ ] Add RISK-* schema to session-schema.md
-- [ ] Add MIT-* schema to session-schema.md
-- [ ] Update commands to reference centralized schemas
+**Resolution (2026-06-13 backlog audit)**: the maintainability goal was achieved by TECH-002, just not in the file this ticket proposed. The 12 artifact schemas live centralized in `skills/roundtable-execution/references/artifact-schemas/*.md` (not `session-schema.md`); `design.md` and `brainstorm.md` are thin launchers with zero inline schema definitions, referencing the central schemas via `phase-2-core.md`. Residual (not filed, note only): the specs schemas still sit inline in `session-schema.md`; moving them into `artifact-schemas/` for full uniformity is possible but not needed.
 
 **Acceptance criteria**:
-- [ ] All artifact schemas in single reference file
-- [ ] Commands reference schemas instead of defining inline
-
-**Note**: Low priority - current inline definitions work, centralization is for maintainability.
+- [x] All per-type artifact schemas in a single reference home (`artifact-schemas/`)
+- [x] Commands reference schemas instead of defining inline
 
 ---
 
