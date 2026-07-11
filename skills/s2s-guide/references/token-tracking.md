@@ -33,7 +33,7 @@ If statusline is not configured, token-tracker.sh falls back to JSONL parsing:
 - `CONTEXT_SOURCE=statusline` = accurate, project-local
 - `CONTEXT_SOURCE=jsonl` = less accurate, may be stale after /compact
 
-## Architecture (v5.3.0)
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -44,7 +44,7 @@ If statusline is not configured, token-tracker.sh falls back to JSONL parsing:
 │  │ (per-project)   │    │ - session_id                    ││
 │  │ .claude/        │    │ - used_percentage               ││
 │  │ statusline.sh   │    │ - current_context_tokens        ││
-│  │ v3.1.0          │    │ - transcript_path               ││
+│  │                 │    │ - transcript_path               ││
 │  └─────────────────┘    └─────────────────────────────────┘│
 │           │                            │                   │
 │           │                            │ PRIMARY SOURCE    │
@@ -60,7 +60,7 @@ If statusline is not configured, token-tracker.sh falls back to JSONL parsing:
 │           ▼                                               │
 │  ┌─────────────────┐    ┌─────────────────────────────────┐│
 │  │ token-tracker.sh│───▶│ .s2s/sessions/                  ││
-│  │ v5.3.0          │    │ {rt-session-id}.cache           ││
+│  │                 │    │ {rt-session-id}.cache           ││
 │  │                 │    │                                 ││
 │  │ Commands:       │    │ Stores:                         ││
 │  │ - init          │    │ - sessionStartTokens            ││
@@ -118,7 +118,7 @@ T0 (next round init)
 - Orchestrator gap = T0(next) - T3(previous)
 - Orchestrator total = Session consumed - Sum(round subagents)
 
-## Progressive Precision (TECH-009, v5.3.0)
+## Progressive Precision (TECH-009, since v5.3.0)
 
 Token tracking uses **progressive precision** to measure per-round consumption:
 
@@ -133,7 +133,7 @@ Token tracking uses **progressive precision** to measure per-round consumption:
 - `interrupted`: /compact or /clear detected
 - `noisy`: actual >> estimate (user did other commands)
 
-## Display Format (v5.3.0)
+## Display Format
 
 Token information is displayed at the end of each round recap (not in separate boxes):
 
@@ -179,10 +179,10 @@ If `/compact` occurs between rounds, the gap calculation would be negative. Toke
 
 | File | Purpose |
 |------|---------|
-| `roundtable-execution/scripts/token-tracker.sh` | Bash script for tracking (v5.3.0) |
+| `roundtable-execution/scripts/token-tracker.sh` | Bash script for tracking (version in script header) |
 | `roundtable-execution/references/token-tracking.md` | Operational instructions |
-| `roundtable-execution/SKILL.md` | State management inline (v2.7.0) |
-| `templates/statusline/statusline.sh` | Statusline template (v3.1.0) |
+| `roundtable-execution/SKILL.md` | State management inline |
+| `templates/statusline/statusline.sh` | Statusline template (version in script header) |
 | `.s2s/context-window.json` | Context data (project-local) |
 | `.s2s/state.json` | Active session state (project-local) |
 | `.s2s/sessions/{rt-session-id}.cache` | Session tracking cache (project-local) |
