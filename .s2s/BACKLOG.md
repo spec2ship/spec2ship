@@ -1404,7 +1404,7 @@ The session YAML file was likely 400-600+ lines.
 **Done (2026-06-11)**:
 - **Runner**: `tests/run-all.sh` discovers every `*/tests/test-*.sh`, runs each in isolation, aggregates pass/fail, exits non-zero on any failure. `Makefile` exposes `make test`.
 - **CI**: `.github/workflows/tests.yml` runs `bash tests/run-all.sh` on push to `develop`/`main` and on every PR (ubuntu-latest; bash + jq preinstalled; `LANG=C.UTF-8`).
-- **Coverage — statusline** (`templates/statusline/tests/test-statusline.sh`, 11 asserts): locks BUG-019 (dynamic context window: 1M → 140k/860k, default 200k when size absent) and BUG-020 (percentage-based bar: 14→1, 50→5, 80→8, 95→10 filled slots). Hermetic: feeds Claude Code statusline JSON on stdin with `HOME` pointed at a temp dir to force the fallback branch.
+- **Coverage — statusline** (`templates/statusline/tests/test-statusline.sh`, 11 asserts at merge; 16 after BUG-022/023): locks BUG-019 (dynamic context window: 1M → 140k/860k, default 200k when size absent) and BUG-020 (percentage-based bar: 14→1, 50→5, 80→8, 95→10 filled slots). Hermetic: feeds Claude Code statusline JSON on stdin with the REAL `$HOME` (faking it breaks `$HOME`-relative toolchains like an asdf jq shim, dropped in d72035c); fallback-only assertions self-skip when a global statusline is configured.
 - **Coverage — context-reset hook** (`templates/hooks/tests/test-context-reset.sh`, 14 asserts): resume banner on `/compact`+`/clear` with an active session; no banner on `startup` / no active_session / non-s2s dir; jq path updates `state.json.last_activity`; no-jq fallback (simulated via a curated PATH without jq) still emits the banner and the install note and leaves `state.json` untouched. **Surfaced and fixed BUG-021** (see below).
 - **Docs**: CONTRIBUTING.md → new "Automated script tests" section; `.s2s/test-baselines/README.md` updated ("only automated test" claim removed).
 - Tests colocate next to their target; init copies template scripts by exact path, so the `tests/` subfolders never leak into user projects.
@@ -1417,7 +1417,7 @@ The session YAML file was likely 400-600+ lines.
 - [x] Update CONTRIBUTING + test-baselines README.
 
 **Acceptance criteria**:
-- [x] `make test` / `bash tests/run-all.sh` runs all script tests and fails non-zero on any failure (51 asserts across 3 files, all green).
+- [x] `make test` / `bash tests/run-all.sh` runs all script tests and fails non-zero on any failure (51 asserts across 3 files at merge; 60 after BUG-022/023/024, all green).
 - [x] CI runs the suite on every PR.
 - [x] statusline.sh and context-reset.sh have regression coverage.
 

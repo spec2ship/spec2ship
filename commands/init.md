@@ -829,6 +829,7 @@ Created:
 - .claude/settings.json (statusline + hooks for token tracking)
 - .claude/statusline.sh (context tracking + chain to global)
 - .claude/context-reset.sh (handles /clear and /compact events)
+- .gitignore (ensures the private .s2s/local/ area stays untracked)
 
 Note: To enable token tracking, restart Claude Code in this directory.
       The statusline configuration is loaded at session start.

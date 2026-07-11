@@ -7,19 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.0] - Unreleased
+## [0.7.0] - 2026-07-11
 
 ### Highlights
 
 **Test-infrastructure release.** Turns the lone, manually-run token-tracker test into a real automated suite, the substance of the v1.0 "automated test suite" gate. Adds a discovery runner (`make test`), GitHub Actions CI on every push/PR, and hermetic coverage for the two previously-untested shipped helpers (`statusline.sh`, `context-reset.sh`). Writing the new tests surfaced and fixed one latent bug (BUG-021). Merged to develop via PR #31 (`de3a033`).
 
-Also closes the script-layer findings from the Vektra dogfood analysis (BUG-022/023/024, filed from findings VKT-001/002/021) and ships the confidential-context guardrail (TECH-013): `/s2s:init` now gitignores a sanctioned `.s2s/local/` private area and the CONTEXT.md template + guide warn that CONTEXT.md content flows into every generated document. The suite grows to 60 assertions across the three bash helpers.
+Also closes the script-layer findings from the Vektra dogfood analysis (BUG-022/023/024, filed from findings VKT-001/002/021) and ships the confidential-context guardrail (TECH-013): `/s2s:init` now gitignores a sanctioned `.s2s/local/` private area and the CONTEXT.md template + guide warn that CONTEXT.md content flows into every generated document. The suite grows to 60 assertions across the three bash helpers. Merged to develop via PR #34 (`82b5ed7`).
 
 ### Added
 - **`tests/run-all.sh`** — discovery runner: finds every `*/tests/test-*.sh`, runs each in isolation, exits non-zero on any failure. Bash 3.2 compatible (default macOS bash). `Makefile` exposes `make test` as the single local/CI entrypoint. (TECH-012)
 - **`.github/workflows/tests.yml`** — CI that runs the suite on push to `develop`/`main` and on every pull request (ubuntu-latest; bash + jq; `LANG=C.UTF-8`). This is what makes the suite "automated", closing the structural half of the v1.0 gate. (TECH-012)
-- **`templates/statusline/tests/test-statusline.sh`** (11 assertions) — hermetic black-box tests locking BUG-019 (dynamic context window: 1M → 140k/860k, default 200k when size absent) and BUG-020 (percentage-based progress bar: 14→1, 50→5, 80→8, 95→10 filled slots). Runs with the real `$HOME` (faking it breaks a `$HOME`-relative jq, e.g. an asdf shim); the fallback-only assertions self-skip when a real global statusline is configured, while the `context-window.json` assertions always run. (TECH-012)
-- **`templates/hooks/tests/test-context-reset.sh`** (14 assertions) — hermetic tests for the resume banner on `/compact` + `/clear`, the no-op cases (startup / no active session / non-s2s dir), the jq path (`state.json.last_activity` update), and the no-jq fallback (banner + install note, `state.json` untouched). (TECH-012)
+- **`templates/statusline/tests/test-statusline.sh`** (11 assertions at TECH-012 merge; 16 in this release with the BUG-022/023 tests) — hermetic black-box tests locking BUG-019 (dynamic context window: 1M → 140k/860k, default 200k when size absent) and BUG-020 (percentage-based progress bar: 14→1, 50→5, 80→8, 95→10 filled slots). Runs with the real `$HOME` (faking it breaks a `$HOME`-relative jq, e.g. an asdf shim); the fallback-only assertions self-skip when a real global statusline is configured, while the `context-window.json` assertions always run. (TECH-012)
+- **`templates/hooks/tests/test-context-reset.sh`** (14 assertions at TECH-012 merge; 18 in this release with the BUG-024 test) — hermetic tests for the resume banner on `/compact` + `/clear`, the no-op cases (startup / no active session / non-s2s dir), the jq path (`state.json.last_activity` update), and the no-jq fallback (banner + install note, `state.json` untouched). (TECH-012)
 - **Docs** — CONTRIBUTING.md gains an "Automated script tests" section (run with `make test`); `.s2s/test-baselines/README.md` drops the stale "only automated test is the token tracker" claim. (TECH-012)
 
 ### Fixed
@@ -239,7 +239,8 @@ Also closes the script-layer findings from the Vektra dogfood analysis (BUG-022/
 - Arc42, ISO 25010, MADR skills
 - Project templates
 
-[Unreleased]: https://github.com/spec2ship/spec2ship/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/spec2ship/spec2ship/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/spec2ship/spec2ship/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/spec2ship/spec2ship/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/spec2ship/spec2ship/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/spec2ship/spec2ship/compare/v0.3.0...v0.4.0

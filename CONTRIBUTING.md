@@ -185,7 +185,7 @@ Spec2Ship ships a few bash helpers (token tracker, statusline, context-reset hoo
 make test          # or: bash tests/run-all.sh
 ```
 
-The runner discovers every `*/tests/test-*.sh`, runs each in isolation, and exits non-zero on any failure. The same entrypoint runs in CI (`.github/workflows/tests.yml`) on every push to `develop`/`main` and on every pull request. Tests need `bash` and `jq`; statusline/context-reset tests self-skip if `jq` is absent.
+The runner discovers every `*/tests/test-*.sh`, runs each in isolation, and exits non-zero on any failure. The same entrypoint runs in CI (`.github/workflows/tests.yml`) on every push to `develop`/`main` and on every pull request. Tests need `bash` and `jq`; the jq-dependent assertions self-skip if `jq` is absent (the statusline no-jq guard test runs regardless, on a curated PATH).
 
 When changing a shipped script, add or update the matching test next to it (colocated `tests/` dir) so the regression is locked. Init copies template scripts by exact path, so a `tests/` subfolder under `templates/.../` never leaks into user projects.
 
