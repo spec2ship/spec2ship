@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-06-13 (Vektra-analysis lean path: BUG-022/023/024 + TECH-013 fixed for v0.7.0; hygiene: TECH-001 and TECH-003 retro-completed, stale pre-TECH-002 refs corrected in TEST-003/TECH-010/BUG-001/BUG-003; Vektra-scale plan-validation cluster parked as IDEA-037)
+**Updated**: 2026-07-11 (v0.8.0 quality cycle started: BUG-025 filed for arc42 output completeness, FEAT-006 superseded by it)
 **Format**: Work items for active development
 
 ---
@@ -1534,6 +1534,38 @@ The session YAML file was likely 400-600+ lines.
 
 ---
 
+### BUG-025: Design output generates only ~4 of 12 arc42 sections
+
+**Status**: in_progress | **Created**: 2026-07-11 | **Priority**: high | **Target**: v0.8.0 | **Origin**: Vektra dogfood (VKT-025/026/082/063; 2 of 3 sources classify the arc42 gap as a defect, confirmed real on current code)
+
+**Context**: `skills/output-generation/references/design-arc42.md` emitted only System Context, Principles, Components, Interfaces and an ADR pointer. Missing: quality goals, constraints, context diagram, runtime view, deployment view, cross-cutting concepts, decision index, quality tree/scenarios (arc42 §10), risks, glossary, traceability. No diagrams at all (VKT-026), thin/absent §10 (VKT-082), and no guard against artifacts silently dropped between session YAML and rendered Markdown (VKT-063).
+
+**Fix (2026-07-11, v0.8.0 cycle)**:
+- `design-arc42.md` rewritten around the full arc42 backbone (sections 1-12), always emitted; sections without session data get an explicit `*Not covered in this design session.*` placeholder instead of being dropped.
+- Conditional subsections (Persistence, API Design, Configuration under §8) emitted ONLY when the backing artifacts exist (datastore tech in COMP-*, endpoints in INT-*, config values in decisions).
+- 5 derivable Mermaid diagram types with artifact-only derivation rules: context, building blocks, runtime sequence, deployment, quality tree.
+- §10 built from `.s2s/requirements.md` NFR-* entries (quality tree + scenarios with target/minimum/measurement) plus ARCH-derived scenarios.
+- Fidelity rules table (which section each artifact ID must land in) + new mandatory Step 5 fidelity check in `output-generation/SKILL.md` (v1.2.0): every approved/accepted artifact ID must appear verbatim in the generated output, missing IDs are placed before completion and the result is reported in the summary.
+- Traceability appendix mapping ARCH/COMP/INT to their `related_to` REQ/NFR ids (no schema change needed).
+- ADR template: `Source: {ARCH-ID}` added; participants list now comes from the session file instead of a hardcoded trio.
+
+**Tasks**:
+- [x] Full arc42 skeleton in design-arc42.md with placeholder policy.
+- [x] Conditional persistence/API/config subsections keyed to artifact presence.
+- [x] Diagram derivation rules (Mermaid, artifact-backed only).
+- [x] Section 10 from NFRs + ARCH scenarios.
+- [x] Fidelity check step in SKILL.md (all workflows; mandatory for specs/design).
+- [ ] Dogfood-verify (v0.8.0 batch): rich design session emits sections beyond 8-9, ≥5 diagram types render, §10 populated, artifact-id diff clean.
+
+**Acceptance criteria**:
+- [ ] Generated architecture.md contains all 12 arc42 sections (content or explicit placeholder).
+- [ ] Conditional sections absent when no backing artifacts exist.
+- [ ] No approved artifact ID missing from the rendered document (fidelity check passes).
+
+**Related**: FEAT-006 (superseded by this item), VKT-079/080/081 (covered as the conditional subsections), VKT-083/084 (adjacent, not in scope), spec-validator arc42 checklist (compatible subset).
+
+---
+
 ### FEAT-004: Enhanced hybrid workspace support
 
 **Status**: planned | **Created**: 2026-01-29 | **Priority**: medium | **Origin**: Vektra project feedback
@@ -1704,9 +1736,11 @@ templates/setup/
 
 ---
 
-### FEAT-006: Enhanced arc42 output with traceability
+### FEAT-006: Enhanced arc42 output with traceability (SUPERSEDED by BUG-025)
 
-**Status**: planned | **Created**: 2026-02-03 | **Priority**: medium
+**Status**: completed | **Created**: 2026-02-03 | **Superseded**: 2026-07-11 | **Priority**: medium
+
+> **Superseded (2026-07-11)**: absorbed into BUG-025 (v0.8.0). The Vektra analysis decision record (2026-06-13) overturned this item's "no placeholders, never all 12 sections" principle: the full arc42 backbone is now always emitted with explicit placeholders, and Runtime/Deployment/Cross-cutting are derived from artifacts when possible. What this item proposed ships via BUG-025: traceability appendix (via existing `related_to`, no `traces_to` schema change), Mermaid building-blocks diagram, glossary, conditional risks. Original text kept below for history.
 
 **Context**: Output generation for design workflow produces a subset of arc42 sections. After user testing, specific high-value additions were identified. The goal is NOT to generate all 12 arc42 sections (many require manual/tool input), but to maximize value from available roundtable data.
 

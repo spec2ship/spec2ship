@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **BUG-025 (high)** — `/s2s:design` output now generates the full arc42 backbone (sections 1-12) instead of ~4 sections. `skills/output-generation/references/design-arc42.md` rewritten: every section always emitted (explicit `*Not covered in this design session.*` placeholder when the session has no data); conditional Persistence / API Design / Configuration subsections under §8 only when backing artifacts exist; 5 derivable Mermaid diagram types (context, building blocks, runtime sequence, deployment, quality tree) with artifact-only derivation rules; §10 Quality Requirements built from `.s2s/requirements.md` NFRs plus ARCH-derived scenarios; traceability appendix from `related_to`. New mandatory fidelity check in `output-generation/SKILL.md` (v1.2.0): every approved/accepted artifact ID must appear verbatim in the rendered document — no silent YAML→Markdown loss. From Vektra dogfood findings VKT-025/026/082/063; supersedes FEAT-006.
+
 ## [0.7.0] - 2026-07-11
 
 ### Highlights
