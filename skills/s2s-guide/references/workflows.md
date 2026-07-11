@@ -62,7 +62,7 @@ Spec2Ship organizes software development into six progressive phases.
 
 **When to run**: Before design, to establish clear requirements.
 
-**Default participants**: product-manager, business-analyst, qa-lead
+**Default participants**: product-manager, ux-researcher, business-analyst, qa-lead, technical-lead
 
 **Default strategy**: `consensus-driven`
 

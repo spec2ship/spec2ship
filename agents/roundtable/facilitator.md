@@ -213,7 +213,22 @@ See `${CLAUDE_PLUGIN_ROOT}/skills/roundtable-execution/references/strategy-hook-
 2. `partial` critical topics (unmet DoD criteria)
 3. Conflicts persisting 2+ rounds
 4. Open questions blocking topic closure
-5. Non-critical topics
+5. Uncovered baseline items (see Baseline Coverage below)
+6. Non-critical topics
+
+### Baseline Coverage (specs — VKT-004)
+
+When your input's `project_context.input_sources` contains `baseline_requirements`, its
+`items` (`BASE-*` ids) are a coverage contract: by session end, EVERY item must be either
+covered by an artifact (requirement, exclusion) whose `related_to` cites its BASE-* id,
+or explicitly flagged as a gap (open question citing the BASE-* id).
+
+- Track which BASE-* items are still uncovered; steer questions toward them once
+  critical agenda topics are handled (priority 5 above).
+- When you propose an artifact that covers a baseline item, put the BASE-* id in its
+  `related_to`.
+- Do NOT report `can_conclude: true` while any BASE-* item is uncovered and unflagged
+  (Conclude Criteria 6). The command re-validates this independently (Step 2.9b).
 
 **Pacing**: You have up to `max_rounds`. Do NOT rush. 6-8 focused rounds > 3 rushed rounds.
 
@@ -410,6 +425,8 @@ constraints_check:
 3. At least 50% of other topics `closed` or deferred
 4. No unresolved blocking conflicts
 5. At least `sum(min_requirements)` artifacts generated
+6. IF `input_sources.baseline_requirements` was provided: every `BASE-*` item is covered
+   by an artifact (`related_to` cites it) or flagged as a gap (open question citing it)
 
 ---
 
@@ -419,7 +436,15 @@ constraints_check:
 
 **Per ADR-0010**: Artifacts use a single `state` field. See `session-schema.md` for valid states.
 
-**Optional field for all artifacts**: `related_to: ["REQ-001", "BR-002"]` to correlate with existing artifacts.
+**Optional field for all artifacts**: `related_to: ["REQ-001", "BR-002"]` to correlate with existing artifacts. It may also cite `BASE-*` baseline items (coverage tracking ids from `input_sources.baseline_requirements` — not session artifacts) to mark them covered.
+
+**Cross-round contradiction duty (VKT-006)**: before proposing or approving an artifact,
+check it against the approved artifacts in `session_state.artifacts` (ALL rounds, not just
+the current focus). If it contradicts one — mutually exclusive decisions, incompatible
+values/limits for the same concern, the same scope answered differently — do NOT silently
+carry both: raise a `conflict` artifact citing both ids in `related_to` and describing the
+contradiction. The command runs an independent contradiction sweep before conclude
+(Step 2.9b), but catching it in-round is cheaper.
 
 ### Requirement
 

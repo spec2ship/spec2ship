@@ -108,7 +108,7 @@ Resolution methods: `consensus`, `facilitator`, `user_decision`
 
 | Workflow | Default Participants |
 |----------|---------------------|
-| **specs** | product-manager, business-analyst, qa-lead, ux-researcher |
+| **specs** | product-manager, ux-researcher, business-analyst, qa-lead, technical-lead |
 | **design** | software-architect, security-champion, technical-lead, devops-engineer |
 | **brainstorm** | Varies by --participants flag |
 

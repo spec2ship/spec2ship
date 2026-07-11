@@ -1,7 +1,7 @@
 ---
 description: Define functional requirements through a roundtable discussion. Reads CONTEXT.md and produces structured requirements.md. Auto-detects active sessions.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Bash(grep:*), Read, Write, Edit, Glob, Task, AskUserQuestion
-argument-hint: [--skip-roundtable] [--format srs|volere|simple] [--strategy consensus-driven|standard|six-hats] [--verbose] [--interactive] [--diagnostic] [--new] [--session <id>]
+argument-hint: [--skip-roundtable] [--format srs|volere|simple] [--strategy consensus-driven|standard|six-hats] [--participants list] [--verbose] [--interactive] [--diagnostic] [--new] [--session <id>]
 skills: roundtable-execution, roundtable-strategies, iso25010-requirements
 ---
 
@@ -61,6 +61,12 @@ If CONTEXT.md contains placeholder text like "{Project description}":
 
 **Detect available sources** for requirements input:
 
+0. **Check for an existing requirements document (baseline — VKT-004)**:
+   - First check `docs/specifications/requirements.md` (exported/public), then
+     `.s2s/requirements.md` (internal/working); use the first found.
+   - A baseline can also be a hand-written or externally produced document — it does
+     not need to be s2s-generated.
+
 1. **Check for recent brainstorm sessions**:
    Use Bash to find brainstorm sessions from the last 7 days:
    ```bash
@@ -83,6 +89,14 @@ Display sources and ask user:
 ```
 Available Input Sources
 ═══════════════════════
+
+{IF baseline requirements document found}
+Baseline Requirements ({path}):
+- {count} REQ-*/NFR-* entries (structured), or {count} distinct features (unstructured)
+- Selecting this makes it a COVERAGE BASELINE: every item must end up
+  covered (requirement, exclusion, open question) or flagged as a gap
+  before the session can conclude.
+{/IF}
 
 {IF recent brainstorm sessions found}
 Recent Brainstorm Sessions:
@@ -111,12 +125,29 @@ Ask using AskUserQuestion:
 
 **IF user selects "Select specific sources"**:
 Present checkboxes for:
+- Baseline requirements document (if found)
 - Each brainstorm session
 - ideas.md
 - BACKLOG.md
 
+**IF the baseline requirements document is among the selected sources**, parse it into
+baseline items (VKT-004):
+- Structured document: one item per `REQ-*`/`NFR-*` heading (title + one-line summary).
+- Unstructured document: one item per distinct feature/capability it describes.
+- Assign each item a sequential id `BASE-001`, `BASE-002`, ... and store them as
+  `INPUT_SOURCES.baseline_requirements = {path, items: [{id, title, summary}]}`.
+
+These BASE-* ids are coverage tracking ids (context-snapshot only), NOT session
+artifacts: participants and facilitator reference them via `related_to` on the REQ/EX/OQ
+artifacts that cover them, and the session cannot conclude while any BASE-* item is
+uncovered and unflagged (enforced in phase-2-core.md Step 2.9b).
+
 **Store the selected sources** as `INPUT_SOURCES` (handoff variable; the master writes
 them into `context-snapshot.yaml`).
+
+**Note**: the baseline selection is independent from the Override/Merge choice below —
+the baseline feeds the discussion (coverage), while Override/Merge governs how the final
+document is written.
 
 **IF an ID is passed in arguments** (e.g., "specs IDEA-001"):
 - Parse the ID from $ARGUMENTS

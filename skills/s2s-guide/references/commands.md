@@ -35,7 +35,7 @@ Define requirements through roundtable discussion.
 ```
 
 **Default strategy**: `consensus-driven`
-**Default participants**: `product-manager`, `business-analyst`, `qa-lead`
+**Default participants**: `product-manager`, `ux-researcher`, `business-analyst`, `qa-lead`, `technical-lead`
 **Output**: `.s2s/requirements.md`
 
 ---
