@@ -172,6 +172,11 @@ Start working on an implementation plan.
 /s2s:plan --session <id>
 ```
 
+**Tip**: for autonomous execution, follow up with Claude Code's built-in `/goal`
+(user-invoked; s2s cannot fire it for you) using a verifiable condition, e.g.
+`/goal all tasks of plan <id> are checked and the test suite is green`.
+See workflows.md § "Autonomous execution with /goal".
+
 ### `/s2s:plan:close`
 
 Close a plan.
