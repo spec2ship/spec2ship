@@ -111,9 +111,9 @@ A **roundtable** is an AI-facilitated discussion between specialized agents:
 
 | Workflow | Default Participants |
 |----------|---------------------|
-| specs | product-manager, business-analyst, qa-lead |
-| design | software-architect, technical-lead, devops-engineer |
-| brainstorm | product-manager, architect, tech-lead, devops |
+| specs | product-manager, ux-researcher, business-analyst, qa-lead, technical-lead |
+| design | software-architect, security-champion, technical-lead, devops-engineer |
+| brainstorm | product-manager, software-architect, technical-lead, devops-engineer |
 
 ### Available Strategies
 

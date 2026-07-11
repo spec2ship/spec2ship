@@ -189,6 +189,10 @@ project_context:
   constraints: ["{constraint}"]
   # IF PROFILE.workflow_type == "design": add `requirements_summary` (from requirements.md, summarized)
   # IF PROFILE.workflow_type == "brainstorm": add `brainstorm_topic` (from CLI arg)
+  # IF PROFILE.workflow_type == "specs" AND context-snapshot.yaml has a non-empty
+  # `input_sources:` block: add `input_sources` VERBATIM (including
+  # `baseline_requirements.items` with their BASE-* ids — the facilitator tracks
+  # coverage of every BASE-* item; VKT-004)
 
 # Current session state
 session_state:
@@ -801,7 +805,7 @@ This applies uniformly across workflows. Added in TECH-002 Phase 3; preserve ver
 
 #### 2.9b Conclude validation — command-side, defense-in-depth (BUG-009)
 
-**Applies only when** `next == "conclude"` AND `PROFILE.progress.axis == "agenda"` AND an `agenda.yaml` snapshot exists (specs/design). The facilitator's `constraints_check.can_conclude` is self-reported and MUST NOT be trusted blindly — validate it here before accepting.
+**Applies when** `next == "conclude"`. Steps 1-5 additionally require `PROFILE.progress.axis == "agenda"` AND an `agenda.yaml` snapshot (specs/design); step 6 applies to every workflow. The facilitator's `constraints_check.can_conclude` is self-reported and MUST NOT be trusted blindly — validate it here before accepting.
 
 1. Read `.s2s/sessions/{{SESSION_ID}}/agenda.yaml` and map each `topics[].id` to its `critical` flag.
 2. Read the live `session.agenda` and map each `topic_id` to its `status`.
@@ -813,8 +817,30 @@ This applies uniformly across workflows. Added in TECH-002 Phase 3; preserve ver
    - OVERRIDE `next = "continue"`.
    - Add `validation_override: "conclude rejected: only {closed}/{total} non-critical topics closed (<50%)"` to the current round's entry.
    - Display that line to the user.
+5. **Baseline coverage (specs only — VKT-004)**: IF `context-snapshot.yaml` has
+   `input_sources.baseline_requirements`:
+   - For each `items[].id` (`BASE-*`), check the session artifacts for coverage: an
+     artifact (any type) whose `related_to` contains that BASE-* id, or an open
+     question/exclusion that explicitly flags it as a gap.
+   - IF any BASE-* item is uncovered and unflagged:
+     - OVERRIDE `next = "continue"`.
+     - Add `validation_override: "conclude rejected: baseline items uncovered: {BASE-* list}"` to the current round's entry.
+     - Display that line to the user (with the item titles, so the next round can target them).
+6. **Cross-round contradiction check (VKT-006)**: approved/accepted artifacts can
+   contradict each other across rounds without the facilitator noticing (its per-round
+   context is focused, not global). Before accepting conclude:
+   - Read ALL approved/accepted artifacts from the session file and scan for pairwise
+     contradictions: mutually exclusive decisions, incompatible values/limits for the
+     same concern, the same scope answered in two different ways.
+   - IF a contradiction is found:
+     - Create a `CONF-*` conflict artifact citing both artifact ids in `related_to`
+       and describing the contradiction (state `in_progress`).
+     - OVERRIDE `next = "continue"`.
+     - Add `validation_override: "conclude rejected: contradiction between {ID-A} and {ID-B}"` and display it.
+   - This check runs on the orchestrator side (you have the full artifact set); do NOT
+     delegate it to the facilitator.
 
-Facilitator instructions are unchanged (this is a second, independent gate). Brainstorm (disney_phase axis) is exempt: its conclude is already gated by `current_phase == "critic"` in Step 2.10.
+Facilitator instructions are unchanged (this is a second, independent gate). Brainstorm (disney_phase axis) is exempt from steps 1-5: its conclude is already gated by `current_phase == "critic"` in Step 2.10; step 6 (contradiction check) applies to brainstorm too before its conclude.
 
 #### 2.9c Conclude confirmation (non-interactive only) — BUG-010
 

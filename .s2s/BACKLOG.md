@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-07-11 (v0.8.0 quality cycle started: BUG-025 filed for arc42 output completeness, FEAT-006 superseded by it)
+**Updated**: 2026-07-11 (v0.8.0 quality cycle: BUG-025 filed for arc42 output completeness with FEAT-006 superseded by it; FEAT-012 filed for roundtable quality — baseline ingestion, contradiction gate, technical panel)
 **Format**: Work items for active development
 
 ---
@@ -1563,6 +1563,37 @@ The session YAML file was likely 400-600+ lines.
 - [ ] No approved artifact ID missing from the rendered document (fidelity check passes).
 
 **Related**: FEAT-006 (superseded by this item), VKT-079/080/081 (covered as the conditional subsections), VKT-083/084 (adjacent, not in scope), spec-validator arc42 checklist (compatible subset).
+
+---
+
+### FEAT-012: Roundtable quality — baseline ingestion, contradiction gate, technical panel
+
+**Status**: in_progress | **Created**: 2026-07-11 | **Priority**: high | **Target**: v0.8.0 | **Origin**: Vektra dogfood (VKT-004, VKT-006, VKT-035/061)
+
+**Context**: three general roundtable gaps from the Vektra analysis keep-list:
+- `/s2s:specs` could not load an existing `requirements.md` as a coverage baseline (VKT-004): its Smart Source Detection saw brainstorm/ideas/backlog only, and the existing document was read solely for the Override/Merge choice.
+- Contradictions between approved artifacts from different rounds were invisible (VKT-006): the facilitator's per-round context is focused, and nothing re-checked the full artifact set before conclude.
+- The specs panel had no technical role and `profiles/specs.yaml` blocked `--participants` (`configurable: false`) (VKT-035/061).
+
+**Fix (2026-07-11, v0.8.0 cycle)**:
+- **Baseline ingestion**: specs Smart Source Detection now detects `docs/specifications/requirements.md` / `.s2s/requirements.md` as a baseline source; selected baselines are parsed into `BASE-*` items stored in `INPUT_SOURCES.baseline_requirements` (context-snapshot), forwarded to the facilitator (`phase-2-core.md` §2.2b), tracked via `related_to`, and enforced at conclude by the new Step 2.9b gate 5 (uncovered/unflagged items reject conclude). Facilitator: new Baseline Coverage section, focus priority 5, Conclude Criteria 6.
+- **Contradiction visibility**: facilitator gains a cross-round contradiction duty (raise CONF citing both ids instead of silently carrying both); orchestrator runs an independent contradiction sweep at conclude (Step 2.9b gate 6, all workflows) that files a CONF-* and rejects conclude.
+- **Panel**: `technical-lead` added to the specs default panel (profile + config template + repo config + guide tables); `profiles/specs.yaml` now `configurable: true`; explicit participant-resolution precedence (`--participants` → config → profile) and a non-blocking "no technical role on the panel" warning at session start for specs/design (roundtable.md).
+
+**Tasks**:
+- [x] specs.md baseline detection + BASE-* parsing into INPUT_SOURCES.
+- [x] roundtable.md input_sources block + participant resolution + panel coverage warning.
+- [x] phase-2-core.md §2.2b input_sources forwarding + §2.9b gates 5 (baseline) and 6 (contradictions).
+- [x] facilitator.md baseline coverage + contradiction duty + conclude criteria 6.
+- [x] profiles/specs.yaml + config template/repo sync + profile-schema comment + s2s-guide panel tables.
+- [ ] Dogfood-verify (v0.8.0 batch): seeded baseline items all covered or flagged before conclude; seeded contradiction detected before close; panel warning fires on a technical topic with a non-technical panel.
+
+**Acceptance criteria**:
+- [ ] Every seeded baseline feature becomes REQ/EX/OQ or a flagged gap before conclude (VKT-004 proposed test).
+- [ ] A REQ contradicting an approved artifact is detected before close (VKT-006 proposed test).
+- [ ] Missing-domain warning at session start with a non-technical panel (VKT-035 proposed test).
+
+**Related**: BUG-009 (the 2.9b gate this extends), VKT-005/034/036 (broader coverage machinery, deliberately parked per decision record).
 
 ---
 
