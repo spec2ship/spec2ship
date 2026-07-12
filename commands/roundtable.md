@@ -191,7 +191,11 @@ Read `.s2s/config.yaml` and extract:
 2. `.s2s/config.yaml` `roundtable.participants.by_workflow_type[workflow_type]` (if set).
 3. `PROFILE.participants.default`.
 
-**Panel domain coverage check (VKT-035)** — after resolution, IF `workflow_type` is `specs` or `design` AND the resolved panel contains NO technical role (none of: `software-architect`, `technical-lead`, `devops-engineer`, `security-champion`, `claude-code-expert`): set `PANEL_WARNING = true`. Warn only — do NOT block session creation. The warning text is rendered inside the "Display session start" block below (BUG-026: a standalone display step here gets skipped at runtime; the session-start block is always rendered, so the warning rides it).
+**Panel domain coverage check (VKT-035)** — after resolution, IF `workflow_type` is `specs` or `design` AND the resolved panel contains NO technical role (none of: `software-architect`, `technical-lead`, `devops-engineer`, `security-champion`, `claude-code-expert`): set `PANEL_WARNING = true`. Warn only — do NOT block session creation.
+
+The warning has TWO carriers (BUG-026: pure display steps get skipped at runtime, so the display alone is not trusted):
+1. **Artifact (MANDATORY)**: the session file's `validation.warnings` gets the panel entry at creation (see the session skeleton in "Create session" Step 4). `/s2s:session:status` and `/s2s:session:validate` surface it from there.
+2. **Display (best-effort)**: the ⚠ line inside the "Display session start" block below.
 
 ## Auto-detect strategy (if not specified)
 
@@ -382,10 +386,14 @@ metrics:
     by_round: []
 
 # Validation state
+# IF PANEL_WARNING == true (see "Panel domain coverage check"): warnings MUST contain
+# the panel entry below — it is the artifact-backed record of the warning (BUG-026);
+# do NOT leave warnings empty in that case.
 validation:
   last_check: null
   status: null
   warnings: []
+  # with PANEL_WARNING: warnings: ["panel has no technical role (VKT-035): feasibility may go unchallenged; add one via --participants or config.yaml"]
 
 # Linked sessions (optional)
 linked_sessions: {}
