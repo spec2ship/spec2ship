@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-07-12
+
+### Highlights
+
+**Quality release** — the general keep-list from the Vektra dogfood analysis (decision record 07, Phase B, lean path). Headlined by arc42 output completeness: `/s2s:design` now emits the full arc42 backbone (12 sections, 5 derivable Mermaid diagram types, §10 from NFRs) with a mandatory no-silent-loss fidelity check, instead of ~4 sections and no diagrams. The roundtable gains baseline-requirements ingestion with a conclude coverage gate, cross-round contradiction visibility, and a technical voice in a now-configurable specs panel. `/s2s:plan` finally reads the source code (the previously unwired `codebase-analyzer` agent) and its template demands test infrastructure, state lifecycle and NFR benchmarks. Merged via PRs #37 (arc42), #38 (roundtable), #39 (plan), #40 (/goal docs), #41 (BUG-026), #42 (dogfood baseline).
+
+Every instruction-layer change was verified by a driven synthetic dogfood (exp50: init + specs 5 rounds + design 3 rounds + plan --all on a seeded fixture with deliberate code-vs-docs drift and contradiction seeds): 13/14 checks passed at first run; the one failure (panel warning skipped as a display-only step) was fixed as BUG-026 and re-verified in-cycle. Structural evidence in `.s2s/test-baselines/v0.8.0-dogfood.md`.
+
 ### Added
 - **FEAT-012 (high)** — roundtable quality trio from the Vektra keep-list. (1) *Baseline requirements ingestion* (VKT-004): `/s2s:specs` Smart Source Detection now offers an existing `requirements.md` (exported or internal, s2s-generated or hand-written) as a coverage baseline; selected baselines are parsed into `BASE-*` items that flow to the facilitator, get covered via `related_to`, and gate conclude (new Step 2.9b check: uncovered/unflagged items reject conclusion). (2) *Cross-round contradiction visibility* (VKT-006): the facilitator must raise a CONF-* when a new artifact contradicts an approved one from any round, and the orchestrator runs an independent contradiction sweep over the full artifact set before accepting conclude (all workflows). (3) *Technical voice in the specs panel* (VKT-035/061): `technical-lead` joins the specs default panel, `profiles/specs.yaml` becomes `configurable: true` (`--participants` now honored, with explicit flag → config → profile precedence), and a non-blocking warning fires at session start when a specs/design panel has no technical role.
 
@@ -250,7 +258,8 @@ Also closes the script-layer findings from the Vektra dogfood analysis (BUG-022/
 - Arc42, ISO 25010, MADR skills
 - Project templates
 
-[Unreleased]: https://github.com/spec2ship/spec2ship/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/spec2ship/spec2ship/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/spec2ship/spec2ship/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/spec2ship/spec2ship/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/spec2ship/spec2ship/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/spec2ship/spec2ship/compare/v0.4.0...v0.5.0
