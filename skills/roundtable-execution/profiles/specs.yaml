@@ -27,7 +27,8 @@ participants:
     - "ux-researcher"
     - "business-analyst"
     - "qa-lead"
-  configurable: false
+    - "technical-lead"    # VKT-035: technical feasibility voice in the requirements panel
+  configurable: true      # VKT-061: --participants may override this panel
 
 artifact_types:
   - prefix: "REQ"

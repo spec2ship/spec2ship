@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-06-13 (Vektra-analysis lean path: BUG-022/023/024 + TECH-013 fixed for v0.7.0; hygiene: TECH-001 and TECH-003 retro-completed, stale pre-TECH-002 refs corrected in TEST-003/TECH-010/BUG-001/BUG-003; Vektra-scale plan-validation cluster parked as IDEA-037)
+**Updated**: 2026-07-12 (v0.8.0 dogfood on exp50 complete: BUG-025, FEAT-012, FEAT-013 verified and completed; BUG-026 found, fixed and re-verified in-cycle; TECH-013 carry-over acceptance closed; baseline at test-baselines/v0.8.0-dogfood.md)
 **Format**: Work items for active development
 
 ---
@@ -1528,9 +1528,121 @@ The session YAML file was likely 400-600+ lines.
 
 **Acceptance criteria**:
 - [x] A fresh `/s2s:init` leaves `.s2s/local/` gitignored and the user warned.
-- [ ] Instruction-layer behavior (init actually appends on a real run) verified at the next dogfood batch.
+- [x] Instruction-layer behavior (init actually appends on a real run) verified at the v0.8.0 dogfood (exp50: entry appended to a pre-existing .gitignore, prior lines intact; see test-baselines/v0.8.0-dogfood.md).
 
 **Related**: BUG-008 (broader init gitignore configuration, still open; 5.4b covers only the private area), VKT-052/VKT-073 in the Vektra analysis doc-set.
+
+---
+
+### BUG-025: Design output generates only ~4 of 12 arc42 sections
+
+**Status**: completed | **Created**: 2026-07-11 | **Completed**: 2026-07-12 | **Priority**: high | **Target**: v0.8.0 | **Verified**: test-baselines/v0.8.0-dogfood.md | **Origin**: Vektra dogfood (VKT-025/026/082/063; 2 of 3 sources classify the arc42 gap as a defect, confirmed real on current code)
+
+**Context**: `skills/output-generation/references/design-arc42.md` emitted only System Context, Principles, Components, Interfaces and an ADR pointer. Missing: quality goals, constraints, context diagram, runtime view, deployment view, cross-cutting concepts, decision index, quality tree/scenarios (arc42 §10), risks, glossary, traceability. No diagrams at all (VKT-026), thin/absent §10 (VKT-082), and no guard against artifacts silently dropped between session YAML and rendered Markdown (VKT-063).
+
+**Fix (2026-07-11, v0.8.0 cycle)**:
+- `design-arc42.md` rewritten around the full arc42 backbone (sections 1-12), always emitted; sections without session data get an explicit `*Not covered in this design session.*` placeholder instead of being dropped.
+- Conditional subsections (Persistence, API Design, Configuration under §8) emitted ONLY when the backing artifacts exist (datastore tech in COMP-*, endpoints in INT-*, config values in decisions).
+- 5 derivable Mermaid diagram types with artifact-only derivation rules: context, building blocks, runtime sequence, deployment, quality tree.
+- §10 built from `.s2s/requirements.md` NFR-* entries (quality tree + scenarios with target/minimum/measurement) plus ARCH-derived scenarios.
+- Fidelity rules table (which section each artifact ID must land in) + new mandatory Step 5 fidelity check in `output-generation/SKILL.md` (v1.2.0): every approved/accepted artifact ID must appear verbatim in the generated output, missing IDs are placed before completion and the result is reported in the summary.
+- Traceability appendix mapping ARCH/COMP/INT to their `related_to` REQ/NFR ids (no schema change needed).
+- ADR template: `Source: {ARCH-ID}` added; participants list now comes from the session file instead of a hardcoded trio.
+
+**Tasks**:
+- [x] Full arc42 skeleton in design-arc42.md with placeholder policy.
+- [x] Conditional persistence/API/config subsections keyed to artifact presence.
+- [x] Diagram derivation rules (Mermaid, artifact-backed only).
+- [x] Section 10 from NFRs + ARCH scenarios.
+- [x] Fidelity check step in SKILL.md (all workflows; mandatory for specs/design).
+- [x] Dogfood-verify (v0.8.0 batch, exp50): all 12 sections emitted, 5 diagram types rendered, §10 populated from NFRs, artifact-id diff clean (20/20).
+
+**Acceptance criteria**:
+- [x] Generated architecture.md contains all 12 arc42 sections (content or explicit placeholder).
+- [x] Conditional sections keyed to artifact presence (Persistence + API Design emitted with backing artifacts; Configuration correctly absent).
+- [x] No approved artifact ID missing from the rendered document (fidelity check reported: specs 28/28, design 20/20).
+
+**Related**: FEAT-006 (superseded by this item), VKT-079/080/081 (covered as the conditional subsections), VKT-083/084 (adjacent, not in scope), spec-validator arc42 checklist (compatible subset).
+
+---
+
+### FEAT-012: Roundtable quality — baseline ingestion, contradiction gate, technical panel
+
+**Status**: completed | **Created**: 2026-07-11 | **Completed**: 2026-07-12 | **Priority**: high | **Target**: v0.8.0 | **Verified**: test-baselines/v0.8.0-dogfood.md | **Origin**: Vektra dogfood (VKT-004, VKT-006, VKT-035/061)
+
+**Context**: three general roundtable gaps from the Vektra analysis keep-list:
+- `/s2s:specs` could not load an existing `requirements.md` as a coverage baseline (VKT-004): its Smart Source Detection saw brainstorm/ideas/backlog only, and the existing document was read solely for the Override/Merge choice.
+- Contradictions between approved artifacts from different rounds were invisible (VKT-006): the facilitator's per-round context is focused, and nothing re-checked the full artifact set before conclude.
+- The specs panel had no technical role and `profiles/specs.yaml` blocked `--participants` (`configurable: false`) (VKT-035/061).
+
+**Fix (2026-07-11, v0.8.0 cycle)**:
+- **Baseline ingestion**: specs Smart Source Detection now detects `docs/specifications/requirements.md` / `.s2s/requirements.md` as a baseline source; selected baselines are parsed into `BASE-*` items stored in `INPUT_SOURCES.baseline_requirements` (context-snapshot), forwarded to the facilitator (`phase-2-core.md` §2.2b), tracked via `related_to`, and enforced at conclude by the new Step 2.9b gate 5 (uncovered/unflagged items reject conclude). Facilitator: new Baseline Coverage section, focus priority 5, Conclude Criteria 6.
+- **Contradiction visibility**: facilitator gains a cross-round contradiction duty (raise CONF citing both ids instead of silently carrying both); orchestrator runs an independent contradiction sweep at conclude (Step 2.9b gate 6, all workflows) that files a CONF-* and rejects conclude.
+- **Panel**: `technical-lead` added to the specs default panel (profile + config template + repo config + guide tables); `profiles/specs.yaml` now `configurable: true`; explicit participant-resolution precedence (`--participants` → config → profile) and a non-blocking "no technical role on the panel" warning at session start for specs/design (roundtable.md).
+
+**Tasks**:
+- [x] specs.md baseline detection + BASE-* parsing into INPUT_SOURCES.
+- [x] roundtable.md input_sources block + participant resolution + panel coverage warning.
+- [x] phase-2-core.md §2.2b input_sources forwarding + §2.9b gates 5 (baseline) and 6 (contradictions).
+- [x] facilitator.md baseline coverage + contradiction duty + conclude criteria 6.
+- [x] profiles/specs.yaml + config template/repo sync + profile-schema comment + s2s-guide panel tables.
+- [x] Dogfood-verify (v0.8.0 batch, exp50): 8/8 baseline items covered, premature conclude rejected naming the uncovered item; injected contradiction raised as CONF in-round and escalated; panel warning initially skipped → fixed as BUG-026 (artifact carrier verified).
+
+**Acceptance criteria**:
+- [x] Every seeded baseline feature becomes REQ/EX/OQ or a flagged gap before conclude (VKT-004 proposed test; 2.9b gate 5 rejection observed live).
+- [x] A REQ contradicting an approved artifact is detected before close (VKT-006 proposed test; in-round CONF + escalation).
+- [x] Missing-domain warning with a non-technical panel (VKT-035; via BUG-026 artifact carrier in validation.warnings).
+
+**Related**: BUG-009 (the 2.9b gate this extends), VKT-005/034/036 (broader coverage machinery, deliberately parked per decision record).
+
+---
+
+### FEAT-013: Plan source-grounding + structured plan template blocks
+
+**Status**: completed | **Created**: 2026-07-11 | **Completed**: 2026-07-12 | **Priority**: high | **Target**: v0.8.0 | **Verified**: test-baselines/v0.8.0-dogfood.md | **Origin**: Vektra dogfood (VKT-060/031/016 source-grounding; VKT-032/042/043 template gaps, all three re-verified real on current code)
+
+**Context**: `/s2s:plan` generated plans from documentation only: `commands/plan.md` Phase 1 sent doc content to a generic `Task(subagent_type="general-purpose")` while the existing `agents/exploration/codebase-analyzer.md` agent sat unused. Plans proposed fields/paths that already existed, and followed docs the code had drifted from. The plan template also had three structural gaps: free-text Testing Approach with no test-infrastructure declaration (criteria silently skipped and reported as passed, VKT-032), no state-lifecycle prompt (caches planned with a startup load and no runtime write paths, VKT-042), and no NFR benchmark block (NFR targets cited without a runnable verification, VKT-043).
+
+**Fix (2026-07-11, v0.8.0 cycle)**:
+- **Codebase analysis wired in (VKT-060/031/016)**: new Phase 1a in `commands/plan.md` detects source files and **uses the codebase-analyzer agent** (proper agent-file invocation, not a generic Task) with doc-derived focus areas; the report (`CODEBASE_ANALYSIS`) feeds Phase 1b work-item identification (existing-code column, code-wins-over-docs rule, drift flagging) and the per-plan generation prompt (real paths/signatures only, extend instead of re-create, note drift). Basic Mode runs a topic-scoped analysis. Greenfield projects skip with an explicit marker.
+- **Template blocks (VKT-032/042/043)**: `templates/plan.md` gains a State & Data Lifecycle table (created/updated/invalidated-by per stateful element), a Test Infrastructure block (required infra, providing task, false-pass guard) and an NFR Verification table (dataset/tool/env/pass criterion per covered NFR); generation prompt and placeholder-replacement list updated to fill them.
+
+**Tasks**:
+- [x] plan.md Phase 1a codebase detection + codebase-analyzer invocation; Phase 1b grounding rules.
+- [x] Plan Generation prompt: codebase grounding + structured sections; Basic Mode topic-scoped analysis.
+- [x] templates/plan.md: lifecycle table, test-infra block, NFR verification table.
+- [x] Dogfood-verify (v0.8.0 batch, exp50): codebase-analyzer invoked in Phase 1a; 11 plans grounded in source with drift flagged; all 3 structured blocks filled in 11/11 plans.
+
+**Acceptance criteria**:
+- [x] Plans match source, not docs, on a doc-drifted fixture (VKT-060/016 proposed test).
+- [x] A plan proposing existing fields/paths flags them instead of re-creating (VKT-031 proposed test; matching code marked keep-as-is).
+- [x] Generated plans carry test-infra, state-lifecycle and NFR-benchmark blocks (VKT-032/042/043 proposed tests; 11/11).
+
+**Related**: TECH-001 (completed: plan ADR integration), IDEA-037 (parked Vektra-scale plan-validation cluster — this item ships only its general kernel per decision record D2).
+
+---
+
+### BUG-026: Panel coverage warning skipped at runtime (display-only step)
+
+**Status**: completed | **Created**: 2026-07-12 | **Completed**: 2026-07-12 | **Priority**: medium | **Target**: v0.8.0 | **Origin**: exp50 dogfood scenario 1a (VKT-035 verdict FAIL)
+
+**Context**: the FEAT-012 panel domain coverage check in `commands/roundtable.md` was written as a standalone display step after participant resolution. At the exp50 dogfood (specs session with `--participants product-manager,ux-researcher` on a technical project) the orchestrator read the instruction but never rendered the warning — the same display-only-step failure class as BUG-013 (five contributing factors documented in `.claude/s2s-development.md`; a display with no artifact and no anchor gets dropped under token pressure).
+
+**Fix applied (2026-07-12, two attempts)**:
+1. First attempt moved the warning inside the "Display session start" block. The exp50 re-test showed a non-interactive run skipping the WHOLE session-start display, warning included — the display layer as such is unreliable.
+2. Final fix: two carriers. **Artifact (mandatory)**: with `PANEL_WARNING == true` the session file is created with the panel entry in `validation.warnings` (surfaced by `/s2s:session:status` / `validate`); **display (best-effort)**: the ⚠ line stays in the session-start block. Same lesson as BUG-013/FIX-S1: persist to a file, don't trust display-only steps.
+
+**Tasks**:
+- [x] roundtable.md: check sets `PANEL_WARNING`; warning line embedded in the session-start block.
+- [x] roundtable.md: session skeleton persists the panel entry in `validation.warnings` (mandatory carrier).
+- [x] Re-test on exp50 (scenario 1a repeat with the patched plugin): `validation.warnings` populated in the session file.
+
+**Acceptance criteria**:
+- [x] Non-technical specs/design panel leaves the warning in `validation.warnings` at session creation (artifact carrier — verified exp50 re-test, 2026-07-12).
+
+**Known limitation** (not a gate): the display carrier is best-effort; observed skipped in non-interactive runs. The artifact carrier is the contract.
+
+**Related**: FEAT-012 (introduced the check), BUG-013 (same runtime-skip class), VKT-035.
 
 ---
 
@@ -1704,9 +1816,11 @@ templates/setup/
 
 ---
 
-### FEAT-006: Enhanced arc42 output with traceability
+### FEAT-006: Enhanced arc42 output with traceability (SUPERSEDED by BUG-025)
 
-**Status**: planned | **Created**: 2026-02-03 | **Priority**: medium
+**Status**: completed | **Created**: 2026-02-03 | **Superseded**: 2026-07-11 | **Priority**: medium
+
+> **Superseded (2026-07-11)**: absorbed into BUG-025 (v0.8.0). The Vektra analysis decision record (2026-06-13) overturned this item's "no placeholders, never all 12 sections" principle: the full arc42 backbone is now always emitted with explicit placeholders, and Runtime/Deployment/Cross-cutting are derived from artifacts when possible. What this item proposed ships via BUG-025: traceability appendix (via existing `related_to`, no `traces_to` schema change), Mermaid building-blocks diagram, glossary, conditional risks. Original text kept below for history.
 
 **Context**: Output generation for design workflow produces a subset of arc42 sections. After user testing, specific high-value additions were identified. The goal is NOT to generate all 12 arc42 sections (many require manual/tool input), but to maximize value from available roundtable data.
 

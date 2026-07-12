@@ -2,6 +2,60 @@
 
 Architecture documentation format for `/s2s:design` output.
 
+The generated document follows the full arc42 backbone (sections 1-12). Every section
+is always emitted: sections with no session data get an explicit placeholder line
+(`*Not covered in this design session.*`) instead of being silently dropped, so gaps
+are visible and a later session can fill them (merge mode).
+
+## Data Sources
+
+| Source | Provides |
+|--------|----------|
+| `session.artifacts.architecture_decisions` (ARCH-*) | sections 4, 8, 9, 10.2, 11 + ADR files |
+| `session.artifacts.components` (COMP-*) | sections 3, 5, 7 + diagrams |
+| `session.artifacts.interfaces` (INT-*) | sections 3.2, 5, 6, 8 (API) |
+| `session.artifacts.open_questions` (OQ-*) | section 11 (blocking only) |
+| `session.artifacts.conflicts` (CONF-*) | section 11 (unresolved only) |
+| `{session-folder}/context-snapshot.yaml` | sections 1, 2, 3, 12 |
+| `.s2s/requirements.md` (if it exists) | sections 1.2, 10 (NFR-* entries), traceability |
+
+**Artifact state filter**: include artifacts with state `accepted` (and `approved` where
+that vocabulary is used). Artifacts in `draft`/`in_progress` are NOT rendered in the main
+sections; blocking open questions and unresolved conflicts appear in section 11.
+
+## Fidelity Rules (no silent loss)
+
+Every included artifact ID MUST appear verbatim (e.g. `ARCH-003`) at least once in the
+generated output:
+
+| Artifact | Must appear in |
+|----------|----------------|
+| ARCH-* (accepted) | section 4 or 9, plus its ADR file |
+| COMP-* (accepted) | section 5 |
+| INT-* (accepted) | section 3.2 or 5 |
+| OQ-* (in_progress, blocking) | section 11 |
+| CONF-* (unresolved) | section 11 |
+
+The fidelity check in SKILL.md Step 5 verifies this after generation. Do not summarize
+several artifacts into one paragraph that drops their IDs.
+
+## Diagram Rules
+
+Diagrams are Mermaid blocks derived from artifact data only — never invent components,
+actors, or flows that have no artifact backing. Derivable diagram types:
+
+1. **Context diagram** (section 3.1): the system as one node; external actors/systems
+   from COMP-* `dependencies` entries that are not COMP-* IDs, plus INT-* consumers.
+2. **Building block diagram** (section 5.1): one node per COMP-*, edges from
+   `interfaces.requires` / `dependencies` between components.
+3. **Runtime sequence diagram** (section 6): the primary flow, reconstructed from INT-*
+   endpoints and COMP-* provides/requires. Emit 1-3 scenarios; skip (placeholder) if no
+   interaction is derivable.
+4. **Deployment diagram** (section 7): only if COMP-* `technology` / ARCH-* decisions
+   name deployment targets (containers, services, hosts). Otherwise placeholder.
+5. **Quality tree** (section 10.1): Mermaid mindmap of NFR categories → NFR IDs, from
+   `.s2s/requirements.md`. If no NFRs exist, placeholder.
+
 ## Architecture Template
 
 **YOU MUST use Write tool** to create `.s2s/architecture.md`:
@@ -15,27 +69,106 @@ Architecture documentation format for `/s2s:design` output.
 **Version**: 1.0
 **Date**: {date}
 **Session**: {session-id}
+**Template**: arc42 (sections 1-12)
 
-## System Context
+## 1. Introduction and Goals
 
-{high-level description from synthesis or first ARCH-*}
+### 1.1 Requirements Overview
 
-## Architecture Principles
+{description from context-snapshot.yaml}
 
+{IF .s2s/requirements.md exists}
+Requirements are specified in `.s2s/requirements.md` ({count} REQ-*, {count} NFR-*).
+Key drivers for this architecture:
+{3-5 bullet list of the REQ-* that most shaped the ARCH-* decisions, with IDs}
+{ELSE}
+*No requirements document found. Architecture derived from project context only.*
+{/IF}
+
+### 1.2 Quality Goals
+
+{IF NFR-* entries exist in .s2s/requirements.md}
+| Priority | Quality Goal | Motivation | Source |
+|----------|--------------|------------|--------|
+{top 3-5 NFRs by category importance}
+| {n} | {category} | {NFR title/target} | {NFR-ID} |
+{ELSE}
+*Not covered in this design session.*
+{/IF}
+
+### 1.3 Stakeholders
+
+{IF context-snapshot.yaml names stakeholders/users}
+| Role | Expectations |
+|------|--------------|
+| {role} | {expectation from context} |
+{ELSE}
+*Not covered in this design session.*
+{/IF}
+
+## 2. Architecture Constraints
+
+{IF constraints in context-snapshot.yaml}
+| Constraint | Background |
+|------------|------------|
+{for each constraint}
+| {constraint} | {rationale if stated} |
+{/for}
+{ELSE}
+*No constraints recorded.*
+{/IF}
+
+## 3. Context and Scope
+
+### 3.1 Business Context
+
+{scope from context-snapshot.yaml, plus high-level description from synthesis or first ARCH-*}
+
+```mermaid
+flowchart LR
+    {external actor/system nodes}
+    SYS["{project name}"]
+    {edges: actor --> SYS with interface labels from INT-*}
+```
+
+### 3.2 External Interfaces
+
+{IF artifacts.interfaces not empty}
+| ID | Interface | Type | Description |
+|----|-----------|------|-------------|
+{for each ID, artifact in artifacts.interfaces}
+| {ID} | {artifact.title} | {artifact.type} | {artifact.description first line} |
+{/for}
+{ELSE}
+*No external interfaces defined in this session.*
+{/IF}
+
+## 4. Solution Strategy
+
+| ID | Decision | Rationale |
+|----|----------|-----------|
 {for each ID, artifact in artifacts.architecture_decisions}
-- **{artifact.title}**: {artifact.decision summary}
+| {ID} | {artifact.title}: {artifact.decision one-line summary} | {artifact.rationale one-line summary} |
 {/for}
 
-## Components
+## 5. Building Block View
 
-| Component | Responsibility | Technology |
-|-----------|---------------|------------|
+### 5.1 Whitebox: Overall System
+
+```mermaid
+flowchart TB
+    {one node per COMP-*, labeled "{ID}: {title}"}
+    {edges from interfaces.requires / dependencies between COMP-* nodes}
+```
+
+| ID | Component | Responsibility | Technology |
+|----|-----------|---------------|------------|
 {for each ID, artifact in artifacts.components}
-| {artifact.title} | {artifact.responsibility} | {artifact.technology} |
+| {ID} | {artifact.title} | {artifact.responsibility} | {artifact.technology} |
 {/for}
 
 {for each ID, artifact in artifacts.components}
-### {ID}: {artifact.title}
+### 5.{n} {ID}: {artifact.title}
 
 **Responsibility**: {artifact.responsibility}
 
@@ -48,18 +181,163 @@ Architecture documentation format for `/s2s:design` output.
 **Technology**: {artifact.technology}
 {/for}
 
-## Interfaces
+## 6. Runtime View
 
-{for each ID, artifact in artifacts.interfaces}
-- **{artifact.title}** ({artifact.type}): {artifact.description}
+{IF a primary interaction is derivable from INT-*/COMP-*}
+### 6.1 {scenario name, e.g. "{primary INT-* title} flow"}
+
+```mermaid
+sequenceDiagram
+    {participants: involved COMP-* / external actors}
+    {messages from INT-* endpoints and provides/requires relations}
+```
+
+{1-3 scenarios max, each backed by artifact data}
+{ELSE}
+*Not covered in this design session.*
+{/IF}
+
+## 7. Deployment View
+
+{IF deployment targets derivable from COMP-*.technology or ARCH-* decisions}
+```mermaid
+flowchart TB
+    {deployment nodes (host/container/service) containing COMP-* nodes}
+```
+
+| Node | Contains | Technology |
+|------|----------|------------|
+| {node} | {COMP-* ids} | {technology} |
+{ELSE}
+*Not covered in this design session.*
+{/IF}
+
+## 8. Cross-cutting Concepts
+
+{for each ARCH-* whose decision is cross-cutting (security, error handling, logging, observability, i18n, ...)}
+### 8.{n} {concept name}
+
+{summary of the concept, citing the ARCH-* ID}
+{/for}
+{IF none}
+*Not covered in this design session.*
+{/IF}
+
+{IF any COMP-*.technology or dependencies reference a datastore (database, cache, file storage)}
+### 8.{n} Persistence
+
+| Store | Used by | Technology | Data owned |
+|-------|---------|------------|------------|
+| {store} | {COMP-* ids} | {technology} | {what is persisted, from responsibility/decisions} |
+{/IF}
+
+{IF any INT-* has endpoints (type REST/GraphQL/gRPC/message/event)}
+### 8.{n} API Design
+
+{for each ID, artifact in artifacts.interfaces where artifact.endpoints not empty}
+**{ID}: {artifact.title}** ({artifact.type})
+
+| Path/Topic | Method | Description |
+|------------|--------|-------------|
+{for each endpoint in artifact.endpoints}
+| {endpoint.path} | {endpoint.method} | {endpoint.description} |
+{/for}
+{/for}
+{/IF}
+
+{IF configurable values appear in ARCH-* decisions or COMP-* descriptions}
+### 8.{n} Configuration
+
+| Setting | Component | Default | Source |
+|---------|-----------|---------|--------|
+| {setting} | {COMP-*/ARCH-* id} | {default if stated} | {artifact ID} |
+{/IF}
+
+> Conditional subsections (Persistence, API Design, Configuration) are emitted ONLY when
+> the artifacts above exist — do not fabricate them for projects without such artifacts.
+
+## 9. Architecture Decisions
+
+| ID | ADR | Title | Status |
+|----|-----|-------|--------|
+{for each ID, artifact in artifacts.architecture_decisions}
+| {ID} | [ADR-{NNN}](decisions/ADR-{NNN}-{slug}.md) | {artifact.title} | {artifact.state} |
 {/for}
 
-## Key Decisions
+Full decision records in `.s2s/decisions/`.
 
-See ADRs in `.s2s/decisions/`
+## 10. Quality Requirements
+
+### 10.1 Quality Tree
+
+{IF NFR-* entries exist in .s2s/requirements.md}
+```mermaid
+mindmap
+  root((Quality))
+    {category}
+      {NFR-ID}: {short title}
+    {category}
+      {NFR-ID}: {short title}
+```
+{ELSE}
+*No non-functional requirements found (run /s2s:specs to define NFRs).*
+{/IF}
+
+### 10.2 Quality Scenarios
+
+{IF NFR-* entries exist}
+| ID | Scenario | Target | Minimum | Measurement | Supported by |
+|----|----------|--------|---------|-------------|--------------|
+{for each NFR-* in .s2s/requirements.md}
+| {NFR-ID} | {NFR title/description} | {target} | {minimum} | {measurement} | {ARCH-* ids whose decision supports this NFR, or "—"} |
+{/for}
+{/IF}
+
+{IF any ARCH-* consequences imply a quality scenario not covered by an NFR}
+Additional scenarios derived from architecture decisions:
+- **{ARCH-ID}**: {scenario derived from consequences.positive/negative}
+{/IF}
+
+## 11. Risks and Technical Debt
+
+{IF unresolved CONF-* or blocking OQ-* or negative consequences exist}
+| ID | Risk / Debt | Source | Impact |
+|----|-------------|--------|--------|
+{for each unresolved CONF-*}
+| {ID} | {title}: unresolved conflict — {positions summary} | conflict | {impact} |
+{/for}
+{for each OQ-* where blocking == true and state == in_progress}
+| {ID} | Open question: {title} | open question | blocks {what it blocks} |
+{/for}
+{for each significant ARCH-*.consequences.negative}
+| {ARCH-ID} | Accepted trade-off: {negative consequence} | decision | {impact} |
+{/for}
+{ELSE}
+*No open risks or technical debt recorded in this session.*
+{/IF}
+
+## 12. Glossary
+
+| Term | Definition |
+|------|------------|
+{domain and technology terms used in artifacts/context that a newcomer would need;
+derive from artifact titles/descriptions and context-snapshot — do not invent terms}
+| {term} | {definition} |
+
+---
+
+## Appendix: Traceability
+
+| Artifact | Type | Section | Traces to |
+|----------|------|---------|-----------|
+{for each rendered ARCH-*/COMP-*/INT-*}
+| {ID} | {type} | {section number(s)} | {related_to / covered REQ-*/NFR-* ids, or "—"} |
+{/for}
 
 ---
 *Generated by Spec2Ship /s2s:design*
+*Session: {session-id}*
+*Artifacts: {metrics.artifacts.total} ({accepted count} accepted)*
 ```
 
 ## ADR Generation
@@ -78,7 +356,8 @@ For each ARCH-* in `artifacts.architecture_decisions`:
 **Status**: accepted
 **Date**: {date}
 **Session**: {session-id}
-**Participants**: software-architect, technical-lead, devops-engineer
+**Source**: {ARCH-ID}
+**Participants**: {participants list from session file}
 
 ## Context
 {artifact.context}
@@ -108,11 +387,17 @@ For each ARCH-* in `artifacts.architecture_decisions`:
 ```
 Architecture design complete!
 
-Document: .s2s/architecture.md
+Document: .s2s/architecture.md (arc42, 12 sections)
 Mode: {override | merge}
+
+Sections with content: {count}/12
+Diagrams generated: {count} ({types, e.g. context, building blocks, sequence, quality tree})
+Conditional sections: {emitted list, or "none applicable"}
 
 Decisions: .s2s/decisions/
 - ADR-{NNN}-*.md ({count} decisions)
+
+Fidelity check: {all {N} artifact IDs rendered | MISSING: {list}}
 
 Tech Stack:
 {for each unique technology in components}

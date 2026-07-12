@@ -62,7 +62,7 @@ Spec2Ship organizes software development into six progressive phases.
 
 **When to run**: Before design, to establish clear requirements.
 
-**Default participants**: product-manager, business-analyst, qa-lead
+**Default participants**: product-manager, ux-researcher, business-analyst, qa-lead, technical-lead
 
 **Default strategy**: `consensus-driven`
 
@@ -121,6 +121,28 @@ Spec2Ship organizes software development into six progressive phases.
 - Updates plan status
 
 **When to run**: When starting implementation work.
+
+#### Autonomous execution with `/goal` (user-invoked pattern)
+
+Claude Code's built-in `/goal` command (v2.1.139+) sets a completion condition and keeps
+Claude working across turns until an evaluator model confirms the condition holds. It
+pairs naturally with a generated plan:
+
+```
+/s2s:plan --session <id>
+/goal all tasks of plan <id> are checked, its acceptance criteria pass, and the test suite is green
+```
+
+Good completion conditions are verifiable from the workspace: task checkboxes in the
+plan file, passing tests, lint clean. Vague conditions ("the feature works") evaluate
+poorly.
+
+**Limits**:
+- `/goal` is a **user-invoked** Claude Code command: you type it after starting plan
+  execution. s2s commands cannot fire it for you (slash commands are not
+  plugin-invokable today).
+- The evaluator checks the condition text, not the plan's intent — keep the condition
+  aligned with the plan's acceptance criteria.
 
 ---
 

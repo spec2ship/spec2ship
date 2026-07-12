@@ -43,7 +43,7 @@ strategy_constraints:
                                    # what user passes; default_strategy is always used.
                                    # Only brainstorm has forced: true (disney).
 
-# Default participants (4 fixed for specs/design; configurable for brainstorm)
+# Default participants (fixed for design; configurable for specs/brainstorm/roundtable — VKT-061)
 participants:
   default: [<participant-id>, ...] # ordered list of default participant agent ids
   configurable: <bool>             # if true, --participants flag overrides default

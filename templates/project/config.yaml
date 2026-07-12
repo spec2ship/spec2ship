@@ -74,6 +74,7 @@ roundtable:
         - ux-researcher            # User needs, accessibility, experience
         - business-analyst         # Requirements clarity, domain rules
         - qa-lead                  # Testability, edge cases, acceptance
+        - technical-lead           # Technical feasibility, implementation constraints
       design:
         - software-architect       # System structure, patterns, trade-offs
         - security-champion        # Threat modeling, secure design, OWASP

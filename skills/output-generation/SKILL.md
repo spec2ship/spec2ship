@@ -2,7 +2,7 @@
 name: Output Generation
 description: "This skill generates output documents from roundtable session artifacts. Supports specs (SRS), design (arc42 + ADR), brainstorm (summary + ideas), and roundtable (generic summary). Use after roundtable completion.
   Trigger: 'generate output', 'create requirements document', 'generate architecture', 'save brainstorm', 'generate roundtable summary'."
-version: 1.1.0
+version: 1.2.0
 ---
 
 # Output Generation
@@ -74,7 +74,25 @@ Based on workflow_type, read the corresponding reference and follow its pseudo-c
 | brainstorm | `references/brainstorm.md` |
 | roundtable | `references/roundtable-summary.md` |
 
-## Step 5: Update CONTEXT.md
+## Step 5: Fidelity Check (no silent loss)
+
+After writing the output file(s), verify that no approved artifact was silently dropped
+during rendering (VKT-063):
+
+1. Collect from the session file every artifact ID whose state is `approved` / `accepted`
+   (all collections under `artifacts.*`).
+2. For each ID, check that the ID string appears verbatim in at least one generated
+   output file (use Grep on the file(s) written in Step 4).
+3. **IF any ID is missing**: go back to the output file and add the artifact to its
+   proper section (see the format reference for the section mapping), then re-check.
+4. Report the result in the output summary: `Fidelity check: all {N} artifact IDs
+   rendered` or `MISSING: {list}` (only if step 3 could not place one — this should
+   not happen).
+
+This check is MANDATORY for specs and design (persistent project documents). For
+brainstorm and roundtable summaries it is recommended but non-blocking.
+
+## Step 6: Update CONTEXT.md
 
 After document generation, update `.s2s/CONTEXT.md`:
 - Update phase to workflow_type (specs | design)
@@ -83,7 +101,7 @@ After document generation, update `.s2s/CONTEXT.md`:
 
 **Note**: brainstorm + roundtable do NOT update CONTEXT.md phase (both are exploratory/discussion workflows, not phase-transition markers).
 
-## Step 6: Display Output Summary
+## Step 7: Display Output Summary
 
 Format depends on workflow - see reference file for specific summary format.
 
