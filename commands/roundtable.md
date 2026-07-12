@@ -191,13 +191,11 @@ Read `.s2s/config.yaml` and extract:
 2. `.s2s/config.yaml` `roundtable.participants.by_workflow_type[workflow_type]` (if set).
 3. `PROFILE.participants.default`.
 
-**Panel domain coverage check (VKT-035)** — after resolution, IF `workflow_type` is `specs` or `design` AND the resolved panel contains NO technical role (none of: `software-architect`, `technical-lead`, `devops-engineer`, `security-champion`, `claude-code-expert`):
+**Panel domain coverage check (VKT-035)** — after resolution, IF `workflow_type` is `specs` or `design` AND the resolved panel contains NO technical role (none of: `software-architect`, `technical-lead`, `devops-engineer`, `security-champion`, `claude-code-expert`): set `PANEL_WARNING = true`. Warn only — do NOT block session creation.
 
-    ⚠️ Panel has no technical role: feasibility and technical constraints
-    may go unchallenged. Add one via --participants or config.yaml
-    (roundtable.participants.by_workflow_type.{workflow_type}).
-
-Warn only — do NOT block session creation.
+The warning has TWO carriers (BUG-026: pure display steps get skipped at runtime, so the display alone is not trusted):
+1. **Artifact (MANDATORY)**: the session file's `validation.warnings` gets the panel entry at creation (see the session skeleton in "Create session" Step 4). `/s2s:session:status` and `/s2s:session:validate` surface it from there.
+2. **Display (best-effort)**: the ⚠ line inside the "Display session start" block below.
 
 ## Auto-detect strategy (if not specified)
 
@@ -388,16 +386,22 @@ metrics:
     by_round: []
 
 # Validation state
+# IF PANEL_WARNING == true (see "Panel domain coverage check"): warnings MUST contain
+# the panel entry below — it is the artifact-backed record of the warning (BUG-026);
+# do NOT leave warnings empty in that case.
 validation:
   last_check: null
   status: null
   warnings: []
+  # with PANEL_WARNING: warnings: ["panel has no technical role (VKT-035): feasibility may go unchallenged; add one via --participants or config.yaml"]
 
 # Linked sessions (optional)
 linked_sessions: {}
 ```
 
 ## Display session start
+
+**YOU MUST display this block** (including the warning line when `PANEL_WARNING == true` — do not drop it):
 
     Roundtable Session Started
     ═══════════════════════════
@@ -407,6 +411,11 @@ linked_sessions: {}
     Strategy: {strategy}
     Participants: {list}
     Workflow: {workflow_type}
+    {IF PANEL_WARNING}
+    ⚠️  Panel has no technical role: feasibility and technical constraints
+        may go unchallenged. Add one via --participants or config.yaml
+        (roundtable.participants.by_workflow_type.{workflow_type}).
+    {/IF}
 
     Starting discussion...
 

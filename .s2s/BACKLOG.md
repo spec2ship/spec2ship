@@ -1622,6 +1622,29 @@ The session YAML file was likely 400-600+ lines.
 
 ---
 
+### BUG-026: Panel coverage warning skipped at runtime (display-only step)
+
+**Status**: in_progress | **Created**: 2026-07-12 | **Priority**: medium | **Target**: v0.8.0 | **Origin**: exp50 dogfood scenario 1a (VKT-035 verdict FAIL)
+
+**Context**: the FEAT-012 panel domain coverage check in `commands/roundtable.md` was written as a standalone display step after participant resolution. At the exp50 dogfood (specs session with `--participants product-manager,ux-researcher` on a technical project) the orchestrator read the instruction but never rendered the warning — the same display-only-step failure class as BUG-013 (five contributing factors documented in `.claude/s2s-development.md`; a display with no artifact and no anchor gets dropped under token pressure).
+
+**Fix applied (2026-07-12, two attempts)**:
+1. First attempt moved the warning inside the "Display session start" block. The exp50 re-test showed a non-interactive run skipping the WHOLE session-start display, warning included — the display layer as such is unreliable.
+2. Final fix: two carriers. **Artifact (mandatory)**: with `PANEL_WARNING == true` the session file is created with the panel entry in `validation.warnings` (surfaced by `/s2s:session:status` / `validate`); **display (best-effort)**: the ⚠ line stays in the session-start block. Same lesson as BUG-013/FIX-S1: persist to a file, don't trust display-only steps.
+
+**Tasks**:
+- [x] roundtable.md: check sets `PANEL_WARNING`; warning line embedded in the session-start block.
+- [x] roundtable.md: session skeleton persists the panel entry in `validation.warnings` (mandatory carrier).
+- [x] Re-test on exp50 (scenario 1a repeat with the patched plugin): `validation.warnings` populated in the session file.
+
+**Acceptance criteria**:
+- [x] Non-technical specs/design panel leaves the warning in `validation.warnings` at session creation (artifact carrier — verified exp50 re-test, 2026-07-12).
+- [ ] Display carrier renders when the session-start block renders (best-effort; observed skipped in non-interactive runs).
+
+**Related**: FEAT-012 (introduced the check), BUG-013 (same runtime-skip class), VKT-035.
+
+---
+
 ### FEAT-004: Enhanced hybrid workspace support
 
 **Status**: planned | **Created**: 2026-01-29 | **Priority**: medium | **Origin**: Vektra project feedback
