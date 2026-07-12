@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-07-12 (v0.8.0 dogfood on exp50 complete: BUG-025, FEAT-012, FEAT-013 verified and completed; BUG-026 found, fixed and re-verified in-cycle; TECH-013 carry-over acceptance closed; baseline at test-baselines/v0.8.0-dogfood.md)
+**Updated**: 2026-07-12 (v0.8.0 RELEASED — tag on main, milestone #14 closed; TECH-014 dogfood-e2e procedure filed+shipped; previously: BUG-025, FEAT-012, FEAT-013 verified and completed; BUG-026 found, fixed and re-verified in-cycle; TECH-013 carry-over acceptance closed; baseline at test-baselines/v0.8.0-dogfood.md)
 **Format**: Work items for active development
 
 ---
@@ -1643,6 +1643,24 @@ The session YAML file was likely 400-600+ lines.
 **Known limitation** (not a gate): the display carrier is best-effort; observed skipped in non-interactive runs. The artifact carrier is the contract.
 
 **Related**: FEAT-012 (introduced the check), BUG-013 (same runtime-skip class), VKT-035.
+
+---
+
+### TECH-014: Reusable e2e dogfood harness (lean)
+
+**Status**: completed | **Created**: 2026-07-12 | **Completed**: 2026-07-12 | **Priority**: medium | **Origin**: v0.8.0 exp50 dogfood (first piloted run)
+
+**Context**: every cycle ends with a synthetic dogfood, but until v0.8.0 the process lived in per-cycle runbooks and session memory. The v0.8.0 run (first piloted via local tmux) produced transferable mechanics worth versioning: fixture design rules, scenario derivation from proposed_tests, kitty-submit/tmux driving quirks, and the verification-source table (files + transcript JSONL, never the pane scrollback). A fully scripted e2e was evaluated and rejected: roundtables are interactive and non-deterministic, driving requires judgment; what is deterministic is the transport and the procedure.
+
+**Shipped (2026-07-12)**: `skills/dev-testing/references/dogfood-e2e.md` (NOT SHIPPED with the plugin) — invariants, runbook template, user-driven and piloted modes, verification sources, transport-helper spec (tm.sh/watch.sh) as appendix.
+
+**Tasks**:
+- [x] Procedure reference in dev-testing + SKILL.md registration.
+- [x] Transport helper promoted to the contributor's infra tooling (external repo; the appendix here is the authoritative spec).
+
+**Deliberately NOT built** (revisit only on real demand): headless driver (`claude -p` cannot answer AskUserQuestion), Agent-SDK-based automation, scenario auto-generation.
+
+**Related**: test-baselines/v0.8.0-dogfood.md (first execution), decision record D3 (lean dogfood policy).
 
 ---
 
