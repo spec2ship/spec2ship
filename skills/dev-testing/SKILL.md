@@ -47,6 +47,7 @@ Total: **32 checks**
 | `edge-scenarios.md` | EDGE-* scenario definitions |
 | `roundtable-tests.md` | Test baseline for TECH-002 refactoring |
 | `extension-guide.md` | How to add new checks (templates included) |
+| `dogfood-e2e.md` | End-of-cycle dogfood procedure: fixture rules, runbook template, piloted-tmux driving mechanics, verification sources (TECH-014) |
 
 ## Integration
 
