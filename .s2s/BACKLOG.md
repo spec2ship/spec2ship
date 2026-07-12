@@ -1622,6 +1622,25 @@ The session YAML file was likely 400-600+ lines.
 
 ---
 
+### BUG-026: Panel coverage warning skipped at runtime (display-only step)
+
+**Status**: in_progress | **Created**: 2026-07-12 | **Priority**: medium | **Target**: v0.8.0 | **Origin**: exp50 dogfood scenario 1a (VKT-035 verdict FAIL)
+
+**Context**: the FEAT-012 panel domain coverage check in `commands/roundtable.md` was written as a standalone display step after participant resolution. At the exp50 dogfood (specs session with `--participants product-manager,ux-researcher` on a technical project) the orchestrator read the instruction but never rendered the warning — the same display-only-step failure class as BUG-013 (five contributing factors documented in `.claude/s2s-development.md`; a display with no artifact and no anchor gets dropped under token pressure).
+
+**Fix applied (2026-07-12)**: the check now only sets `PANEL_WARNING = true`; the warning text moved INSIDE the "Display session start" block (which demonstrably renders at runtime), with a "YOU MUST display this block (including the warning line...)" reinforcement. The warning rides a display that already happens instead of being its own skippable step.
+
+**Tasks**:
+- [x] roundtable.md: check sets `PANEL_WARNING`; warning line embedded in the session-start block.
+- [x] Re-test on exp50 (scenario 1a repeat with the patched plugin): warning rendered at session start.
+
+**Acceptance criteria**:
+- [x] Non-technical specs/design panel produces the visible warning at session start (verified exp50 re-test, 2026-07-12).
+
+**Related**: FEAT-012 (introduced the check), BUG-013 (same runtime-skip class), VKT-035.
+
+---
+
 ### FEAT-004: Enhanced hybrid workspace support
 
 **Status**: planned | **Created**: 2026-01-29 | **Priority**: medium | **Origin**: Vektra project feedback

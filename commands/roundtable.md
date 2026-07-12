@@ -191,13 +191,7 @@ Read `.s2s/config.yaml` and extract:
 2. `.s2s/config.yaml` `roundtable.participants.by_workflow_type[workflow_type]` (if set).
 3. `PROFILE.participants.default`.
 
-**Panel domain coverage check (VKT-035)** — after resolution, IF `workflow_type` is `specs` or `design` AND the resolved panel contains NO technical role (none of: `software-architect`, `technical-lead`, `devops-engineer`, `security-champion`, `claude-code-expert`):
-
-    ⚠️ Panel has no technical role: feasibility and technical constraints
-    may go unchallenged. Add one via --participants or config.yaml
-    (roundtable.participants.by_workflow_type.{workflow_type}).
-
-Warn only — do NOT block session creation.
+**Panel domain coverage check (VKT-035)** — after resolution, IF `workflow_type` is `specs` or `design` AND the resolved panel contains NO technical role (none of: `software-architect`, `technical-lead`, `devops-engineer`, `security-champion`, `claude-code-expert`): set `PANEL_WARNING = true`. Warn only — do NOT block session creation. The warning text is rendered inside the "Display session start" block below (BUG-026: a standalone display step here gets skipped at runtime; the session-start block is always rendered, so the warning rides it).
 
 ## Auto-detect strategy (if not specified)
 
@@ -399,6 +393,8 @@ linked_sessions: {}
 
 ## Display session start
 
+**YOU MUST display this block** (including the warning line when `PANEL_WARNING == true` — do not drop it):
+
     Roundtable Session Started
     ═══════════════════════════
 
@@ -407,6 +403,11 @@ linked_sessions: {}
     Strategy: {strategy}
     Participants: {list}
     Workflow: {workflow_type}
+    {IF PANEL_WARNING}
+    ⚠️  Panel has no technical role: feasibility and technical constraints
+        may go unchallenged. Add one via --participants or config.yaml
+        (roundtable.participants.by_workflow_type.{workflow_type}).
+    {/IF}
 
     Starting discussion...
 
