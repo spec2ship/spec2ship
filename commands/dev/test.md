@@ -1,7 +1,7 @@
 ---
 description: Run integration tests on s2s plugin. Tests session validation (VAL-RT-*), resume capability (RES-*) and edge cases (EDGE-*).
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(rm:*), Read, Write, Glob, Task
-argument-hint: [--validate] [--resume] [--edge] [--all] [--session <path>] [--cleanup]
+argument-hint: "[--validate] [--resume] [--edge] [--all] [--session <path>] [--cleanup]"
 ---
 
 # Development Test

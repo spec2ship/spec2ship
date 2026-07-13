@@ -1,7 +1,7 @@
 ---
 description: Design technical architecture through a roundtable discussion. Reads requirements.md and produces architecture documentation. Auto-detects active sessions.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Bash(grep:*), Read, Write, Edit, Glob, Task, AskUserQuestion
-argument-hint: [--skip-roundtable] [--focus components|api|deployment] [--strategy debate|standard|consensus-driven] [--verbose] [--interactive] [--diagnostic] [--new] [--session <id>]
+argument-hint: "[--skip-roundtable] [--focus components|api|deployment] [--strategy debate|standard|consensus-driven] [--verbose] [--interactive] [--diagnostic] [--new] [--session <id>]"
 skills: roundtable-execution, roundtable-strategies, arc42-templates, madr-decisions
 ---
 

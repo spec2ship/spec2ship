@@ -1,7 +1,7 @@
 ---
 description: Mark the current implementation plan as closed. Optionally merge the branch.
 allowed-tools: Bash(git:*), Bash(ls:*), Read, Write, Edit, Glob, TodoWrite, AskUserQuestion
-argument-hint: [plan-id] [--merge] [--no-delete-branch]
+argument-hint: "[plan-id] [--merge] [--no-delete-branch]"
 ---
 
 # Close Implementation Plan

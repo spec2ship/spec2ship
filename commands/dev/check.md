@@ -1,7 +1,7 @@
 ---
 description: Run development checks on s2s plugin code. Verifies instruction quality (INST-*) and cross-command consistency (CONS-*).
 allowed-tools: Bash(pwd:*), Bash(ls:*), Read, Glob, Grep, Task
-argument-hint: [--instructions] [--consistency] [--all]
+argument-hint: "[--instructions] [--consistency] [--all]"
 ---
 
 # Development Check

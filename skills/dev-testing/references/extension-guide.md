@@ -330,7 +330,7 @@ Commands should have complete frontmatter with description, allowed-tools, and a
 ---
 description: Does something useful
 allowed-tools: Bash(pwd:*), Read, Write
-argument-hint: [--flag] <required>
+argument-hint: "[--flag] <required>"
 ---
 ```
 

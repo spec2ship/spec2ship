@@ -1,7 +1,7 @@
 ---
 description: Validate session consistency with unified structural, strategy, and diagnostic checks.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(grep:*), Read, Edit, Glob, Task, AskUserQuestion
-argument-hint: [session-id]
+argument-hint: "[session-id]"
 ---
 
 # Validate Session

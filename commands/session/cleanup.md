@@ -1,7 +1,7 @@
 ---
 description: Remove old or abandoned sessions to free up space.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(rm:*), Bash(date:*), Read, Glob, AskUserQuestion
-argument-hint: [--older-than 7d|30d|90d] [--status closed] [--dry-run]
+argument-hint: "[--older-than 7d|30d|90d] [--status closed] [--dry-run]"
 ---
 
 # Cleanup Sessions

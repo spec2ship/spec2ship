@@ -1,7 +1,7 @@
 ---
 description: Generate implementation plans. Smart behavior - reads from specs/architecture docs if available, otherwise prompts for topic. Auto-detects active plans.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Bash(git:*), Bash(grep:*), Read, Write, Edit, Glob, Task, AskUserQuestion, TodoWrite
-argument-hint: [--component <name>] [--all] [--with-branches] [--new] [--session <id>]
+argument-hint: "[--component <name>] [--all] [--with-branches] [--new] [--session <id>]"
 ---
 
 # Generate Implementation Plans
