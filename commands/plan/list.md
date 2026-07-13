@@ -1,7 +1,7 @@
 ---
 description: List all implementation plans with their status.
 allowed-tools: Bash(ls:*), Read, Glob, Grep
-argument-hint: [--status active|closed]
+argument-hint: "[--status active|closed]"
 ---
 
 # List Implementation Plans

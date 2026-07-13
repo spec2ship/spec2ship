@@ -1,7 +1,7 @@
 ---
 description: Close a session and mark it as closed. Works with any workflow type (specs, design, brainstorm, roundtable).
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(date:*), Bash(grep:*), Read, Write, Edit, Glob, AskUserQuestion
-argument-hint: [session-id]
+argument-hint: "[session-id]"
 ---
 
 # Close Session

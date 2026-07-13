@@ -1,7 +1,7 @@
 ---
 description: List all sessions with their status, workflow type, and progress.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(grep:*), Read, Glob
-argument-hint: [--status active|closed] [--type specs|design|brainstorm|roundtable]
+argument-hint: "[--status active|closed] [--type specs|design|brainstorm|roundtable]"
 ---
 
 # List Sessions

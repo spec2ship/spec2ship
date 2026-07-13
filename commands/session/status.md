@@ -1,7 +1,7 @@
 ---
 description: Show detailed status of a specific session or the current session.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Read, Glob
-argument-hint: [session-id]
+argument-hint: "[session-id]"
 ---
 
 # Session Status Detail

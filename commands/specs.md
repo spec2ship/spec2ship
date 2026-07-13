@@ -1,7 +1,7 @@
 ---
 description: Define functional requirements through a roundtable discussion. Reads CONTEXT.md and produces structured requirements.md. Auto-detects active sessions.
 allowed-tools: Bash(pwd:*), Bash(ls:*), Bash(mkdir:*), Bash(date:*), Bash(grep:*), Read, Write, Edit, Glob, Task, AskUserQuestion
-argument-hint: [--skip-roundtable] [--format srs|volere|simple] [--strategy consensus-driven|standard|six-hats] [--participants list] [--verbose] [--interactive] [--diagnostic] [--new] [--session <id>]
+argument-hint: "[--skip-roundtable] [--format srs|volere|simple] [--strategy consensus-driven|standard|six-hats] [--participants list] [--verbose] [--interactive] [--diagnostic] [--new] [--session <id>]"
 skills: roundtable-execution, roundtable-strategies, iso25010-requirements
 ---
 
