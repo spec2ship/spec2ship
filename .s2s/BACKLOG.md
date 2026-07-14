@@ -1,6 +1,6 @@
 # Spec2Ship Backlog
 
-**Updated**: 2026-07-12 (v0.8.0 RELEASED — tag on main, milestone #14 closed; TECH-014 dogfood-e2e procedure filed+shipped; previously: BUG-025, FEAT-012, FEAT-013 verified and completed; BUG-026 found, fixed and re-verified in-cycle; TECH-013 carry-over acceptance closed; baseline at test-baselines/v0.8.0-dogfood.md)
+**Updated**: 2026-07-13 (v0.9.0 cycle opened — headline **FEAT-014** design-to-plan bridge, lean cut VKT-037/038/069. Pre-cycle re-triage: QUAL-001 Context was factually wrong (dev tools DO ship → **BUG-027**); BUG-008 premise narrowed but alive (init writes only `.s2s/local/`); FEAT-007 **superseded** by BUG-025 + FEAT-012; TEST-003 confirmed open, e2e now unblocked by TECH-014. Carry-over filed: **BUG-028**, **TECH-015**. Previously: 2026-07-12 v0.8.0 RELEASED — tag on main, milestone #14 closed; baseline at test-baselines/v0.8.0-dogfood.md)
 **Format**: Work items for active development
 
 ---
@@ -24,9 +24,11 @@
 
 ### QUAL-001: Development tools suite (/s2s:dev:*)
 
-**Status**: in_progress | **Created**: 2026-01-11 | **Updated**: 2026-01-20
+**Status**: in_progress | **Created**: 2026-01-11 | **Updated**: 2026-07-13
 
-**Context**: S2S development requires consistent adherence to patterns and ability to test resume/resilience. Development tools are in the plugin but excluded from release.
+**Context**: S2S development requires consistent adherence to patterns and ability to test resume/resilience. Development tools live in the plugin tree (`commands/dev/`, `agents/dev/`, `skills/dev-testing/`).
+
+**Re-triage (2026-07-13, v0.9.0 pre-cycle)**: the original Context claimed the dev tools were "excluded from release". That was **false** — nothing excluded them: `marketplace.json` declares `"source": "./"` (the whole repo tree is the plugin), `plugin.json` has no `files`/`exclude` field, `.github/workflows/` has no release job and the Makefile states there is no build. The tools ship to every user. The exclusion work is now owned by **BUG-027**; this item keeps only the check-implementation work.
 
 **Structure**:
 ```
@@ -64,19 +66,21 @@ commands/dev/test.md         # /s2s:dev:test
 - [x] Create roundtable-tests.md with test specifications
 - [x] Implement ENV-* checks in dev-validator (7 checks, all tested)
 - [x] Implement VAL-RT-* checks in dev-validator (5 checks, all tested)
-- [ ] Add release exclusion in .github/
+- [~] ~~Add release exclusion in .github/~~ → moved to **BUG-027** (never done; see re-triage above)
 - [ ] Implement RES-RT-* state checks in dev-validator (priority 2)
+
+**RES-RT-\* current state (2026-07-13)**: defined only. The 7 cases are specified in `skills/dev-testing/references/roundtable-tests.md` (RES-RT-001..007, still listed under "Pending — QUAL-001 Priority 2"); `agents/dev/dev-validator.md` has a generic 4-step RES stub with no per-check logic, its `categories` enum does not accept `RES-RT`, and `commands/dev/test.md` maps `--resume` → `["RES"]`. **Same edit as TEST-003's CTX-\*** — both need the dev-validator `categories` enum widened and the RES/EDGE stubs filled. Do them together.
 
 **Acceptance criteria**:
 - [~] `/s2s:dev:check` runs INST-*, CONS-*, ENV-* checks (ENV-* done)
 - [~] `/s2s:dev:test` runs RES-*, EDGE-*, VAL-RT-* tests (VAL-RT-* done)
-- [ ] Tools NOT included in shipped plugin
+- [ ] ~~Tools NOT included in shipped plugin~~ → owned by **BUG-027**
 
 ---
 
 ### TEST-003: Session resilience verification
 
-**Status**: in_progress | **Created**: 2026-01-18 | **Updated**: 2026-01-21 | **Linked to**: TECH-002 Phase 0, BUG-003
+**Status**: in_progress | **Created**: 2026-01-18 | **Updated**: 2026-07-13 | **Linked to**: TECH-002 Phase 0, BUG-003, QUAL-001
 
 **Context**: Roundtable sessions can be interrupted at various points. Need verification that resume works correctly.
 
@@ -84,18 +88,24 @@ commands/dev/test.md         # /s2s:dev:test
 
 **Location correction (2026-06-13 audit)**: written pre-TECH-002. There are no "inline commands" anymore: specs/design/brainstorm are thin launchers and resume logic is unified in `commands/roundtable.md` + `skills/roundtable-execution/references/phase-2-core.md` (§2.2a/§2.3a/§2.4). `session-qa` now exposes STR-*/STRAT-*/DIAG-* (not TRANS-*); CTX-* remain defined-only in `skills/dev-testing/references/roundtable-tests.md`. The live behavioral gap this item still owns (interrupted-round detection + recovery choice on resume) is VKT-007 in the Vektra analysis doc-set.
 
+**Re-triage (2026-07-13, v0.9.0 pre-cycle)**: all four open tasks verified still open against current code. Detail:
+- `agents/validation/session-qa.md` implements STR-001..006, STRAT-D1/D2, DIAG-001..003 — and nothing else. The closest thing to a transition check is STR-002, which validates that an artifact's state *value* is legal for its type, not that a *transition* between states is. No lifecycle/interrupted-round checks.
+- CTX-001..005 are defined (`roundtable-tests.md`, `check-registry.md`) but unimplemented: `dev-validator.md` does not accept a `CTX` category. **Live doc/code contradiction**: `check-registry.md` documents the invocation `/s2s:dev:test --context`, but `commands/dev/test.md` has no such flag. Fix that regardless of the rest.
+- `error-handling.md` is 54 lines: it has fail-fast on write failure, round-level partial recovery, and corruption *detection*. It has no mid-write protocol — no atomic write (temp+rename), no backup, and no reconciliation when `state.json` and the session YAML disagree (they are written by separate Write calls, so a crash between them leaves them divergent with nothing to repair them).
+- The e2e resume tests are now **unblocked**: the procedure that was missing when this item was written now ships (`skills/dev-testing/references/dogfood-e2e.md`, TECH-014) and the manual interruption steps are in `roundtable-tests.md`. This task is now "execute the runbook", not "invent one".
+
 **Tasks**:
 - [x] ~~Align roundtable.md resume logic with inline commands~~ (obsolete: resume unified by TECH-002, no inline path left)
 - [ ] Add state-transition checks to session-qa (current nomenclature: STR-*/STRAT-*/DIAG-*)
 - [x] Define CTX-* checks in roundtable-tests.md (5 checks defined)
-- [ ] Implement CTX-* in dev-validator (verbose dump analysis)
-- [ ] Enhance error-handling.md with mid-write recovery
-- [ ] Run manual end-to-end resume tests (partial: environment verified)
+- [ ] Implement CTX-* in dev-validator (verbose dump analysis) — same edit as QUAL-001's RES-RT-*: widen the `categories` enum, fill the stubs, add the `--context` flag to `test.md`
+- [ ] Enhance error-handling.md with mid-write recovery (atomic write + state.json/session-YAML reconciliation on resume)
+- [ ] Run end-to-end resume tests using the dogfood-e2e runbook (partial: environment verified)
 - [x] Create `skills/dev-testing/references/roundtable-tests.md` (for TECH-002)
 
 **Acceptance criteria**:
 - [ ] Resume works from all 7 critical interruption points
-- [~] STR-*, TRANS-*, CTX-* checks in session-qa (CTX defined, implementation pending)
+- [~] STR-*, CTX-* checks in session-qa (CTX defined, implementation pending; `TRANS-*` never existed post-TECH-002 — nomenclature corrected)
 - [x] Baseline tests documented for TECH-002
 
 ---
@@ -889,42 +899,45 @@ input:
 
 ### BUG-008: init does not configure .gitignore for s2s artifacts
 
-**Status**: planned | **Created**: 2026-01-28 | **Priority**: medium
+**Status**: planned | **Created**: 2026-01-28 | **Updated**: 2026-07-13 | **Priority**: medium
 
-**Context**: `/s2s:init` creates the `.s2s/` directory with config, context, and session files, but never touches `.gitignore`. This means session files, `state.json`, verbose dumps, and other transient artifacts end up tracked (or shown as untracked noise) in git. The init command should append s2s-specific rules to `.gitignore`, whether git was already initialized or not.
+**Context**: `/s2s:init` creates the `.s2s/` directory with config, context, and session files. Transient artifacts (session files, `state.json`, verbose dumps, caches) end up tracked, or shown as untracked noise, in the user's git.
 
-**Proposed .gitignore block**:
+**Re-triage (2026-07-13, v0.9.0 pre-cycle)**: the premise narrowed but did NOT go away. "Never touches `.gitignore`" is now false — `commands/init.md` §5.4b (shipped with TECH-013) appends `.s2s/local/`, idempotently, creating the file if absent. But that block is **privacy-only**, not artifact hygiene: every transient artifact below is still unignored. So the mechanism exists and the four original tasks are mechanically solved; what remains is **widening the content of the block**.
+
+**Transient artifacts left unignored today** (verified against current code):
+
+| Path | Written by |
+|------|------------|
+| `.s2s/state.json` | `commands/roundtable.md`, `phase-2-core.md` |
+| `.s2s/sessions/**` (session YAML, snapshots, `rounds/*.yaml` verbose dumps, `*-summary.md`) | `commands/roundtable.md` |
+| `.s2s/sessions/*.cache`, `.s2s/sessions/token-tracker.cache` | `token-tracker.sh` |
+| `.s2s/context-window.json` | `templates/statusline/statusline.sh` — **rewritten on every statusline render**, so this is the loudest noise source |
+| `.s2s/qa/evidence/*.yaml` | `agents/validation/session-qa.md`, `commands/session/validate.md` |
+
+Tracked-by-design and NOT to be ignored: `config.yaml`, `CONTEXT.md`, `README.md`, `BACKLOG.md`, `ideas.md`, `workspace.yaml`, `requirements.md`, `architecture.md`, `decisions/`, `plans/`.
+
+**Corrected .gitignore block** (denylist, replaces the stale allowlist that predated `state.json`, `context-window.json`, `qa/` and `.s2s/local/`):
 ```gitignore
-# Spec2Ship - local state and sessions
-.s2s/*
-
-# Track project artifacts (specs, decisions, backlog, architecture)
-!.s2s/BACKLOG.md
-!.s2s/CONTEXT.md
-!.s2s/README.md
-!.s2s/config.yaml
-!.s2s/workspace.yaml
-!.s2s/requirements.md
-!.s2s/architecture.md
-!.s2s/ideas.md
-!.s2s/decisions/
-!.s2s/decisions/**
-!.s2s/plans/
-!.s2s/plans/**
-# sessions/ intentionally NOT tracked - temporary working artifacts
+# Spec2Ship - local state, sessions, caches
+.s2s/sessions/
+.s2s/state.json
+.s2s/context-window.json
+.s2s/qa/
+.s2s/local/
 ```
+The allowlist form (`.s2s/*` + `!` exceptions) is what the spec2ship repo itself uses, but it is fragile in user projects: every new tracked artifact type needs a new `!` line, and a forgotten one silently disappears from git. Prefer the denylist.
 
 **Tasks**:
-- [ ] Add gitignore update step to `commands/init.md`
-- [ ] If `.gitignore` exists, append the block (with a blank line separator); if not, create it
-- [ ] Make the step idempotent (skip if s2s block already present)
-- [ ] Handle `--workspace` mode (workspace.yaml is only relevant there)
+- [ ] Widen `commands/init.md` §5.4b from the `.s2s/local/`-only block to the full block above (keep the existing idempotent append/create logic)
+- [ ] Update the init completion banner (it still describes `.gitignore` as local-only)
+- [ ] Make the widening idempotent for projects initialized under TECH-013 (block already contains `.s2s/local/`)
+- [ ] Align `skills/s2s-guide/references/workspace.md` ("Never Version" list), which already documents the intent but nothing enforces it
 
 **Acceptance criteria**:
-- [ ] After `init`, `.gitignore` contains the s2s block
-- [ ] Running `init` twice does not duplicate the block
-- [ ] `git status` shows no s2s transient files (state.json, sessions/*, verbose dumps)
-- [ ] Project artifacts (BACKLOG.md, CONTEXT.md, plans/, decisions/) remain trackable
+- [ ] After `init`, `git status` is clean of s2s transient files (state.json, sessions/*, context-window.json, qa/, caches)
+- [ ] Running `init` twice does not duplicate the block, and upgrading a TECH-013-era project widens it in place
+- [ ] Project artifacts (BACKLOG.md, CONTEXT.md, plans/, decisions/, requirements.md, architecture.md) remain trackable
 
 ---
 
@@ -1664,6 +1677,114 @@ The session YAML file was likely 400-600+ lines.
 
 ---
 
+### FEAT-014: Design-to-plan bridge (pre-implementation consistency gate)
+
+**Status**: planned | **Created**: 2026-07-13 | **Priority**: high | **Target**: v0.9.0 (headline) | **Origin**: Vektra analysis — decision record D1, critical review 06
+
+**Context**: nothing in s2s covers the transition from design to implementation. After 6 design sessions the Vektra team had documents that captured the *what* and the *how* but not enough to start coding: they ran 7 spec-completion steps and a custom 4-agent consistency review entirely outside s2s, tracked only in an unversioned doc. That review found **3 blockers and 33 warnings in documents the workflow treated as complete** (VKT-008). The cost argument from the source: "meglio trovarli ora (costo: un'ora di review) che durante l'implementazione" — the actual run took ~5 minutes.
+
+The gate is explicitly **not a roundtable**: the decisions are already taken; the gate verifies they are coherent, mutually consistent and implementable.
+
+**Scope — the lean cut (VKT-037, VKT-038, VKT-069)**:
+
+| Finding | What it buys |
+|---------|--------------|
+| VKT-037 | the phase itself: a pre-implementation audit for implementation-blocking gaps between `/s2s:design` and `/s2s:plan` |
+| VKT-038 | the consistency gate: referential integrity across ID families (REQ/ARCH/NFR/QS/SC/ADR/ERR/BR), cross-document contradiction detection, BLOCKER/WARNING/INFO taxonomy, plus a cheap incremental re-check after fixes |
+| VKT-069 | open-question closure: an implementation-blocking OQ (in Vektra, the ORM decision) stayed open through 6 sessions and blocked the DB schema and all data-access code. `/s2s:plan` should surface it before generating tasks |
+
+**Explicitly OUT of scope** (stay parked in the `ideas.md` plan-integration umbrella; do not let them creep in):
+- **VKT-039** — validation/acceptance scenarios as a first-class artifact with 5 coverage matrices. In Vektra this was ~1300 lines / 48 scenarios. The critical review (06) kept only 037/038/069 as the genuine bridge; 039 is the Vektra-scale half.
+- VKT-040 (import-boundary check), VKT-041 (decision resolution states), VKT-057, VKT-072 (roundtable sequencing guidance).
+
+**Orchestration constraint (VKT-071) — read before designing this**: s2s subagents report only to the caller and **cannot talk to each other**. The Vektra gate that worked used 4 *communicating* agents (the ref-checker finishes first and broadcasts; the schema→api and api→schema tracers exchange findings by DM; a lead consolidates and dedups), and cross-confirmation from two directions is what validated 2 of its 3 blockers. That pattern is **not expressible** with s2s subagents. It must be re-expressed as **sequential orchestrator-mediated passes**: each pass returns its findings to the orchestrator, which feeds pass N-1's output into pass N's input. Do not design an agent team.
+
+**Open questions** (each with a recommended answer, to be confirmed at design time):
+
+1. *Command surface: a new command, or a gate inside `/s2s:plan`?* — **Recommended: a distinct command** (e.g. `/s2s:review`) run between design and plan. It is not a roundtable, and folding it into `plan.md` would make `plan` refuse to run on its own output. `plan` then *consumes* its report.
+2. *Blocking or advisory?* — **Recommended: advisory, escalating on BLOCKERs.** `/s2s:plan` warns and asks for confirmation when the latest review report has open BLOCKER findings; it never hard-refuses. Matches the "lean core + optional opt-in rigor" principle that gates the whole lean path.
+3. *Where do open questions live?* — **Recommended: reuse the existing `open_questions` artifacts**, adding a `blocking: true|false` field and a resolution state. No new file, no new ID family.
+4. *Incremental re-check after fixes?* — **Recommended: yes.** A single lightweight ref-checker pass (`--quick`); the full multi-pass gate only on demand. The source is explicit that a full re-review after fixes yields diminishing returns.
+
+**Tasks**:
+- [ ] ADR: command surface + blocking policy (open questions 1-2)
+- [ ] Define the review report artifact: path, schema, BLOCKER/WARNING/INFO taxonomy
+- [ ] Pass 1 — referential integrity: orphan and dangling refs across all ID families
+- [ ] Pass 2 — cross-document consistency: contradictions between `requirements.md`, `architecture.md` and the ADRs
+- [ ] Pass 3 — implementability: open blocking questions, unresolved decisions
+- [ ] Wire `/s2s:plan` to read the report and surface open BLOCKERs before generating tasks (VKT-069)
+- [ ] `--quick` incremental mode (ref-checker pass only)
+- [ ] Dogfood-verify on a fixture seeded with a cross-document contradiction and a blocking open question
+
+**Acceptance criteria**:
+- [ ] A design output with a seeded cross-document contradiction yields a BLOCKER finding
+- [ ] An implementation-blocking open question is surfaced before `/s2s:plan` generates tasks
+- [ ] The gate runs entirely through orchestrator-mediated passes — no agent-to-agent communication assumed
+- [ ] `--quick` re-check after fixes runs the ref-checker alone
+
+**Related**: decision record D1 ("later: design-to-plan bridge if still wanted"), critical review 06 ("keep only the design-to-plan bridge (VKT-037/038/069) as genuine 1.0"), FEAT-012 (its Step 2.9b contradiction sweep is the in-session sibling of pass 2), TECH-015.
+
+---
+
+### BUG-027: Development tools ship to end users
+
+**Status**: planned | **Created**: 2026-07-13 | **Priority**: medium | **Target**: v0.9.0 | **Origin**: v0.9.0 pre-cycle re-triage
+
+**Context**: `commands/dev/check.md`, `commands/dev/test.md`, `agents/dev/dev-validator.md` and `skills/dev-testing/**` (including the `dogfood-e2e.md` runbook) are installed into **every user's plugin**. Nothing excludes them:
+
+- `.claude-plugin/marketplace.json` declares `"source": "./"` — the whole repo tree *is* the plugin.
+- `.claude-plugin/plugin.json` has no `files` / `exclude` / `ignore` field.
+- `.github/workflows/` contains only `tests.yml`; there is no release or packaging job.
+- The Makefile states explicitly that there is no build step.
+
+The only "exclusion" is prose *inside* the dev files themselves (`NOT SHIPPED - development only`), which excludes nothing. QUAL-001 has carried the acceptance criterion "Tools NOT included in shipped plugin" since January and its Context asserted the exclusion was already in place; both were wrong. DEBT-002 (separate dev-tools repo) is the radical fix and stays deferred to 1.0 — this item is the cheap one that stops the leak now.
+
+**Tasks**:
+- [ ] Check whether the plugin manifest schema supports a path filter or exclude list; if it does, prefer it (zero build, zero CI surface)
+- [ ] Otherwise add a release job in `.github/workflows/` that publishes a stripped tree (drop `commands/dev/`, `agents/dev/`, `skills/dev-testing/`)
+- [ ] Verify with a fresh `/plugin install` that no `/s2s:dev:*` command, dev agent or dev skill is exposed
+
+**Acceptance criteria**:
+- [ ] A freshly installed s2s exposes no dev command, dev agent or dev skill
+- [ ] Contributors working on `develop` keep the tools
+
+**Related**: QUAL-001 (owned this criterion, now delegated here), DEBT-002 (radical fix, deferred to 1.0)
+
+---
+
+### BUG-028: Template HTML comments leak into generated plans
+
+**Status**: planned | **Created**: 2026-07-13 | **Priority**: low | **Target**: v0.9.0 | **Origin**: v0.8.0 exp50 dogfood carry-over
+
+**Context**: `templates/plan.md` carries HTML comments that are **authoring instructions for the generator**, e.g. `<!-- Format: - REQ-XXX: description @.s2s/requirements.md -->` and `<!-- Source types: backlog (FEAT-*, BUG-*...) -->`. `commands/plan.md` reads the template and replaces the `{placeholders}`, but never strips the comments — so the instructions are copied verbatim into every generated plan file in the user's `.s2s/plans/`. Observed in the exp50 dogfood output.
+
+**Tasks**:
+- [ ] Strip the authoring comments in `commands/plan.md` when rendering the template (or move them out of the template into the command's own instructions)
+- [ ] Check the same class of leak in the other comment-carrying templates (`templates/project/{BACKLOG,ideas,CONTEXT,README}.md`, `templates/workspace/CONTEXT.md`) — those are copied to the user at `init`, where a comment may be legitimate guidance rather than a leak; decide per template
+
+**Acceptance criteria**:
+- [ ] Generated plan files contain no template authoring comments
+
+---
+
+### TECH-015: Verify FEAT-012 contradiction sweep (Step 2.9b gate 6) at runtime
+
+**Status**: planned | **Created**: 2026-07-13 | **Priority**: medium | **Target**: v0.9.0 | **Origin**: v0.8.0 exp50 dogfood carry-over
+
+**Context**: FEAT-012 added an independent cross-round contradiction sweep over the full artifact set, run before conclude is accepted (`phase-2-core.md` Step 2.9b, gate 6). In the exp50 dogfood it was verified **only by static reading** — no seeded contradiction ever made it fire at runtime. Given BUG-013 and BUG-026 (steps without an artifact carrier get silently skipped under token pressure), an unverified gate is a plausible silent no-op, and this one is a *conclude gate*: if it no-ops, the session concludes with contradictions in the output and nobody notices.
+
+**Tasks**:
+- [ ] Seed a cross-round contradiction in the v0.9.0 dogfood fixture (an artifact approved in round N contradicted by one in round N+2)
+- [ ] Confirm gate 6 rejects conclude and surfaces the contradiction
+- [ ] If it no-ops: give it an artifact carrier, as BUG-026 did for the panel warning
+
+**Acceptance criteria**:
+- [ ] Gate 6 demonstrably rejects conclude on a seeded contradiction in a real session
+
+**Related**: FEAT-012 (introduced the gate), BUG-013 / BUG-026 (the silent-skip failure class), FEAT-014 (its pass 2 is the out-of-session sibling — verify both on the same fixture)
+
+---
+
 ### FEAT-004: Enhanced hybrid workspace support
 
 **Status**: planned | **Created**: 2026-01-29 | **Priority**: medium | **Origin**: Vektra project feedback
@@ -1925,11 +2046,19 @@ ARCH-001:
 
 ---
 
-### FEAT-007: Proactive documentation completeness
+### FEAT-007: Proactive documentation completeness (SUPERSEDED by BUG-025 + FEAT-012)
 
-**Status**: planned | **Created**: 2026-02-03 | **Priority**: medium | **⚠️ NEEDS REVIEW**
+**Status**: superseded | **Created**: 2026-02-03 | **Superseded**: 2026-07-13 | **Priority**: medium
 
-> **Nota**: Questa proposta è in fase esplorativa. L'approccio descritto potrebbe non essere quello finale. Valutare alternative prima di implementare.
+> **Superseded (2026-07-13, v0.9.0 pre-cycle re-triage)**. This item carried a `NEEDS REVIEW` flag and a first task reading "esplorare approcci alternativi". The exploration was settled by the Vektra decision record, in favour of an approach this item never listed. Specifically:
+>
+> - **The "derivati / auto-generabile ✅" row shipped in v0.8.0 (BUG-025)**: traceability appendix (from `related_to`), glossary and 5 Mermaid diagram types are now emitted unconditionally by `skills/output-generation/references/design-arc42.md`, with a mandatory fidelity check in `output-generation/SKILL.md` guarding against silent YAML→Markdown loss.
+> - **The "facilitator gap awareness" row shipped in v0.8.0 (FEAT-012)** for requirements coverage: baseline `BASE-*` ingestion plus a conclude gate that rejects conclusion while baseline items are uncovered (`phase-2-core.md` Step 2.9b).
+> - **Its acceptance criterion was deliberately inverted.** FEAT-007 asked for "no empty/TBD sections in output". BUG-025 chose the opposite: always emit all 12 arc42 sections, with an explicit `*Not covered in this design session.*` placeholder where the session has no data. Making the gap **visible in the document** is now the chosen mechanism for this item's own goal ("the user should not have to notice what's missing").
+>
+> What is genuinely unbuilt is only `/s2s:doc-status` + the documentation-profile schema (minimal/standard/enterprise) + profile inference — options B and C below, whose premise (the user cannot see what is missing) no longer holds. Not worth reviving as written. If a real need resurfaces, file a fresh item with the current baseline as its starting point.
+>
+> Original body kept below for the record.
 
 **Problema**: Oggi ogni comando è isolato. L'utente deve sapere cosa manca (tracciabilità, diagrammi, glossario, NFR, etc.) quando il plugin ha tutte le informazioni per capirlo autonomamente.
 
